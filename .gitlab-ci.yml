@@ -1,0 +1,16 @@
+image: python:3.8
+
+before_script:
+  - export GITLAB_TOKEN=$CI_JOB_TOKEN
+  - export GITLAB_USERNAME='gitlab-ci-token'
+  - python -m venv venv
+  - source venv/bin/activate
+  - pip install .[dev]
+
+stages:
+  - lint
+  - test
+
+linting:
+  stage: lint
+  script: flake8 src

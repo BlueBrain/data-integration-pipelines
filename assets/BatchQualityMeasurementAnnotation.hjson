@@ -1,0 +1,23 @@
+{
+    id: forge.format("identifier", "annotations", x["name"])
+    distribution: forge.attach(x['name'], content_type='application/tsv')
+    name: f"Quality Measurement Annotations"
+    description: This resource contains quality measurement annotations of a batch of neuron morphologies
+    type: [
+        "Annotation", 
+        "BatchQualityMeasurementAnnotation"
+    ]
+    hasTarget: '''list({
+        "type": "AnnotationTarget",
+        "hasSource": {
+            "id": r.id,
+            "type": "NeuronMorphology"
+        },
+        "hasSelector": {
+            "type": "FragmentSelector",
+            "value": f"?rev={r._store_metadata._rev}",
+            "conformsTo": "https://bluebrainnexus.io/docs/delta/api/resources-api.html#fetch"
+        }  
+    } for r in x["morphologies"])'''
+}
+

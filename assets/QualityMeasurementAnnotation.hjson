@@ -1,0 +1,258 @@
+{
+    id: forge.format("identifier", "annotations", x["name"])
+    distribution: [
+        forge.attach(f"../../data/raw/morpho/validation_report/{x['name']}.json", content_type="application/json")
+        forge.attach(f"../../data/raw/morpho/validation_report/{x['name']}.tsv", content_type="application/tsv")
+    ]
+    name: f"Quality Measurement Annotation of {x['name']}"
+    description: f"This resources contains quality measurement annotations of the neuron morphology {x['name']}"
+    type: [
+        "Annotation", 
+        "QualityMeasurementAnnotation"
+    ]
+    hasTarget: {
+        type: AnnotationTarget
+        hasSource: {
+            id: x["neuron_morphology_id"]
+            type: NeuronMorphology
+            _rev: x['neuron_morphology_rev']
+        }
+    }
+    hasBody: [
+    {
+        type: [ 
+            "QualityMeasurement",
+            "AnnotationBody"
+        ]
+        isMeasurementOf: {
+          id: "https://neuroshapes.org/danglingBranchMetric"
+          type: Metric
+          label: Dangling Branch Metric
+        }
+        count: len(x["neurites"]["dangling_branch"])
+        value: '''list({
+            "valueX": i[0],
+            "valueY": i[1],
+            "valueZ": i[2],
+            "neuriteDiameter": {
+                "value": i[3],
+                "unitCode": "μm"
+            },
+            "type": "Vector3D"
+          } for i in x["neurites"]["dangling_branch"])'''  
+    },
+    {
+        type: [ 
+            "QualityMeasurement",
+            "AnnotationBody"
+        ]
+        isMeasurementOf: {
+          id: "https://neuroshapes.org/rootNodeJumpMetric"
+          type: Metric
+          label: Root Node Jump Metric
+        }
+        count: len(x["neurites"]["root_node_jump"])
+        value: '''list({
+            "valueX": i[0],
+            "valueY": i[1],
+            "valueZ": i[2],
+            "type": "Vector3D"
+          } for i in x["neurites"]["root_node_jump"])'''  
+    },
+    {
+        type: [ 
+            "QualityMeasurement",
+            "AnnotationBody"
+        ]
+        isMeasurementOf: {
+          id: "https://neuroshapes.org/zJumpMetric"
+          type: Metric
+          label: Z Jump Metric
+        }
+        count: len(x["neurites"]["z_jumps"])
+        value: '''list({
+            "valueX": i[0],
+            "valueY": i[1],
+            "valueZ": i[2],
+            "neuriteDiameter": {
+                "value": i[3],
+                "unitCode": "μm"
+            },
+            "type": "Vector3D"
+          } for i in x["neurites"]["z_jumps"])'''  
+    },
+    {
+        type: [ 
+            "QualityMeasurement",
+            "AnnotationBody"
+        ]
+        isMeasurementOf: {
+          id: "https://neuroshapes.org/narrowStartMetric"
+          type: Metric
+          label: Narrow Start Metric
+        }
+        count: len(x["neurites"]["narrow_start"])
+        value: '''list({
+            "valueX": i[0],
+            "valueY": i[1],
+            "valueZ": i[2],
+            "type": "Vector3D"
+          } for i in x["neurites"]["narrow_start"])'''  
+    },
+    {
+        type: [ 
+            "QualityMeasurement",
+            "AnnotationBody"
+        ]
+        isMeasurementOf: {
+          id: "https://neuroshapes.org/fatEndMetric"
+          type: Metric
+          label: Fat End Metric
+        }
+        count: len(x["neurites"]["fat_ends"])
+        value: '''list({
+            "valueX": i[0],
+            "valueY": i[1],
+            "valueZ": i[2],
+            "type": "Vector3D"
+          } for i in x["neurites"]["fat_ends"])'''  
+    },
+    {
+        type: [ 
+            "QualityMeasurement",
+            "AnnotationBody"
+        ]
+        isMeasurementOf: {
+          id: "https://neuroshapes.org/zeroLengthSegmentMetric"
+          type: Metric
+          label: Zero Length Segment Metric
+        }
+        count: len(x["neurites"]["has_all_nonzero_segment_lengths"])
+        value: '''list({
+            "sectionId": i[0],
+            "segmentId": i[1]
+          } for i in x["neurites"]["has_all_nonzero_segment_lengths"])'''  
+    },
+    {
+        type: [ 
+            "QualityMeasurement",
+            "AnnotationBody"
+        ]
+        isMeasurementOf: {
+          id: "https://neuroshapes.org/narrowNeuriteSectionMetric"
+          type: Metric
+          label: Narrow Neurite Section Metric
+        }
+        count: len(x["neurites"]["narrow_neurite_section"])
+        value: '''list({
+            "valueX": i[0],
+            "valueY": i[1],
+            "valueZ": i[2],
+            "neuriteDiameter": {
+                "value": i[3],
+                "unitCode": "μm"
+            },
+            "type": "Vector3D"
+          } for i in x["neurites"]["narrow_neurite_section"])'''  
+    },
+    {
+        type: [ 
+            "QualityMeasurement",
+            "AnnotationBody"
+        ]
+        isMeasurementOf: {
+          id: "https://neuroshapes.org/singleChildMetric"
+          type: Metric
+          label: Single Child Metric
+        }
+        count: len(x["bifurcations"]["single_child"])
+        value: '''list({
+            "valueX": i[0],
+            "valueY": i[1],
+            "valueZ": i[2],
+            "type": "Vector3D"
+          } for i in x["bifurcations"]["single_child"])'''  
+    },
+    {
+        type: [ 
+            "QualityMeasurement",
+            "AnnotationBody"
+        ]
+        isMeasurementOf: {
+          id: "https://neuroshapes.org/multifurcationMetric"
+          type: Metric
+          label: Multifurcation Metric
+        }
+        count: len(x["bifurcations"]["multifurcation"])
+        value: '''list({
+            "valueX": i[0],
+            "valueY": i[1],
+            "valueZ": i[2],
+            "type": "Vector3D"
+          } for i in x["bifurcations"]["multifurcation"])'''  
+    },
+    {
+        type: [ 
+            "QualityMeasurement",
+            "AnnotationBody"
+        ]
+        isMeasurementOf: {
+          id: "https://neuroshapes.org/dendriteStemmingFromSomaMetric"
+          type: Metric
+          label: Dendrite Stemming From Soma Metric
+        }
+        count: x["dendrites"]["number_of_dendritic_trees_stemming_from_the_soma"]
+    },
+    {
+        type: [ 
+            "QualityMeasurement",
+            "AnnotationBody"
+        ]
+        isMeasurementOf: {
+          id: "https://neuroshapes.org/axonMetric"
+          type: Metric
+          label: Axon Metric
+        }
+        count: x["axons"]["number_of_axons"]
+    },
+    {
+        type: [ 
+            "QualityMeasurement",
+            "AnnotationBody"
+        ]
+        isMeasurementOf: {
+          id: "https://neuroshapes.org/maximumBranchOrderMetric"
+          type: Metric
+          label: Maximum Branch Order Metric
+        }
+        count: x["additional_features"]["max_branch_order"]
+    },
+    {
+        type: [ 
+            "QualityMeasurement",
+            "AnnotationBody"
+        ]
+        isMeasurementOf: {
+          id: "https://neuroshapes.org/totalSectionLengthMetric"
+          type: Metric
+          label: Total Section Length Metric
+        }
+        value: x["additional_features"]["total_section_length"]
+        unitCode: μm
+    },
+    {
+        type: [ 
+            "QualityMeasurement",
+            "AnnotationBody"
+        ]
+        isMeasurementOf: {
+          id: "https://neuroshapes.org/maximumSectionLengthMetric"
+          type: Metric
+          label: Maximum Section Length Metric
+        }
+        value: x["additional_features"]["max_section_length"]
+        unitCode: μm
+    }
+    ]
+}
+

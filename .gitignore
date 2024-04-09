@@ -1,0 +1,9 @@
+venv/
+.eggs/
+.idea/
+__pycache__
+**/__pycache__/
+draft/
+data_integration_pipelines.egg-info/
+build/
+tokens/
