@@ -1,8 +1,10 @@
+import argparse
 import json
 import shutil
 from typing import Tuple, Dict, List, Optional
 
 from src.logger import logger
+from src.neuron_morphology.arguments import define_arguments
 from src.neuron_morphology.validation.load_test_data import get_neurom_test_data, get_random_test_data
 from src.neuron_morphology.validation.validator import (
     get_validation_report_as_tsv_line,
@@ -106,7 +108,13 @@ def save_batch_quality_measurement_annotation_report(
 
 if __name__ == "__main__":
 
-    working_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../../draft/test_1")
+    parser = define_arguments(argparse.ArgumentParser())
+    received_args, leftovers = parser.parse_known_args()
+
+    org, project = received_args.bucket.split("/")
+    is_prod = True
+
+    working_directory = os.path.join(os.getcwd(), received_args.output_dir)
     os.makedirs(working_directory, exist_ok=True)
 
     path_to_value = get_neurom_test_data()

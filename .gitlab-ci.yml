@@ -16,6 +16,8 @@ stages:
 #  script: flake8 src
 
 run_on_bucket:
+  rules:
+    - when: manual
   variables:
     OUTPUT_DIR: "./output/$CI_COMMIT_TIMESTAMP"
   parallel:

@@ -36,7 +36,8 @@ setup(
         "XlsxWriter==3.1.9",
         "importlib_metadata",
         "IPython",
-        "morphio"
+        "morphio",
+        "morphology-workflows"
     ],
     extras_require={
         "dev": ["pytest", "pytest-cov", "pytest-mock", "flake8"],

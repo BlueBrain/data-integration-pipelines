@@ -7,10 +7,12 @@ from neurom.core.morphology import Morphology
 
 from src.neuron_morphology.validation.validator import validation_report_checks
 
+data_dir = os.path.join(os.getcwd(), "data")
+
 
 def get_random_test_data() -> Dict[str, Optional[Morphology]]:
 
-    swc_download_folder = "data/swcs"
+    swc_download_folder = f"{data_dir}/swcs"
     paths = [os.path.join(swc_download_folder, e) for e in os.listdir(swc_download_folder)]
     morphologies = [None] * len(paths)
 
@@ -18,7 +20,7 @@ def get_random_test_data() -> Dict[str, Optional[Morphology]]:
 
 
 def get_neurom_test_data() -> Dict[str, Morphology]:
-    DATA_PATH = 'data/test_data'
+    DATA_PATH = f'{data_dir}/test_data'
     SWC_PATH = os.path.join(DATA_PATH, 'swc')
     ASC_PATH = os.path.join(DATA_PATH, 'neurolucida')
     H5V1_PATH = os.path.join(DATA_PATH, 'h5/v1')
@@ -90,6 +92,9 @@ def get_neurom_test_data() -> Dict[str, Morphology]:
 
     to_keep = lambda k: any(i in k for i in all_tied_to_check)
 
-    data_success = dict((i, j) for i, j in data.items() if not isinstance(j, Exception) and to_keep(i))
+    data_success = dict(
+        (i, j) for i, j in data.items()
+        if not isinstance(j, Exception) and to_keep(i)
+    )
 
     return data_success

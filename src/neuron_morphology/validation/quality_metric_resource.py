@@ -1,15 +1,15 @@
 import argparse
 import shutil
-from datetime import datetime
-from typing import Tuple, Dict, List, Optional, Union
-from _pytest.config.argparsing import Parser
+from pathlib import Path
+from typing import Tuple, Dict, List
 
 from kgforge.core import KnowledgeGraphForge, Resource
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.mappers import DictionaryMapper
 
 from src.logger import logger
-from src.helpers import allocate, get_token, CustomEx, ASSETS_DIRECTORY
+from src.helpers import allocate, ASSETS_DIRECTORY
+from src.neuron_morphology.arguments import define_arguments
 from src.neuron_morphology.validation.check_swc_on_resource import check_swc_on_resource, get_swc_path
 from src.neuron_morphology.validation.quality_metric import (
     SOLO_TYPE, BATCH_TYPE, save_batch_quality_measurement_annotation_report
@@ -19,6 +19,7 @@ import os
 import json
 
 from src.neuron_morphology.validation.validator import validation_report_checks
+from src.neuron_morphology.validation.workflow_usage import run_workflow_on_path
 
 
 def quality_measurement_report_to_resource(
@@ -149,32 +150,6 @@ def save_batch_quality_measurement_annotation_report_on_resources(
     return reports, errors
 
 
-def define_arguments(parser: Union[argparse.ArgumentParser, Parser]):
-    """
-    Defines the arguments of the Python script
-
-    :return: the argument parser
-    :rtype: ArgumentParser
-    """
-
-    timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    add_arg = parser.addoption if isinstance(parser, Parser) else parser.add_argument
-
-    add_arg(
-        "--bucket", help="The bucket against which to run the check",
-        type=str, default="bbp-external/seu"
-    )
-    add_arg(
-        "--token", help="The nexus token", type=str, required=True
-    )
-    add_arg(
-        "--output_dir", help="The path to load schemas from.",
-        default=f'./output/{timestamp}', type=str
-    )
-
-    return parser
-
-
 if __name__ == "__main__":
 
     to_resource = False
@@ -197,15 +172,14 @@ if __name__ == "__main__":
     forge = allocate(org, project, is_prod=is_prod, token=token)
     resources = forge.search({"type": "ReconstructedNeuronMorphology"}, limit=10000)
 
-    morphologies_to_update = []
-    issues = dict()
-
     swc_download_folder = os.path.join(working_directory, "swcs")
     report_dir_path = os.path.join(working_directory, f'{org}_{project}')
 
     logger.info(f"Saving reports to directory {report_dir_path}")
     report_name = "batch_report.tsv"
 
+    # morphologies_to_update = []
+    # issues = dict()
     # for resource in resources:
     #     try:
     #         to_update = check_swc_on_resource(resource, swc_download_folder=swc_download_folder, forge=forge)
@@ -214,16 +188,23 @@ if __name__ == "__main__":
     #
     #     except CustomEx as ex:
     #         issues[resource.id] = (resource, ex)
-
+    #
     # forge.update(morphologies_to_update, NEURON_MORPHOLOGY_SCHEMA)
+    #
+    # resources = [r for r in resources if r.id not in issues]
 
     reports, errors = save_batch_quality_measurement_annotation_report_on_resources(
-        resources=[r for r in resources if r.id not in issues],
+        resources=resources,
         swc_download_folder=swc_download_folder,
         report_dir_path=report_dir_path,
         forge=forge,
         report_name=report_name
     )
+
+    for resource in resources:
+        path = Path(get_swc_path(resource, swc_download_folder, forge))
+        dst_dir = Path(os.path.join(working_directory, "workflow_output"))
+        result = run_workflow_on_path(path, dst_dir)
 
     shutil.rmtree(swc_download_folder)
 
