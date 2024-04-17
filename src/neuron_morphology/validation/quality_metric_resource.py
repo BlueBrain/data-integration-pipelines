@@ -195,7 +195,7 @@ if __name__ == "__main__":
 
     token = received_args.token
     forge = allocate(org, project, is_prod=is_prod, token=token)
-    resources = forge.search({"type": "ReconstructedNeuronMorphology"}, limit=10)
+    resources = forge.search({"type": "ReconstructedNeuronMorphology"}, limit=10000)
 
     morphologies_to_update = []
     issues = dict()

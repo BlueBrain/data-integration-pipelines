@@ -22,6 +22,9 @@ run_on_bucket:
     matrix:
       - BUCKET: bbp-external/seu
       - BUCKET: bbp/mouselight
+      - BUCKET: public/sscx
+      - BUCKET: public/thalamus
+      - BUCKET: public/hippocampus
   script:
   - > 
     python src/neuron_morphology/validation/quality_metric_resource.py 
