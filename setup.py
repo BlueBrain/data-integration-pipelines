@@ -29,7 +29,7 @@ setup(
         "morph-tool@git+https://github.com/BlueBrain/morph-tool",
         # "pynwb==2.0.0",
         "pyjwt",
-        "neurom==3.2.2",
+        "neurom==3.2.8",
         "pynrrd==1.0.0",
         # "numpy<1.24",
         # f"../pyswcparser",
