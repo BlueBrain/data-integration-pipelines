@@ -9,8 +9,8 @@ from src.neuron_morphology.validation.validator import (
     get_validation_report_as_json,
     get_tsv_header_columns, get_report
 )
-from pyswcparser.Morphology import Morphology
 import os
+from neurom.core.morphology import Morphology
 
 
 BATCH_TYPE = "BatchQualityMeasurementAnnotation"
