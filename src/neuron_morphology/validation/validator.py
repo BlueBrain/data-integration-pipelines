@@ -43,15 +43,19 @@ class Check:
 
         return output_of_callable.info if output_of_callable.info is not None else output_of_callable.status
 
-    def format_as_tsv_value(self, neuron_path, k, k_2, output_of_callable):
+    def format_as_tsv_value(self, neuron_path, k, k_2, output_of_callable, stdout=False, sparse=False):
         res = self.value_in_tsv[0](neuron_path, k, k_2, output_of_callable)
         expected_value = self.value_in_tsv[1]
         if isinstance(expected_value, bool):
             if str(expected_value) != res:
-                print(
-                    f"For check \"{validation_report_checks[k][k_2].label}\" expected value: {expected_value}, "
-                    f"obtained {res} for {neuron_path}"
-                )
+                if stdout:
+                    print(
+                        f"For check \"{validation_report_checks[k][k_2].label}\" expected value: {expected_value}, "
+                        f"obtained {res} for {neuron_path}"
+                    )
+            else:
+                if sparse:
+                    return ""
         return res
 
     def run(self, neuron):
@@ -382,7 +386,6 @@ def get_report(neuron_path: str, morphology: Optional[Morphology] = None, report
     return report
 
 
-
 def get_tsv_header_columns():
     return ["filename"] + _get_nested_check_names()
 
@@ -416,7 +419,9 @@ def get_validation_report_as_tsv_line(
 
     # try:
     line_list = [basename] + [
-        validation_report_checks[k][k_2].format_as_tsv_value(neuron_path, k, k_2, value)
+        validation_report_checks[k][k_2].format_as_tsv_value(neuron_path, k, k_2, value, stdout=False, sparse=True)
+        # if the expected value is equal to the obtained value, an empty cell will be in the tsv. If sparse is False, the expected value will be there
+
         for k, v_dict in report.items() for k_2, value in v_dict.items()
     ]
     # except Exception as e:

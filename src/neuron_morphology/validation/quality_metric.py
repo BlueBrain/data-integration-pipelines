@@ -27,6 +27,12 @@ def save_quality_measurement_annotation_report(
 ) -> Tuple[str, Dict]:
 
     os.makedirs(report_dir_path, exist_ok=True)
+    json_path = os.path.join(report_dir_path, "json")
+    tsv_path = os.path.join(report_dir_path, "tsv")
+    os.makedirs(json_path, exist_ok=True)
+    os.makedirs(tsv_path, exist_ok=True)
+
+    logger.info(f"Processing {swc_path}")
 
     report = get_report(swc_path, morphology, None)
     json_data = get_validation_report_as_json(swc_path, morphology=morphology, report=report)
@@ -40,10 +46,10 @@ def save_quality_measurement_annotation_report(
 
     json_report = dict(**json_data, **added) if added else dict(**json_data)
 
-    with open(os.path.join(report_dir_path, f'{name}.json'), "w") as f:
+    with open(os.path.join(json_path, f'{name}.json'), "w") as f:
         json.dump(json_report, f)
 
-    with open(os.path.join(report_dir_path, f'{name}.tsv'), "w") as f:
+    with open(os.path.join(tsv_path, f'{name}.tsv'), "w") as f:
         f.write(tsv_content)
 
     return quality_measurement_annotation_line, json_data

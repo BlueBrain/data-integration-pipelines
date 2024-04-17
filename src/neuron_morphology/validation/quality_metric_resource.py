@@ -1,4 +1,8 @@
-from typing import Tuple, Dict, List, Optional
+import argparse
+import shutil
+from datetime import datetime
+from typing import Tuple, Dict, List, Optional, Union
+from _pytest.config.argparsing import Parser
 
 from kgforge.core import KnowledgeGraphForge, Resource
 from kgforge.specializations.mappings import DictionaryMapping
@@ -145,22 +149,59 @@ def save_batch_quality_measurement_annotation_report_on_resources(
     return reports, errors
 
 
+def define_arguments(parser: Union[argparse.ArgumentParser, Parser]):
+    """
+    Defines the arguments of the Python script
+
+    :return: the argument parser
+    :rtype: ArgumentParser
+    """
+
+    timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    add_arg = parser.addoption if isinstance(parser, Parser) else parser.add_argument
+
+    add_arg(
+        "--bucket", help="The bucket against which to run the check",
+        type=str, default="bbp-external/seu"
+    )
+    add_arg(
+        "--token", help="The nexus token", type=str, required=True
+    )
+    add_arg(
+        "--output_dir", help="The path to load schemas from.",
+        default=f'./output/{timestamp}', type=str
+    )
+
+    return parser
+
+
 if __name__ == "__main__":
 
-    is_prod = True
-    token = get_token(is_prod=is_prod, prompt=False)
-    forge = allocate("bbp-external", "seu", is_prod=is_prod, token=token)
+    to_resource = False
 
-    working_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../../draft/test2")
+    parser = define_arguments(argparse.ArgumentParser())
+    received_args, leftovers = parser.parse_known_args()
+
+    org, project = received_args.bucket.split("/")
+    is_prod = True
+
+    working_directory = os.path.join(os.getcwd(), received_args.output_dir)
+
+    logger.info(f"Working directory {working_directory}")
+
     os.makedirs(working_directory, exist_ok=True)
 
+    logger.info(f"Querying for morphologies in {org}/{project}")
+
+    token = received_args.token
+    forge = allocate(org, project, is_prod=is_prod, token=token)
     resources = forge.search({"type": "ReconstructedNeuronMorphology"}, limit=10)
 
     morphologies_to_update = []
     issues = dict()
 
     swc_download_folder = os.path.join(working_directory, "swcs")
-    report_dir_path = os.path.join(working_directory, 'validation_report')
+    report_dir_path = os.path.join(working_directory, f'{org}_{project}')
     report_name = "batch_report.tsv"
 
     # for resource in resources:
@@ -182,25 +223,20 @@ if __name__ == "__main__":
         report_name=report_name
     )
 
+    shutil.rmtree(swc_download_folder)
+
     # print(json.dumps(reports, indent=4))
-
-    # mapping_validation_report = DictionaryMapping.load(os.path.join(ASSETS_DIRECTORY, 'QualityMeasurementAnnotation.hjson'))
-
-    # mapping_validation_report.rules["distribution"] = [
-    #     entry.replace("../../data/raw/morpho/validation_report", report_dir_path)
-    #     for entry in mapping_validation_report.rules["distribution"]
-    # ]
 
     mapping_batch_validation_report = DictionaryMapping.load(os.path.join(ASSETS_DIRECTORY, 'BatchQualityMeasurementAnnotation.hjson'))
 
-    batch_quality_to_register, quality_to_update, quality_to_register = quality_measurement_report_to_resource(
-        morphology_resources_and_report=reports, forge=forge, token=token, is_prod=is_prod,
-        batch_report_name=report_name, batch_report_dir=report_dir_path,
-        mapping_batch_validation_report=mapping_batch_validation_report,
-        # mapping_validation_report=mapping_validation_report
-    )
-
-    print("hello")
+    if to_resource:
+        logger.info("Turning quality measurements into QualityMeasurementAnnotation Resources")
+        batch_quality_to_register, quality_to_update, quality_to_register = quality_measurement_report_to_resource(
+            morphology_resources_and_report=reports, forge=forge, token=token, is_prod=is_prod,
+            batch_report_name=report_name, batch_report_dir=report_dir_path,
+            mapping_batch_validation_report=mapping_batch_validation_report,
+            # mapping_validation_report=mapping_validation_report
+        )
 
     # TODO: more programmatic way of dealing with multiple pre-existing Batch reports
     # forge.update(batch_quality_to_register, BATCH_QUALITY_SCHEMA)

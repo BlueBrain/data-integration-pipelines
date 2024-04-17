@@ -52,6 +52,7 @@ def get_swc_path(resource: Resource, swc_download_folder: str, forge: KnowledgeG
 
     swcfpath = os.path.join(swc_download_folder, distribution_name)
     if not os.path.isfile(swcfpath):  # If already present, no need to download
+        logger.info(f"Downloading swc file for morphology {resource.id}")
         forge.download(resource, follow='distribution.contentUrl', content_type='application/swc', path=swc_download_folder)
 
     return swcfpath
@@ -136,7 +137,7 @@ def check_swc_on_resource(resource: Resource, swc_download_folder: str, forge: K
                 )
 
         if reconvert[frmt]:  # NB. Not else!!
-            logger.log(f"Converting {resource.name} to {frmt}")
+            logger.info(f"Converting {resource.name} to {frmt}")
             outfile = f'{resource.name}.{frmt}'  # TODO specify where it is created
             convert(swcfpath, outfile)
             new_distributions.append(forge.attach(outfile, content_type=f'application/{frmt}'))

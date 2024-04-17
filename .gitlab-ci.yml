@@ -14,3 +14,11 @@ stages:
 linting:
   stage: lint
   script: flake8 src
+
+run_on_bucket:
+  variables:
+    OUTPUT_DIR: "./output/$CI_JOB_NAME"
+  script: python src/neuron_morphology/validation/quality_metric_resource.py --token=$SA_TOKEN --output_dir=$OUTPUT_DIR
+  artifacts:
+    paths:
+      - "$OUTPUT_DIR/*"
