@@ -5,34 +5,45 @@ Created on Tue Apr  2 13:31:35 2024
 
 @author: ricardi
 """
-from datetime import datetime, timedelta
-import json
 from collections import defaultdict
-from typing import Tuple, Dict, List
 
 from kgforge.core import KnowledgeGraphForge, Resource
-from kgforge.specializations.mappings import DictionaryMapping
-from kgforge.specializations.mappers import DictionaryMapper
-
 from src.logger import logger
 from src.helpers import allocate, get_token, CustomEx
-from src.neuron_morphology.validation.check_swc import parse_header_and_comments, SWC_EXPECTED_COLUMNS_SAVE
-from src.neuron_morphology.validation.validator import validation_report, validation_report_complete, get_tsv_report_line, get_tsv_header_columns
-from src.neuron_morphology.feature_annotations.create_update_annotations import get_contribution, get_generation
 from kgforge.core.commons.actions import LazyAction
 from morph_tool.converter import convert
-from neurom import load_morphology
-import os
 import pandas as pd
+import os
+
+SWC_EXPECTED_COLUMNS_READ = {'type', 'x', 'y', 'z', 'radius', 'parent'}
+synonyms = {'r': 'radius'}
+SWC_EXPECTED_COLUMNS_SAVE = {e if e not in synonyms else synonyms[e] for e in SWC_EXPECTED_COLUMNS_READ}
+
+
+def parse_header_and_comments(file_path, max_=10, comment='#'):
+    ignore = ['n', 'index']
+
+    with open(file_path, 'r') as file:
+
+        columns, comments = [], []
+        for x in range(max_):
+            line = file.readline().strip()
+
+            line_parse = [i.lower() for i in line.split() if not i.startswith('#') and i not in ignore]
+            line_parse = [e if e not in synonyms else synonyms[e] for e in line_parse]
+            if SWC_EXPECTED_COLUMNS_SAVE.issubset(line_parse):
+                columns = line_parse
+            elif line.startswith(comment):
+                comments.append(line)
+
+        if not columns:
+            raise ValueError(f'Could not parse columns in the first {max_} lines in {file}')
+
+        return columns, comments
 
 
 def read_swc(file):
     return pd.read_csv(file, sep='\s+', index_col=0, dtype='str', comment='#', header=None)
-
-
-###############################################################################
-#  Ensure distribution is ok (swc, asc, h5, optional obj), only expected columns in swc
-###############################################################################
 
 
 def get_swc_path(resource: Resource, swc_download_folder: str, forge: KnowledgeGraphForge) -> str:
@@ -44,6 +55,10 @@ def get_swc_path(resource: Resource, swc_download_folder: str, forge: KnowledgeG
         forge.download(resource, follow='distribution.contentUrl', content_type='application/swc', path=swc_download_folder)
 
     return swcfpath
+
+###############################################################################
+#  Ensure distribution is ok (swc, asc, h5, optional obj), only expected columns in swc
+###############################################################################
 
 
 def check_swc_on_resource(resource: Resource, swc_download_folder: str, forge: KnowledgeGraphForge) -> bool:
@@ -157,3 +172,30 @@ def check_swc_on_resource(resource: Resource, swc_download_folder: str, forge: K
         )
 
     return update
+
+
+if __name__ == "__main__":
+
+    init_path = "/Users/mouffok/work_dir/kg-inference-similarity/data_2"
+
+    to_check = [os.path.join(init_path, i) for i in os.listdir(init_path) if i.startswith("morphologies_")]
+
+    def per_path(path):
+
+        paths_complete = dict(
+            (p, [
+                os.path.join(os.path.join(path, p), e)
+                for e in os.listdir(os.path.join(path, p)) if "swc" in e
+            ])
+            for p in os.listdir(path)
+        )
+
+        for k, v in paths_complete.items():
+            try:
+                e = parse_header_and_comments(v[0])
+            except ValueError as ex:
+                print(f"failed {k}")
+
+    for el in to_check:
+        per_path(el)
+

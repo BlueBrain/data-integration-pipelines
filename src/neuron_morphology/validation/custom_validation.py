@@ -25,6 +25,7 @@ def has_no_radical_diameter_changes(neuron, max_change=10):
     return CheckResult(len(bad_ids) == 0, bad_ids)
 
 
+# TODO RM SIMILAR IMPLEMENTATION TO NEUROM -> has_unifurcation
 def has_no_single_child(neuron):
     '''Check if the neuron has sections with only one child
     Arguments:
@@ -42,8 +43,9 @@ def has_no_single_child(neuron):
     return CheckResult(len(bad_ids) == 0, bad_ids)
 
 
+# TODO RM SIMILAR IMPLEMENTATION TO NEUROM -> has_multifurcation
 def has_no_multifurcation(neuron):
-    '''Check if the neuron has sections with only one child
+    '''Check if the neuron has sections with more than 2 children
     Arguments:
         neuron(Neuron): The neuron object to test
 
@@ -70,3 +72,17 @@ def number_of_dendritic_trees_stemming_from_the_soma(neuron) -> int:
 def number_of_axons(neuron) -> int:
     # Correct start point of the axon (or axons if there are 2) = boolean (A)
     return len([neurite for neurite in iter_neurites(neuron) if neurite.type == NeuriteType.axon])
+
+
+def has_zero_soma_radius(morph, threshold=0.0):
+    """Check if soma radius not above threshold.
+
+    Arguments:
+        morph(Morphology): the morphology to test
+        threshold: value under which the soma radius is considered to be zero
+
+    Returns:
+        CheckResult with result
+    """
+    t = CheckResult(morph.soma.radius <= threshold)
+    return t

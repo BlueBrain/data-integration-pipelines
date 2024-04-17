@@ -15,8 +15,8 @@ from kgforge.core import KnowledgeGraphForge, Resource
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.mappers import DictionaryMapper
 from src.helpers import allocate, get_token
-from src.neuron_morphology.validator import validation_report, validation_report_complete, getTsvReportLine
-from src.feature_annotations.create_annotations import get_contribution, get_generation
+from src.neuron_morphology.validation import validation_report, validation_report_complete, getTsvReportLine
+from src.neuron_morphology.feature_annotations.create_annotations import get_contribution, get_generation
 from morph_tool.converter import convert
 from neurom import load_morphology
 import numpy as np
@@ -85,7 +85,7 @@ name_to_file = {}
 start_frmt = 'swc'  # the format of the delivery, to convert from
 other_frmts = [i for i in ['swc', 'asc', 'h5'] if i != start_frmt]
 
-for fpath in glob.iglob(os.path.join(folder,'**/*.swc'), recursive=True):
+for fpath in glob.iglob(os.path.join(folder, '**/*.swc'), recursive=True):
     fol, swcname = os.path.split(fpath)
     basename = swcname[:-4]
     if basename in name_to_file:
