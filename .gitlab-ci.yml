@@ -21,7 +21,7 @@ run_on_bucket:
   script:
   - > 
     python src/neuron_morphology/validation/quality_metric_resource.py 
-    --token $SA_TOKEN --output_dir OUTPUT_DIR
+    --token $SA_TOKEN --output_dir $OUTPUT_DIR
   artifacts:
     paths:
-      - "$OUTPUT_DIR/*"
+      - "$OUTPUT_DIR"

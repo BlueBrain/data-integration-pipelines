@@ -202,6 +202,8 @@ if __name__ == "__main__":
 
     swc_download_folder = os.path.join(working_directory, "swcs")
     report_dir_path = os.path.join(working_directory, f'{org}_{project}')
+
+    logger.info(f"Saving reports to directory {report_dir_path}")
     report_name = "batch_report.tsv"
 
     # for resource in resources:
