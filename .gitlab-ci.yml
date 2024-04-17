@@ -18,10 +18,14 @@ stages:
 run_on_bucket:
   variables:
     OUTPUT_DIR: "./output/$CI_COMMIT_TIMESTAMP"
+  parallel:
+    matrix:
+      - BUCKET: bbp-external/seu
+      - BUCKET: bbp/mouselight
   script:
   - > 
     python src/neuron_morphology/validation/quality_metric_resource.py 
-    --token $SA_TOKEN --output_dir $OUTPUT_DIR
+    --token $SA_TOKEN --output_dir $OUTPUT_DIR --bucket $BUCKET
   artifacts:
     paths:
       - "$OUTPUT_DIR"
