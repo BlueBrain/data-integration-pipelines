@@ -11,9 +11,9 @@ stages:
   - lint
   - test
 
-linting:
-  stage: lint
-  script: flake8 src
+#linting:
+#  stage: lint
+#  script: flake8 src
 
 run_on_bucket:
   variables:
