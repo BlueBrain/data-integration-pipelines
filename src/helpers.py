@@ -7,7 +7,7 @@ from kgforge.core import KnowledgeGraphForge
 
 PROD_CONFIG_URL = "https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/notebooks/use-cases/prod-forge-nexus.yml"
 
-ASSETS_DIRECTORY = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../assets")
+ASSETS_DIRECTORY = os.path.join(os.getcwd(), "./assets")
 
 
 class Deployment(Enum):
