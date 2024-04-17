@@ -139,7 +139,7 @@ validation_report_checks = {
         'has_no_fat_ends': Check(
             id_="https://neuroshapes.org/fatEndMetric",
             label="Has No Fat Ends",
-            value_in_json=lambda neuron_path, k_1, k_2, x: list({
+            value_in_json=lambda neuron_path, k_1, k_2, x: x.status if x.status is True else list({
                 "leaf_id": leaf_id,
                 "leaf_points": [list(float(a) for a in el) for el in leaf_points],
               } for (leaf_id, leaf_points) in x.info),

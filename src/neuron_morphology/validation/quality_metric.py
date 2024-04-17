@@ -38,13 +38,10 @@ def save_quality_measurement_annotation_report(
     tsv_header = "\t".join(get_tsv_header_columns())
     tsv_content = "# " + tsv_header + "\n" + quality_measurement_annotation_line + "\n"
 
-    if added:
-        json_data.update(added)
-
-    json_report = json.dumps(json_data, indent=2)
+    json_report = dict(**json_data, **added) if added else dict(**json_data)
 
     with open(os.path.join(report_dir_path, f'{name}.json'), "w") as f:
-        f.write(json_report)
+        json.dump(json_report, f)
 
     with open(os.path.join(report_dir_path, f'{name}.tsv'), "w") as f:
         f.write(tsv_content)
@@ -58,7 +55,8 @@ def save_batch_quality_measurement_annotation_report(
         report_name: str,
         morphologies: Optional[List[Morphology]] = None,
         added_list: Optional[List[Dict]] = None
-):
+) -> Tuple[Dict[str, Dict], Dict[str, Exception]]:
+
     os.makedirs(report_dir_path, exist_ok=True)
 
     if morphologies is None:
@@ -71,23 +69,23 @@ def save_batch_quality_measurement_annotation_report(
     elif len(added_list) != len(swc_paths):
         raise Exception("Provided list of data to add to json report should be the same length as swc paths")
 
-    reports: List[Tuple[Dict, str]] = []
-    errors: List[Tuple[Exception, str]] = []
+    reports: Dict[str, Dict] = dict()
+    errors: Dict[str, Exception] = dict()
 
     tsv_header = "\t".join(get_tsv_header_columns())
     batch_quality_measurement_annotation_tsv = "# " + tsv_header + "\n"
 
     for swc_path, morphology, added in zip(swc_paths, morphologies, added_list):
-        # try:
-        report_as_tsv_line, report_as_json = save_quality_measurement_annotation_report(
-            swc_path=swc_path, report_dir_path=report_dir_path, morphology=morphology, added=added
-        )
-        # except Exception as e:
-        #     logger.error(f"Error creating validation report for path {swc_path}: {str(e)}")
-        #     errors.append((e, swc_path))
-        # else:
-        batch_quality_measurement_annotation_tsv += report_as_tsv_line + "\n"
-        reports.append((report_as_json, swc_path))
+        try:
+            report_as_tsv_line, report_as_json = save_quality_measurement_annotation_report(
+                swc_path=swc_path, report_dir_path=report_dir_path, morphology=morphology, added=added
+            )
+        except Exception as e:
+            logger.error(f"Error creating validation report for path {swc_path}: {str(e)}")
+            errors[swc_path] = e
+        else:
+            batch_quality_measurement_annotation_tsv += report_as_tsv_line + "\n"
+            reports[swc_path] = report_as_json
 
     with open(os.path.join(report_dir_path, report_name), "w") as f:
         f.write(batch_quality_measurement_annotation_tsv)

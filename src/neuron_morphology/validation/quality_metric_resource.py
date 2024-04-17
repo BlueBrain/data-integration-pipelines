@@ -14,9 +14,11 @@ from src.neuron_morphology.feature_annotations.creation_helpers import get_contr
 import os
 import json
 
+from src.neuron_morphology.validation.validator import validation_report_checks
+
 
 def quality_measurement_report_to_resource(
-        reports_and_morphology_resources: List[Tuple[Dict, Resource]],
+        morphology_resources_and_report: List[Tuple[Resource, Dict]],
         forge: KnowledgeGraphForge,
         token: str,
         is_prod: bool,
@@ -25,24 +27,40 @@ def quality_measurement_report_to_resource(
         mapping_batch_validation_report: DictionaryMapping
 ) -> Tuple[Resource, List[Resource], List[Resource]]:
 
-    logger.info(f"Creating a {BATCH_TYPE} for {len(reports_and_morphology_resources)} resources and returning the existing {SOLO_TYPE} to update, or new ones to create")
+    logger.info(f"Creating a {BATCH_TYPE} for {len(morphology_resources_and_report)} resources and returning the existing {SOLO_TYPE} to update, or new ones to create")
 
     contribution = get_contribution(token=token, production=is_prod)
     generation = get_generation()
 
     reports_as_resources = []
 
-    for report, _ in reports_and_morphology_resources:
+    for resource, report in morphology_resources_and_report:
         # resource.contribution = contribution
         # resource.generation = generation
 
+        body = [
+            {
+                "type": [
+                    "QualityMeasurement",
+                    "AnnotationBody"
+                ],
+                "isMeasurementOf": {
+                    "id": validation_report_checks[k][k_2].id_,
+                    "type": "Metric",
+                    "label": validation_report_checks[k][k_2].label
+                },
+                "value": v_2
+            }
+            for k, v in report.items() for k_2, v_2 in v.items()
+        ]
+
         dict_for_res = {
             "distribution": [
-                forge.attach(f"{batch_report_dir}/{report['name']}.json", content_type="application/json"),
-                forge.attach(f"{batch_report_dir}/{report['name']}.tsv", content_type="application/tsv")
+                forge.attach(f"{batch_report_dir}/{resource.name}.json", content_type="application/json"),
+                forge.attach(f"{batch_report_dir}/{resource.name}.tsv", content_type="application/tsv")
             ],
-            "name": f"Quality Measurement Annotation of {report['name']}",
-            "description": f"This resources contains quality measurement annotations of the neuron morphology {x['name']}",
+            "name": f"Quality Measurement Annotation of {resource.name}",
+            "description": f"This resources contains quality measurement annotations of the neuron morphology {resource.name}",
             "type": [
                 "Annotation",
                 "QualityMeasurementAnnotation"
@@ -50,12 +68,12 @@ def quality_measurement_report_to_resource(
             "hasTarget": {
                 "type": "AnnotationTarget",
                 "hasSource": {
-                    "id": report["neuron_morphology_id"],
+                    "id": resource.id,
                     "type": "NeuronMorphology",
-                    "_rev": report['neuron_morphology_rev']
+                    "_rev": resource._store_metadata._rev
                 }
             },
-            "hasBody": []
+            "hasBody": body
         }
 
         report_resource = forge.from_json(dict_for_res)
@@ -88,7 +106,7 @@ def quality_measurement_report_to_resource(
 
             to_upd.append(report)
 
-    logger.info(f"For {len(reports_and_morphology_resources)}, {len(to_upd)} existing {SOLO_TYPE} to update, {len(to_register)} {SOLO_TYPE} to register")
+    logger.info(f"For {len(morphology_resources_and_report)}, {len(to_upd)} existing {SOLO_TYPE} to update, {len(to_register)} {SOLO_TYPE} to register")
 
     return batch_report_resource, to_upd, to_register
 
@@ -99,7 +117,8 @@ def save_batch_quality_measurement_annotation_report_on_resources(
         forge: KnowledgeGraphForge,
         report_dir_path: str,
         report_name: str
-):
+) -> Tuple[List[Tuple[Resource, Dict]], List[Tuple[Resource, Exception]]]:
+
     added_list = [
         {
             "name": resource.name,
@@ -109,16 +128,21 @@ def save_batch_quality_measurement_annotation_report_on_resources(
         for resource in resources
     ]
 
-    paths = [
-        get_swc_path(resource, swc_download_folder=swc_download_folder, forge=forge)
+    path_to_resource = dict(
+        (get_swc_path(resource, swc_download_folder=swc_download_folder, forge=forge), resource)
         for resource in resources
-    ]
+    )
 
-    return save_batch_quality_measurement_annotation_report(
-        swc_paths=paths, report_dir_path=report_dir_path,
+    swc_path_to_report, swc_path_to_error = save_batch_quality_measurement_annotation_report(
+        swc_paths=list(path_to_resource.keys()), report_dir_path=report_dir_path,
         morphologies=None, report_name=report_name,
         added_list=added_list
     )
+
+    reports = [(path_to_resource[swc_path], report) for swc_path, report in swc_path_to_report.items()]
+    errors = [(path_to_resource[swc_path], error) for swc_path, error in swc_path_to_error.items()]
+
+    return reports, errors
 
 
 if __name__ == "__main__":
@@ -158,7 +182,7 @@ if __name__ == "__main__":
         report_name=report_name
     )
 
-    print(json.dumps(reports, indent=4))
+    # print(json.dumps(reports, indent=4))
 
     # mapping_validation_report = DictionaryMapping.load(os.path.join(ASSETS_DIRECTORY, 'QualityMeasurementAnnotation.hjson'))
 
@@ -167,14 +191,16 @@ if __name__ == "__main__":
     #     for entry in mapping_validation_report.rules["distribution"]
     # ]
 
-    # mapping_batch_validation_report = DictionaryMapping.load(os.path.join(ASSETS_DIRECTORY, 'BatchQualityMeasurementAnnotation.hjson'))
-    #
-    # batch_quality_to_register, quality_to_update, quality_to_register = quality_measurement_report_to_resource(
-    #     reports_and_morphology_resources=reports, forge=forge, token=token, is_prod=is_prod,
-    #     batch_report_name=report_name, batch_report_dir=report_dir_path,
-    #     mapping_batch_validation_report=mapping_batch_validation_report,
-    #     # mapping_validation_report=mapping_validation_report
-    # )
+    mapping_batch_validation_report = DictionaryMapping.load(os.path.join(ASSETS_DIRECTORY, 'BatchQualityMeasurementAnnotation.hjson'))
+
+    batch_quality_to_register, quality_to_update, quality_to_register = quality_measurement_report_to_resource(
+        morphology_resources_and_report=reports, forge=forge, token=token, is_prod=is_prod,
+        batch_report_name=report_name, batch_report_dir=report_dir_path,
+        mapping_batch_validation_report=mapping_batch_validation_report,
+        # mapping_validation_report=mapping_validation_report
+    )
+
+    print("hello")
 
     # TODO: more programmatic way of dealing with multiple pre-existing Batch reports
     # forge.update(batch_quality_to_register, BATCH_QUALITY_SCHEMA)
