@@ -89,16 +89,16 @@ def save_batch_quality_measurement_annotation_report(
     batch_quality_measurement_annotation_tsv = "# " + tsv_header + "\n"
 
     for swc_path, morphology, added in zip(swc_paths, morphologies, added_list):
-        try:
-            report_as_tsv_line, report_as_json = save_quality_measurement_annotation_report(
-                swc_path=swc_path, report_dir_path=report_dir_path, morphology=morphology, added=added
-            )
-        except Exception as e:
-            logger.error(f"Error creating validation report for path {swc_path}: {str(e)}")
-            errors[swc_path] = e
-        else:
-            batch_quality_measurement_annotation_tsv += report_as_tsv_line + "\n"
-            reports[swc_path] = report_as_json
+        # try:
+        report_as_tsv_line, report_as_json = save_quality_measurement_annotation_report(
+            swc_path=swc_path, report_dir_path=report_dir_path, morphology=morphology, added=added
+        )
+        # except Exception as e:
+        #     logger.error(f"Error creating validation report for path {swc_path}: {str(e)}")
+        #     errors[swc_path] = e
+        # else:
+        batch_quality_measurement_annotation_tsv += report_as_tsv_line + "\n"
+        reports[swc_path] = report_as_json
 
     with open(os.path.join(report_dir_path, report_name), "w") as f:
         f.write(batch_quality_measurement_annotation_tsv)
@@ -117,8 +117,8 @@ if __name__ == "__main__":
     working_directory = os.path.join(os.getcwd(), received_args.output_dir)
     os.makedirs(working_directory, exist_ok=True)
 
-    path_to_value = get_neurom_test_data()
-    # path_to_value = get_random_test_data()
+    # path_to_value = get_neurom_test_data()
+    path_to_value = get_random_test_data()
 
     paths = list(path_to_value.keys())
     morphologies = list(path_to_value.values())
