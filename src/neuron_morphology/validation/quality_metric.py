@@ -26,7 +26,7 @@ QUALITY_SCHEMA = "datashapes:qualitymeasurementannotation"
 def save_quality_measurement_annotation_report(
         swc_path: str, report_dir_path: str, name: Optional[str] = None,
         added: Optional[Dict] = None, morphology: Optional[Morphology] = None
-) -> Tuple[str, Dict]:
+) -> Tuple[List[str], Dict]:
 
     os.makedirs(report_dir_path, exist_ok=True)
     json_path = os.path.join(report_dir_path, "json")
@@ -44,7 +44,7 @@ def save_quality_measurement_annotation_report(
         name = swc_path.split("/")[-1].split(".")[0]
 
     tsv_header = "\t".join(get_tsv_header_columns())
-    tsv_content = "# " + tsv_header + "\n" + quality_measurement_annotation_line + "\n"
+    tsv_content = "# " + tsv_header + "\n" + '\t'.join(quality_measurement_annotation_line) + "\n"
 
     json_report = dict(**json_data, **added) if added else dict(**json_data)
 
@@ -97,7 +97,7 @@ def save_batch_quality_measurement_annotation_report(
         #     logger.error(f"Error creating validation report for path {swc_path}: {str(e)}")
         #     errors[swc_path] = e
         # else:
-        batch_quality_measurement_annotation_tsv += report_as_tsv_line + "\n"
+        batch_quality_measurement_annotation_tsv += '\t'.join(report_as_tsv_line) + "\n"
         reports[swc_path] = report_as_json
 
     with open(os.path.join(report_dir_path, report_name), "w") as f:

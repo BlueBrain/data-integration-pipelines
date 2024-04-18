@@ -27,7 +27,7 @@ def run_workflow_on_path(path: Path, dst_dir: Path):
         res['error_marker_path'] = str(res['error_marker_path'])
 
     with open(f"{dst_dir_with_filename}/{filename_no_ext}.json", "w") as f:
-        print(json.dump(res, f, indent=4))
+        json.dump(res, f, indent=4)
 
     return res
 

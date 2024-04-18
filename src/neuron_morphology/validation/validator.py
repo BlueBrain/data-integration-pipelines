@@ -216,15 +216,9 @@ validation_report_checks = {
             id_="https://neuroshapes.org/narrowNeuriteSectionMetric",
             label="Has no narrow Neurite Section",
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status if x.status is True else list({
-                "valueX": i[0],
-                "valueY": i[1],
-                "valueZ": i[2],
-                "neuriteDiameter": {
-                    "value": i[3],
-                    "unitCode": "μm"
-                },
-                "type": "Vector3D"
-              } for i in x.info),
+                "section_id": section_id,
+                "section_points": [[float(ip) for ip in p] for p in section_points],
+              } for section_id, section_points in x.info),
             callable_=lambda neuron, swc_path: morphology_checks.has_no_narrow_neurite_section(neuron, neurite_filter=None),
             example_failure=[],  # TODO
             value_in_tsv=(Check.basic_tsv, True)
@@ -449,7 +443,7 @@ def get_validation_report_as_json(
 
 def get_validation_report_as_tsv_line(
         neuron_path: str, morphology: Optional[Morphology] = None, report: Optional[Dict] = None
-) -> str:
+) -> List[str]:
     basename = os.path.basename(neuron_path)
     report = get_report(neuron_path, morphology, report)
 
@@ -464,4 +458,4 @@ def get_validation_report_as_tsv_line(
     #     except_name = e.__class__.__name__
     #     line_list = [basename] + [except_name for _, v in report.items() for _, _ in v.items()]
 
-    return '\t'.join(line_list)
+    return line_list
