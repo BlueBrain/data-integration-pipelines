@@ -10,6 +10,7 @@ from neurom.check import morphology_checks, CheckResult
 from src.neuron_morphology.validation import custom_validation
 from neurom.core.morphology import Morphology
 import morphio
+from morphology_workflows import curation
 
 morphio.set_maximum_warnings(-1)
 
@@ -92,17 +93,33 @@ class Check:
         return str(x)
 
 
-
-
 validation_report_checks = {
     'morphology': {
         'can_be_loaded_with_morphio': Check(
             id_="todo",  # TODO
             label="Can be loaded with morphio",
             callable_=lambda neuron, swc_path: CheckResult(
-                status=not isinstance(_load_morph_morphio(swc_path, raise_=True), Exception)
+                status=not isinstance(_load_morph_morphio(swc_path, raise_=True), Exception),
+                info=str(_load_morph_morphio(swc_path, raise_=True))
             ),
-            value_in_json=lambda neuron_path, k_1, k_2, x: x.status,
+            value_in_json=lambda neuron_path, k_1, k_2, x: x.status if x.status is True else x.info,
+            example_failure=[],
+            value_in_tsv=(Check.basic_tsv, True)
+        ),
+        'z_thickness_larger_than_50': Check(
+            id_="todo",  # TODO
+            label="Z thickness is larger than 50",
+            callable_=lambda neuron, swc_path: curation.z_range(neuron),
+            value_in_json=lambda neuron_path, k_1, k_2, x: x.status if x.status is True else {
+                "min": {
+                    "section_id": x.info[0][0],
+                    "point": [float(e) for e in x.info[0][1][0]]
+                },
+                "max": {
+                    "section_id": x.info[1][0],
+                    "point": [float(e) for e in x.info[1][1][0]]
+                }
+            },
             example_failure=[],
             value_in_tsv=(Check.basic_tsv, True)
         )
@@ -370,7 +387,7 @@ def _load_morph_morphio(swc_path: str, raise_: bool):
 
     try:
         return morphio.Morphology(swc_path)
-    except Exception as e:
+    except morphio._morphio.MorphioError as e:
         return e
 
 

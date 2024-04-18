@@ -26,18 +26,18 @@ setup(
     install_requires=[
         "pandas",
         "nexusforge@git+https://github.com/BlueBrain/nexus-forge",
-        "morph-tool@git+https://github.com/BlueBrain/morph-tool",
+        "morphio==v3.3.7",
+        "morph-tool==v2.10.2",
+        "morphology-workflows==0.10.1",
         # "pynwb==2.0.0",
         "pyjwt",
-        "neurom==3.2.8",
+        "neurom==3.2.10",
         "pynrrd==1.0.0",
         # "numpy<1.24",
         # f"../pyswcparser",
         "XlsxWriter==3.1.9",
         "importlib_metadata",
         "IPython",
-        "morphio",
-        "morphology-workflows"
     ],
     extras_require={
         "dev": ["pytest", "pytest-cov", "pytest-mock", "flake8"],

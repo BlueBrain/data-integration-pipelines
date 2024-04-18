@@ -54,7 +54,7 @@ def save_quality_measurement_annotation_report(
     logger.info(f"Saving to {json_path} and {tsv_path}")
 
     with open(json_path, "w") as f:
-        json.dump(json_report, f)
+        json.dump(json_report, f, indent=4)
 
     with open(tsv_path, "w") as f:
         f.write(tsv_content)
