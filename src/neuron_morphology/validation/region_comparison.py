@@ -240,4 +240,5 @@ if __name__ == "__main__":
         brain_region_map=br_map, voxel_data=voxel_d
     )
 
+    shutil.rmtree(morphologies_dir)
     df.to_csv(os.path.join(working_directory, 'region_comparison.csv'))
