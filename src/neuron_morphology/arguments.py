@@ -26,5 +26,9 @@ def define_arguments(parser: Union[argparse.ArgumentParser, Parser]):
         "--output_dir", help="The path to load schemas from.",
         default=f'./output/{timestamp}', type=str
     )
+    add_arg(
+        "--curated", help="Whether to only check curated data are all",
+        type=str, choices=["yes", "no", "both"]
+    )
 
     return parser

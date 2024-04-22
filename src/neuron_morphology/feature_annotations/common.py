@@ -2,6 +2,7 @@ from typing import Optional, List
 
 from kgforge.core import Resource, KnowledgeGraphForge
 from src.helpers import allocate
+from src.neuron_morphology.query_data import get_neuron_morphologies
 
 NEURON_MORPHOLOGY_RETRIEVAL_LIMIT = 1500
 
@@ -35,9 +36,7 @@ def _get_neuron_morphologies(org, project, is_prod, token, nm_id_list: Optional[
     if nm_id_list:
         morphologies = [forge_data.retrieve(i) for i in nm_id_list]
     else:
-        morphologies = forge_data.search(
-            {"type": "NeuronMorphology"},
-            limit=NEURON_MORPHOLOGY_RETRIEVAL_LIMIT, debug=False
-        )
+        morphologies = get_neuron_morphologies(forge=forge_data, limit=NEURON_MORPHOLOGY_RETRIEVAL_LIMIT)
+
     print(len(morphologies))
     return morphologies, forge_data

@@ -2,8 +2,12 @@ from enum import Enum
 import getpass
 import os
 import json
+from typing import Union
+
 import numpy as np
-from kgforge.core import KnowledgeGraphForge
+from kgforge.core import KnowledgeGraphForge, Resource
+
+from src.logger import logger
 
 PROD_CONFIG_URL = "https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/notebooks/use-cases/prod-forge-nexus.yml"
 
@@ -82,3 +86,48 @@ class CustomEx(Exception):
 
 def _as_list(obj):
     return obj if isinstance(obj, list) else ([obj] if obj is not None else [])
+
+
+def _download_from(  # TODO better name and doc
+        forge: KnowledgeGraphForge, link: Union[str, Resource], label: str,
+        format_of_interest: str, download_dir: str, rename=None
+) -> str:
+
+    if isinstance(link, str):
+        logger.info(f"Retrieving {label}")
+        link_resource = forge.retrieve(link)
+
+        if link_resource is None:
+            err_msg = f"Failed to retrieve {label} {link}"
+            # logger.error(err_msg)
+            raise Exception(err_msg)
+    else:
+        if not isinstance(link, Resource):
+            raise Exception("_download_from link should be str or Resource")
+        else:
+            link_resource = link
+
+    logger.info(f"Attempting to download distribution of type {format_of_interest} "
+                f"from {link_resource.get_identifier()}")
+
+    d = next(
+        (d for d in _as_list(link_resource.distribution)
+         if d.encodingFormat == format_of_interest),
+        None
+    )
+    if d is None:
+        err_msg = f"Couldn't find distribution of encoding format {format_of_interest} in {label}"
+        # logger.error(err_msg)
+        raise Exception(err_msg)
+
+    forge.download(d, path=download_dir, follow="contentUrl")
+
+    filename, _ = forge._store._retrieve_filename(d.contentUrl)
+
+    if filename is None:
+        raise Exception(f"Couldn't get filename from {label}")
+
+    if rename is not None:
+        os.rename(os.path.join(download_dir, filename), os.path.join(download_dir, rename))
+
+    return os.path.join(download_dir, (filename if rename is None else rename))

@@ -30,7 +30,7 @@ run_on_bucket:
   script:
   - > 
     python src/neuron_morphology/validation/quality_metric_resource.py 
-    --token $SA_TOKEN --output_dir $OUTPUT_DIR --bucket $BUCKET
+    --token $SA_TOKEN --output_dir $OUTPUT_DIR --bucket $BUCKET --curated yes
   artifacts:
     paths:
       - "$OUTPUT_DIR"
@@ -47,7 +47,7 @@ brain_region:
   script:
   - > 
     python src/neuron_morphology/validation/region_comparison.py 
-    --token $SA_TOKEN --output_dir $OUTPUT_DIR --bucket $BUCKET
+    --token $SA_TOKEN --output_dir $OUTPUT_DIR --bucket $BUCKET --curated both
   artifacts:
     paths:
       - "$OUTPUT_DIR"

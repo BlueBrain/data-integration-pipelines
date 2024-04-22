@@ -10,6 +10,7 @@ from kgforge.specializations.mappers import DictionaryMapper
 from src.logger import logger
 from src.helpers import allocate, ASSETS_DIRECTORY, get_token
 from src.neuron_morphology.arguments import define_arguments
+from src.neuron_morphology.query_data import get_neuron_morphologies
 from src.neuron_morphology.validation.check_swc_on_resource import check_swc_on_resource, get_swc_path
 from src.neuron_morphology.validation.quality_metric import (
     SOLO_TYPE, BATCH_TYPE, save_batch_quality_measurement_annotation_report
@@ -199,14 +200,7 @@ if __name__ == "__main__":
 
     forge = allocate(org, project, is_prod=is_prod, token=token)
 
-    resources = forge.search({
-        "type": "ReconstructedNeuronMorphology",
-        "annotation": {
-            "hasBody": {
-                "label": "Curated"
-            }
-        }
-    }, limit=10000)
+    resources = get_neuron_morphologies(curated=received_args.curated, forge=forge)
 
     logger.info(f"Found {len(resources)} morphologies in {org}/{project}")
 
