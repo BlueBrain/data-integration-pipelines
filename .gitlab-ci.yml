@@ -51,3 +51,23 @@ brain_region:
   artifacts:
     paths:
       - "$OUTPUT_DIR"
+
+check_links:
+  rules:
+    - when: manual
+  variables:
+    OUTPUT_DIR: "./output/$CI_COMMIT_TIMESTAMP"
+  parallel:
+    matrix:
+      - BUCKET: bbp-external/seu
+      - BUCKET: bbp/mouselight
+      - BUCKET: public/sscx
+      - BUCKET: public/thalamus
+      - BUCKET: public/hippocampus
+  script:
+  - > 
+    python src/neuron_morphology/validation/check_links.py 
+    --token $SA_TOKEN --output_dir $OUTPUT_DIR --bucket $BUCKET --curated both
+  artifacts:
+    paths:
+      - "$OUTPUT_DIR"

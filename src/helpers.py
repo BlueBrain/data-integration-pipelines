@@ -131,3 +131,8 @@ def _download_from(  # TODO better name and doc
         os.rename(os.path.join(download_dir, filename), os.path.join(download_dir, rename))
 
     return os.path.join(download_dir, (filename if rename is None else rename))
+
+
+def _format_boolean(bool_value: bool, sparse: bool):
+    return str(bool_value) if not sparse else ("" if bool_value else str(bool_value))
+

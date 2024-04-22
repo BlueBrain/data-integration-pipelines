@@ -11,7 +11,7 @@ import os
 import pandas as pd
 
 from src.get_atlas import _get_atlas_dir_ready
-from src.helpers import allocate, get_token, _as_list, _download_from
+from src.helpers import allocate, get_token, _as_list, _download_from, _format_boolean
 from src.logger import logger
 from src.neuron_morphology.arguments import define_arguments
 from src.neuron_morphology.query_data import get_neuron_morphologies
@@ -41,7 +41,8 @@ def do(
         morphology_dir: str,
         forge: KnowledgeGraphForge,
         brain_region_map: RegionMap,
-        voxel_data: VoxelData
+        voxel_data: VoxelData,
+        sparse: bool = True
 ) -> pd.DataFrame:
 
     rows = []
@@ -76,7 +77,7 @@ def do(
             observed_id = cacheresolve(observed_label, forge).id
             in_in_each_other = lambda a, b: is_indirectly_in(a, b, forge) or is_indirectly_in(b, a, forge)
             agreement = any(in_in_each_other(i.id, observed_id) for i in declared)
-            row['agreement'] = agreement
+            row['agreement'] = _format_boolean(agreement, sparse)
 
             msg = f"{morph.name} - Observed region {observed_label} and declared region(s) " \
                   f"{declared_label} are {'' if agreement else 'not '}within each other"
@@ -139,6 +140,8 @@ if __name__ == "__main__":
         search_results=resources, morphology_dir=morphologies_dir, forge=forge_bucket,
         brain_region_map=br_map, voxel_data=voxel_d
     )
+
+    df.sort_values(by=['agreement'], inplace=True)
 
     shutil.rmtree(morphologies_dir)
     shutil.rmtree(atlas_dir)
