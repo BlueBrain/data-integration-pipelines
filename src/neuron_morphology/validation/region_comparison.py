@@ -4,6 +4,7 @@ import shutil
 from typing import Union, List
 
 from kgforge.core import KnowledgeGraphForge, Resource
+from voxcell import RegionMap, VoxelData
 from voxcell.nexus.voxelbrain import Atlas
 import cachetools
 import morphio
@@ -15,11 +16,11 @@ from src.logger import logger
 from src.neuron_morphology.arguments import define_arguments
 
 
-def get_region(morph_path):
+def get_region(morph_path: str, brain_region_map: RegionMap, voxel_data: VoxelData) -> str:
     morph = morphio.Morphology(morph_path)
-    soma_index = vd.positions_to_indices(morph.soma.center)
-    region_id = vd.raw[soma_index[0], soma_index[1], soma_index[2]]
-    return [rmap.get(region_id, 'name') for region_id in [region_id]]
+    soma_x, soma_y, soma_z = voxel_data.positions_to_indices(morph.soma.center)
+    region_id = voxel_data.raw[soma_x, soma_y, soma_z]
+    return brain_region_map.get(region_id, 'name')
 
 
 def get_tree(a, forge, debug=False):
@@ -42,7 +43,13 @@ def cacheresolve(text, forge, scope='ontology', strategy='EXACT_MATCH'):
     return forge.resolve(text=text, scope=scope, strategy=strategy)
 
 
-def do(search_results: str, morphology_dir: str, forge: KnowledgeGraphForge):
+def do(
+        search_results: str,
+        morphology_dir: str,
+        forge: KnowledgeGraphForge,
+        brain_region_map: RegionMap,
+        voxel_data: VoxelData
+) -> pd.DataFrame:
 
     rows = []
     for n, morph in enumerate(search_results):
@@ -53,33 +60,36 @@ def do(search_results: str, morphology_dir: str, forge: KnowledgeGraphForge):
             format_of_interest='application/swc', download_dir=morphology_dir, rename=None
         )
 
-        if hasattr(morph.brainLocation, 'layer'):
-            declared = morph.brainLocation.layer
-        else:
-            declared = morph.brainLocation.brainRegion
+        declared = _as_list(morph.brainLocation.brainRegion)  # could be a list
+        row['declared_region'] = ",".join([i.label for i in declared])
 
-        islist = isinstance(declared, list)
-        row['declared_region'] = f'{declared[0].label},{declared[0].label}'if islist else declared.label
-        declared_id = [declared[0].id, declared[1].id] if islist else declared.id
         try:
-            observed_label = get_region(swc_path)[0]
-            row['observed_region'] = observed_label if isinstance(observed_label, list) and len(observed_label) == 1 else observed_label
-            observed_id = cacheresolve(observed_label, forge).id
+            observed_label = get_region(swc_path, brain_region_map, voxel_data)
         except Exception as exc:
-            print(n, exc)
-            row['observed_region'] = None
-            observed_id = None
+            logger.error(f"Exception raised when retrieving brain region where soma is "
+                         f"located for {morph.name}: {str(exc)}")
 
-        if observed_id is not None:
-            if islist:
-                zero = is_indirectly_in(declared_id[0], observed_id, forge) or is_indirectly_in(observed_id, declared_id[0], forge)
-                one = is_indirectly_in(declared_id[1], observed_id, forge) or is_indirectly_in(observed_id, declared_id[1], forge)
-                row['agreement'] = zero or one
-            else:
-                row['agreement'] = is_indirectly_in(declared_id, observed_id, forge) or is_indirectly_in(observed_id, declared_id, forge)
-            print(n, row['agreement'])
+            observed_label = None
+
+        row['observed_region'] = observed_label
+
+        if observed_label is None:
+            logger.error(
+                f"Couldn't figure out the brain region where {morph.name}'s soma is located "
+                f"inside the parcellation volume"
+            )
         else:
-            print(n)
+            observed_id = cacheresolve(observed_label, forge).id
+            in_in_each_other = lambda a, b: is_indirectly_in(a, b, forge) or is_indirectly_in(b, a, forge)
+            agreement = any(in_in_each_other(i.id, observed_id) for i in declared)
+            row['agreement'] = agreement
+
+            msg = f"{morph.name} - Observed region {observed_label} and declared region(s) " \
+                  f"{observed_label} are {'' if agreement else 'not '}within each other"
+
+            log_fc = logger.info if agreement else logger.warning
+            log_fc(msg)
+
         rows.append(row)
 
     return pd.DataFrame(rows)
@@ -187,7 +197,7 @@ if __name__ == "__main__":
     output_dir = received_args.output_dir
     token = received_args.token
     is_prod = True
-    query_limit = 10
+    query_limit = 10000
 
     working_directory = os.path.join(os.getcwd(), output_dir)
     os.makedirs(working_directory, exist_ok=True)
@@ -200,13 +210,13 @@ if __name__ == "__main__":
     atlas_dir = os.path.join(working_directory, "atlas")
     atlas_id = "https://bbp.epfl.ch/neurosciencegraph/data/4906ab85-694f-469d-962f-c0174e901885"
     _get_atlas_dir_ready(atlas_dir, atlas_id, atlas_version=None)  # TODO version
-    # TODO if ran against multiple buckets, do not re-run this everytime?
+    # # TODO if ran against multiple buckets, do not re-run this everytime?
 
     logger.info("Loading atlas")
 
     atlas = Atlas.open(atlas_dir)
-    rmap = atlas.load_region_map()
-    vd = atlas.load_data('brain_regions')
+    br_map: RegionMap = atlas.load_region_map()
+    voxel_d: VoxelData = atlas.load_data('brain_regions')
 
     logger.info(f"Querying for morphologies in {org}/{project}")
 
@@ -226,7 +236,8 @@ if __name__ == "__main__":
     morphologies_dir = os.path.join(working_directory, "morphologies")
 
     df = do(
-        search_results=resources, morphology_dir=morphologies_dir, forge=forge_bucket
+        search_results=resources, morphology_dir=morphologies_dir, forge=forge_bucket,
+        brain_region_map=br_map, voxel_data=voxel_d
     )
 
     df.to_csv(os.path.join(working_directory, 'region_comparison.csv'))
