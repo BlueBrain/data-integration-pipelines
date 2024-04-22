@@ -98,7 +98,7 @@ if __name__ == "__main__":
     output_dir = received_args.output_dir
     token = received_args.token
     is_prod = True
-    query_limit = 10
+    query_limit = 10000
 
     working_directory = os.path.join(os.getcwd(), output_dir)
     os.makedirs(working_directory, exist_ok=True)
