@@ -61,7 +61,8 @@ def do(
         )
 
         declared = _as_list(morph.brainLocation.brainRegion)  # could be a list
-        row['declared_region'] = ",".join([i.label for i in declared])
+        declared_label = ",".join([i.label for i in declared])
+        row['declared_region'] = declared_label
 
         try:
             observed_label = get_region(swc_path, brain_region_map, voxel_data)
@@ -85,7 +86,7 @@ def do(
             row['agreement'] = agreement
 
             msg = f"{morph.name} - Observed region {observed_label} and declared region(s) " \
-                  f"{observed_label} are {'' if agreement else 'not '}within each other"
+                  f"{declared_label} are {'' if agreement else 'not '}within each other"
 
             log_fc = logger.info if agreement else logger.warning
             log_fc(msg)
