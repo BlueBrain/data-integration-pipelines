@@ -9,7 +9,7 @@ from kgforge.core import Resource, KnowledgeGraphForge
 from src.helpers import allocate, get_token, get_path
 
 from src.neuron_morphology.feature_annotations import common
-from src.neuron_morphology.feature_annotations.creation_helpers import get_generation, get_contribution
+from src.neuron_morphology.creation_helpers import get_generation, get_contribution
 from src.neuron_morphology.feature_annotations.data_classes.AnnotationTarget import AnnotationTarget
 from src.neuron_morphology.feature_annotations.common import _get_morph_path, download_morphology_file, \
     _get_neuron_morphologies

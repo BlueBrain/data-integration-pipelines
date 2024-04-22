@@ -8,13 +8,13 @@ from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.mappers import DictionaryMapper
 
 from src.logger import logger
-from src.helpers import allocate, ASSETS_DIRECTORY
+from src.helpers import allocate, ASSETS_DIRECTORY, get_token
 from src.neuron_morphology.arguments import define_arguments
 from src.neuron_morphology.validation.check_swc_on_resource import check_swc_on_resource, get_swc_path
 from src.neuron_morphology.validation.quality_metric import (
     SOLO_TYPE, BATCH_TYPE, save_batch_quality_measurement_annotation_report
 )
-from src.neuron_morphology.feature_annotations.creation_helpers import get_contribution, get_generation
+from src.neuron_morphology.creation_helpers import get_contribution, get_generation
 import os
 import json
 
@@ -92,9 +92,14 @@ def quality_measurement_report_to_resource(
 
     to_upd, to_register = [], []
     for n, report in enumerate(reports_as_resources):
+
         search_results = forge.search({'name': report.name})
+
         if not search_results:
-            search_results = forge.search({'type': SOLO_TYPE, 'hasTarget': {'hasSource': {'@id': report.hasTarget.hasSource.id}}})
+            search_results = forge.search({
+                'type': SOLO_TYPE,
+                'hasTarget': {'hasSource': {'@id': report.hasTarget.hasSource.id}}
+            })
 
         if len(search_results) == 0:
             to_register.append(report)
@@ -151,16 +156,40 @@ def save_batch_quality_measurement_annotation_report_on_resources(
 
 
 if __name__ == "__main__":
-
-    to_resource = False
+    # from datetime import datetime
+    #
+    # is_prod = True
+    # org, project = "public", "sscx"
+    # token = get_token(is_prod=True, prompt=False, token_file_path=None)
+    # timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    # output_dir = f'./output/{timestamp}'
+    # working_directory = os.path.join(os.getcwd(), output_dir)
+    #
+    # forge = allocate(org, project, is_prod=is_prod, token=token)
+    # resources = [
+    #     forge.retrieve("https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/5d28973b-7b2c-4402-abbf-cdf5e470f524"),
+    #     forge.retrieve("https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/d9af605d-c94f-4599-868f-d57825fdf874")
+    # ]
+    #
+    # swc_download_folder = os.path.join(working_directory, "swcs")
+    # report_dir_path = os.path.join(working_directory, f'{org}_{project}')
+    #
+    # path_to_resource = dict(
+    #     (get_swc_path(resource, swc_download_folder=swc_download_folder, forge=forge), resource)
+    #     for resource in resources
+    # )
+    #
+    # exit()
 
     parser = define_arguments(argparse.ArgumentParser())
     received_args, leftovers = parser.parse_known_args()
-
     org, project = received_args.bucket.split("/")
+    output_dir = received_args.output_dir
+    token = received_args.token
     is_prod = True
+    to_resource = False
 
-    working_directory = os.path.join(os.getcwd(), received_args.output_dir)
+    working_directory = os.path.join(os.getcwd(), output_dir)
 
     logger.info(f"Working directory {working_directory}")
 
@@ -168,9 +197,18 @@ if __name__ == "__main__":
 
     logger.info(f"Querying for morphologies in {org}/{project}")
 
-    token = received_args.token
     forge = allocate(org, project, is_prod=is_prod, token=token)
-    resources = forge.search({"type": "ReconstructedNeuronMorphology"}, limit=10000)
+
+    resources = forge.search({
+        "type": "ReconstructedNeuronMorphology",
+        "annotation": {
+            "hasBody": {
+                "label": "Curated"
+            }
+        }
+    }, limit=10000)
+
+    logger.info(f"Found {len(resources)} morphologies in {org}/{project}")
 
     swc_download_folder = os.path.join(working_directory, "swcs")
     report_dir_path = os.path.join(working_directory, f'{org}_{project}')
@@ -210,10 +248,11 @@ if __name__ == "__main__":
 
     # print(json.dumps(reports, indent=4))
 
-    mapping_batch_validation_report = DictionaryMapping.load(os.path.join(ASSETS_DIRECTORY, 'BatchQualityMeasurementAnnotation.hjson'))
-
     if to_resource:
         logger.info("Turning quality measurements into QualityMeasurementAnnotation Resources")
+
+        mapping_batch_validation_report = DictionaryMapping.load(os.path.join(ASSETS_DIRECTORY, 'BatchQualityMeasurementAnnotation.hjson'))
+
         batch_quality_to_register, quality_to_update, quality_to_register = quality_measurement_report_to_resource(
             morphology_resources_and_report=reports, forge=forge, token=token, is_prod=is_prod,
             batch_report_name=report_name, batch_report_dir=report_dir_path,

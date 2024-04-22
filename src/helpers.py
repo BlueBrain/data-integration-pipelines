@@ -78,3 +78,7 @@ def get_path(path):
 
 class CustomEx(Exception):
     ...
+
+
+def _as_list(obj):
+    return obj if isinstance(obj, list) else ([obj] if obj is not None else [])

@@ -29,6 +29,7 @@ setup(
         "morphio==v3.3.7",
         "morph-tool==v2.10.2",
         "morphology-workflows==0.10.1",
+        "voxcell==3.1.9",
         # "pynwb==2.0.0",
         "pyjwt",
         "neurom==3.2.10",
@@ -38,6 +39,7 @@ setup(
         "XlsxWriter==3.1.9",
         "importlib_metadata",
         "IPython",
+        "openpyxl",
     ],
     extras_require={
         "dev": ["pytest", "pytest-cov", "pytest-mock", "flake8"],

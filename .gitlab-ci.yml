@@ -34,3 +34,20 @@ run_on_bucket:
   artifacts:
     paths:
       - "$OUTPUT_DIR"
+
+
+brain_region:
+  rules:
+    - when: manual
+  variables:
+    OUTPUT_DIR: "./output/$CI_COMMIT_TIMESTAMP"
+  parallel:
+    matrix:
+      - BUCKET: bbp-external/seu
+  script:
+  - > 
+    python src/neuron_morphology/validation/region_comparison.py 
+    --token $SA_TOKEN --output_dir $OUTPUT_DIR --bucket $BUCKET
+  artifacts:
+    paths:
+      - "$OUTPUT_DIR"
