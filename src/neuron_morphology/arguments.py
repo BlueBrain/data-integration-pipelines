@@ -31,7 +31,7 @@ def define_arguments(parser: Union[argparse.ArgumentParser, Parser]):
     )
     add_arg(
         "--curated", help="Whether to only check curated data are all",
-        type=str, choices=["yes", "no", "both"]
+        type=str, choices=["yes", "no", "both"], default="yes"
     )
 
     return parser

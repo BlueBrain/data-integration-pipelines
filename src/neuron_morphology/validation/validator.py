@@ -56,7 +56,7 @@ class Check:
             if str(expected_value) != res:
                 if stdout:
                     print(
-                        f"For check \"{validation_report_checks[k][k_2].prefLabel}\" expected value: {expected_value}, obtained {res} for {neuron_path}"
+                        f"For check \"{validation_report_checks[k][k_2].pref_label}\" expected value: {expected_value}, obtained {res} for {neuron_path}"
                     )
             else:
                 if sparse:
@@ -465,7 +465,7 @@ def get_tsv_header_columns():
 
 
 def _get_nested_check_names() -> List[str]:
-    return [v_2.prefLabel for _, v in validation_report_checks.items() for k_2, v_2 in v.items()]
+    return [v_2.pref_label for _, v in validation_report_checks.items() for k_2, v_2 in v.items()]
 
 
 def get_validation_report_as_json(

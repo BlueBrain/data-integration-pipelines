@@ -22,9 +22,11 @@ def run_workflow_on_path(path: Path, dst_dir: Path):
     os.makedirs(dst_dir_with_filename, exist_ok=True)
 
     res = curation.detect_errors(row, dst_dir_with_filename)
-    res['error_annotated_path'] = str(res['error_annotated_path'])
-    if res['error_marker_path'] is not None:
-        res['error_marker_path'] = str(res['error_marker_path'])
+
+    to_str = ['error_annotated_path', 'error_marker_path', 'error_plot_path']
+    for to_str_i in to_str:
+        if res[to_str_i] is not None:
+            res[to_str_i] = str(res[to_str_i])
 
     with open(f"{dst_dir_with_filename}/{filename_no_ext}.json", "w") as f:
         json.dump(res, f, indent=4)
