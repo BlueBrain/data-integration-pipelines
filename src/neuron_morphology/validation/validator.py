@@ -19,7 +19,9 @@ class Check:
     def __init__(
             self,
             callable_: Callable,
-            label: str, id_: str,
+            label: str,
+            pref_label: str,
+            id_: str,
             value_in_json: Callable,
             value_in_tsv: Tuple[Callable, Optional[bool]],
             unit_code: Optional[str] = None,
@@ -27,6 +29,7 @@ class Check:
     ):
         self.callable_ = callable_
         self.label = label
+        self.pref_label = pref_label
         self.id_ = id_
         self.value_in_json = value_in_json
         self.unit_code = unit_code
@@ -53,8 +56,7 @@ class Check:
             if str(expected_value) != res:
                 if stdout:
                     print(
-                        f"For check \"{validation_report_checks[k][k_2].label}\" expected value: {expected_value}, "
-                        f"obtained {res} for {neuron_path}"
+                        f"For check \"{validation_report_checks[k][k_2].prefLabel}\" expected value: {expected_value}, obtained {res} for {neuron_path}"
                     )
             else:
                 if sparse:
@@ -97,7 +99,8 @@ validation_report_checks = {
     'morphology': {
         'can_be_loaded_with_morphio': Check(
             id_="todo",  # TODO
-            label="Can be loaded with morphio",
+            pref_label="Can be loaded with morphio",
+            label="todo",  # TODO
             callable_=lambda neuron, swc_path: CheckResult(
                 status=not isinstance(_load_morph_morphio(swc_path, raise_=True), Exception),
                 info=str(_load_morph_morphio(swc_path, raise_=True))
@@ -108,7 +111,8 @@ validation_report_checks = {
         ),
         'z_thickness_larger_than_50': Check(
             id_="todo",  # TODO
-            label="Z thickness is larger than 50",
+            label="todo",  # TODO
+            pref_label="Z thickness is larger than 50",
             callable_=lambda neuron, swc_path: curation.z_range(neuron),
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status if x.status is True else {
                 "min": {
@@ -127,7 +131,8 @@ validation_report_checks = {
     'neurites': {
         'has_different_diameters': Check(
             id_="todo",  # TODO
-            label="Neurite Has Different Diameters",
+            label="todo",  # TODO
+            pref_label="Neurite Has Different Diameters",
             callable_=lambda neuron, swc_path: CheckResult(
                 status=len(set(_load_morph_morphio(swc_path, raise_=False).diameters)) >= 2
             ),
@@ -137,7 +142,8 @@ validation_report_checks = {
         ),
         'has_no_dangling_branch': Check(
             id_="https://neuroshapes.org/danglingBranchMetric",
-            label="Neurite Has No Dangling Branch",
+            label="Dangling Branch Metric",
+            pref_label="Neurite Has No Dangling Branch",
             callable_=lambda neuron, swc_path: morphology_checks.has_no_dangling_branch(neuron),
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status if x.status is True else list({
                 "root_node_id": root_node_id,
@@ -145,11 +151,11 @@ validation_report_checks = {
               } for root_node_id, point in x.info),
             example_failure=['dangling_axon.swc'],
             value_in_tsv=(Check.basic_tsv, True)
-
         ),
         'has_no_root_node_jump': Check(
             id_="https://neuroshapes.org/rootNodeJumpMetric",
-            label="Neurite Has No Root Node Jump",
+            label="Root Node Jump Metric",
+            pref_label="Neurite Has No Root Node Jump",
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status if x.status is True else list({
                 "root_node_id": root_node_id,
                 "point": [float(i) for i in point[0]],
@@ -157,11 +163,11 @@ validation_report_checks = {
             callable_=lambda neuron, swc_path: morphology_checks.has_no_root_node_jumps(neuron),
             example_failure=['root_node_jump.swc'],
             value_in_tsv=(Check.basic_tsv, True)
-
         ),
         'has_no_z_jumps': Check(
             id_="https://neuroshapes.org/zJumpMetric",
-            label="Neurite Has No Z Jump",
+            pref_label="Neurite Has No Z Jump",
+            label="Z Jump Metric",
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status if x.status is True else list({
                 "section_id": section_id,
                 "from": list(float(i) for i in from_),
@@ -170,12 +176,12 @@ validation_report_checks = {
             callable_=lambda neuron, swc_path: morphology_checks.has_no_jumps(neuron, axis='z'),
             example_failure=['z_jump.swc'],
             value_in_tsv=(Check.basic_tsv, True)
-
         ),
         # has_no_radical_diameter_changes
         'has_no_narrow_start': Check(
             id_="https://neuroshapes.org/narrowStartMetric",
-            label="Neurite Has No Narrow Start",
+            label="Narrow Start Metric",
+            pref_label="Neurite Has No Narrow Start",
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status if x.status is True else list({
                 "root_node_id": root_node_id,
                 "root_node_points": [[float(ip) for ip in p] for p in root_node_points],
@@ -186,7 +192,8 @@ validation_report_checks = {
         ),
         'has_no_fat_ends': Check(
             id_="https://neuroshapes.org/fatEndMetric",
-            label="Neurite Has No Fat Ends",
+            pref_label="Neurite Has No Fat Ends",
+            label="Fat End Metric",
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status if x.status is True else list({
                 "leaf_id": leaf_id,
                 "leaf_points": [list(float(a) for a in el) for el in leaf_points],
@@ -198,7 +205,8 @@ validation_report_checks = {
         ),
         'has_all_nonzero_segment_lengths': Check(
             id_="https://neuroshapes.org/zeroLengthSegmentMetric",
-            label="Neurite Has all nonzero segment lengths",
+            pref_label="Neurite Has all nonzero segment lengths",
+            label="Zero Length Segment Metric",
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status if x.status is True else list({
                 "sectionId": i[0],
                 "segmentId": i[1]
@@ -215,7 +223,8 @@ validation_report_checks = {
         ),
         "has_all_nonzero_neurite_radii": Check(
             id_="todo",  # TODO
-            label="Neurite Has all non zero neurite radii",
+            label="todo",  # TODO
+            pref_label="Neurite Has all non zero neurite radii",
             value_in_json=None,
             callable_=lambda m, swc_path: morphology_checks.has_all_nonzero_neurite_radii(m),
             example_failure=['Neuron_zero_radius.swc'],
@@ -223,7 +232,8 @@ validation_report_checks = {
         ),
         "has_all_nonzero_section_lengths": Check(
             id_="todo",  # TODO
-            label="Neurite Has all non-zero section lengths",
+            label="todo",  # TODO
+            pref_label="Neurite Has all non-zero section lengths",
             value_in_json=None,
             callable_=lambda m, swc_path: morphology_checks.has_all_nonzero_section_lengths(m),
             example_failure=['Neuron_zero_length_sections.swc'],
@@ -231,7 +241,8 @@ validation_report_checks = {
         ),
         'has_no_narrow_neurite_section': Check(
             id_="https://neuroshapes.org/narrowNeuriteSectionMetric",
-            label="Has no narrow Neurite Section",
+            pref_label="Has no narrow Neurite Section",
+            label="Narrow Neurite Section Metric",
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status if x.status is True else list({
                 "section_id": section_id,
                 "section_points": [[float(ip) for ip in p] for p in section_points],
@@ -242,7 +253,8 @@ validation_report_checks = {
         ),
         "has_no_flat_neurites": Check(
             id_="todo",   # TODO
-            label="Has no flat neurites",
+            label="todo",  # TODO
+            pref_label="Has no flat neurites",
             value_in_json=Check.basic_json,
             callable_=lambda m, swc_path: morphology_checks.has_no_flat_neurites(m, 1e-6, method="tolerance"),
             example_failure=['Neuron-flat.swc'],
@@ -252,16 +264,18 @@ validation_report_checks = {
     'bifurcations': {
         'has_unifurcation': Check(
             id_="todo",  # TODO
+            label="todo",  # TODO
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status if x.status is True else len(x.info),
-            label="Has Unifurcation",
+            pref_label="Has Unifurcation",
             callable_=lambda neuron, swc_path: morphology_checks.has_unifurcation(neuron),
             example_failure=["unifurcation.asc"],
             value_in_tsv=(Check.basic_tsv, True)
         ),
         'has_multifurcation': Check(
             id_="todo",  # TODO
+            label="todo",  # TODO
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status if x.status is True else len(x.info),
-            label="Has Multifurcation",
+            pref_label="Has Multifurcation",
             callable_=lambda neuron, swc_path: morphology_checks.has_multifurcation(neuron),
             example_failure=["multifurcation.asc"],
             value_in_tsv=(Check.basic_tsv, True)
@@ -270,7 +284,8 @@ validation_report_checks = {
     "soma": {
         "has_nonzero_soma_radius": Check(
             id_="todo",  # TODO
-            label="Has nonzero soma radius",
+            label="todo",  # TODO
+            pref_label="Has nonzero soma radius",
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status,
             callable_=lambda m, swc_path: morphology_checks.has_nonzero_soma_radius(m),
             example_failure=['soma_zero_radius.swc'],
@@ -280,7 +295,8 @@ validation_report_checks = {
     'dendrites': {
         "has_apical_dendrite": Check(
             id_="todo",  # TODO
-            label="Has apical dendrite",
+            label="todo",  # TODO
+            pref_label="Has apical dendrite",
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status,
             callable_=lambda m, swc_path: morphology_checks.has_apical_dendrite(m),
             example_failure=['Single_axon.swc', 'Single_basal.swc'],
@@ -288,7 +304,8 @@ validation_report_checks = {
         ),
         "has_basal_dendrite": Check(
             id_="todo",  # TODO
-            label="Has basal dendrite",
+            label="todo",  # TODO
+            pref_label="Has basal dendrite",
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status,
             callable_=lambda m, swc_path: morphology_checks.has_basal_dendrite(m),
             example_failure=['Single_axon.swc', 'Single_apical.swc'],
@@ -298,7 +315,8 @@ validation_report_checks = {
     'axons': {
         "has_axon": Check(
             id_="todo",  # TODO
-            label="Has axon",
+            label="todo",  # TODO
+            pref_label="Has axon",
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status,
             callable_=lambda m, swc_path: morphology_checks.has_axon(m),
             example_failure=['Single_apical.swc', 'Single_basal.swc'],
@@ -308,7 +326,8 @@ validation_report_checks = {
     'custom': {
         'number_of_dendritic_trees_stemming_from_the_soma': Check(  # DONE
             id_="https://neuroshapes.org/dendriteStemmingFromSomaMetric",
-            label="Number of Dendrites Stemming From Soma",
+            label="Dendrite Stemming From Soma Metric",
+            pref_label="Number of Dendrites Stemming From Soma",
             value_in_json=Check.basic_numeric,
             callable_=lambda neuron, swc_path: custom_validation.number_of_dendritic_trees_stemming_from_the_soma(neuron),
             example_failure=None,  # Not a check, a metric
@@ -316,7 +335,8 @@ validation_report_checks = {
         ),
         'number_of_axons': Check(  # DONE
             id_="https://neuroshapes.org/axonMetric",
-            label="Number of Axons",
+            label="Axon Metric",
+            pref_label="Number of Axons",
             value_in_json=Check.basic_numeric,
             callable_=lambda neuron, swc_path: custom_validation.number_of_axons(neuron),
             value_in_tsv=(Check.basic_numeric, None)
@@ -324,28 +344,33 @@ validation_report_checks = {
         # 'single_child': Check(  # TODO rm and keep neurom implementation?
         #     id_="https://neuroshapes.org/singleChildMetric",
         #     label="Single Child Metric",
-        #     value_in_resource=lambda x: list({
+        #     pref_label="Single Child Metric",
+        #     value_in_json=lambda x: list({
         #          "valueX": i[0],
         #          "valueY": i[1],
         #          "valueZ": i[2],
         #          "type": "Vector3D"
         #     } for i in x),
-        #     callable_=lambda neuron, swc_path custom_validation.has_no_single_child(neuron).info
+        #     callable_=lambda neuron, swc_path: custom_validation.has_no_single_child(neuron).info,
+        #     value_in_tsv=(Check.basic_tsv, True)
         # ),
         # 'multifurcation': Check(  # TODO rm and keep neurom implementation?
         #     id_="https://neuroshapes.org/multifurcationMetric",
+        #     pref_label="Multifurcation Metric",
         #     label="Multifurcation Metric",
-        #     value_in_resource=lambda x: list({
+        #     value_in_json=lambda x: list({
         #         "valueX": i[0],
         #         "valueY": i[1],
         #         "valueZ": i[2],
         #         "type": "Vector3D"
         #       } for i in x),
-        #     callable_=lambda neuron, swc_path custom_validation.has_no_multifurcation(neuron).info
-        # )
+        #     callable_=lambda neuron, swc_path: custom_validation.has_no_multifurcation(neuron).info,
+        #     value_in_tsv=(Check.basic_tsv, True)
+        # ),
         'max_branch_order':  Check(  # DONE
             id_="https://neuroshapes.org/maximumBranchOrderMetric",
-            label="Maximum Section Branch Order",
+            pref_label="Maximum Section Branch Order",
+            label="Maximum Branch Order Metric",
             value_in_json=Check.basic_numeric,
             callable_=lambda neuron, swc_path: int(max(nm.features.get('section_branch_orders', neuron))),
             unit_code="μm",
@@ -354,7 +379,8 @@ validation_report_checks = {
         ),
         'total_section_length': Check(  # DONE
             id_="https://neuroshapes.org/totalSectionLengthMetric",
-            label="Total Section Length",
+            pref_label="Total Section Length",
+            label="Total Section Length Metric",
             value_in_json=Check.basic_numeric,
             callable_=lambda neuron, swc_path: float(nm.features.get('total_length', neuron)),
             unit_code="μm",
@@ -363,7 +389,8 @@ validation_report_checks = {
         ),
         'max_section_length': Check(  # DONE
             id_="https://neuroshapes.org/maximumSectionLengthMetric",
-            label="Maximum Section Length",
+            pref_label="Maximum Section Length",
+            label="Maximum Section Length Metric",
             value_in_json=Check.basic_numeric,
             callable_=lambda neuron, swc_path: float(max(nm.features.get('section_lengths', neuron))),
             unit_code="μm",
@@ -438,7 +465,7 @@ def get_tsv_header_columns():
 
 
 def _get_nested_check_names() -> List[str]:
-    return [v_2.label for _, v in validation_report_checks.items() for k_2, v_2 in v.items()]
+    return [v_2.prefLabel for _, v in validation_report_checks.items() for k_2, v_2 in v.items()]
 
 
 def get_validation_report_as_json(
