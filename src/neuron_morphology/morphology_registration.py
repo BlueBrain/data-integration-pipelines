@@ -158,7 +158,7 @@ def make_dict(
     nrow['subject.strain'] = subject_strain
 
     for axis, v in coordinates.items():
-        nrow[f'brainLocation.coordinatesInBrainAtlas.value{axis}.@value'] = v
+        nrow[f'brainLocation.coordinatesInBrainAtlas.value{axis}.@value'] = float(v)
 
     month_year = re.search(r'\w+ \d+', row['No.']).group()
     start = datetime.strptime(month_year, "%B %Y")
