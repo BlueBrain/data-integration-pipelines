@@ -48,7 +48,14 @@ def check(resources: List[Resource], forge: KnowledgeGraphForge, sparse=True):
             else:
                 if k in columns_with_id_rm_and_label:
                     k_label = k.replace(".id", ".label")
-                    same = link_resource.label == r_df[k_label].values[0]
+                    if "label" in link_resource.__dict__:
+                        same = link_resource.label == r_df[k_label].values[0]
+                    else:
+                        logger.warning(
+                            f"Morphology {resource.get_identifier()} has an id paired with a label,"
+                            f" when the original resource doesn't have a label, see field {k_label}"
+                        )
+                        same = False
                     row[f"{k} label is the same"] = same
 
                     if not same:
