@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Apr  2 13:02:49 2024
-
-@author: ricardi
-"""
+import argparse
 from typing import Dict, Tuple, List, Union, Optional
 
 import cachetools
@@ -13,11 +7,8 @@ from datetime import datetime, timedelta
 import glob
 import json
 from kgforge.core import KnowledgeGraphForge, Resource
-from kgforge.specializations.mappings import DictionaryMapping
-from kgforge.specializations.mappers import DictionaryMapper
-from src.helpers import allocate, get_token, ASSETS_DIRECTORY
+from src.helpers import allocate, ASSETS_DIRECTORY, authenticate, _as_list
 from morph_tool.converter import convert
-from neurom import load_morphology
 import numpy as np
 import os
 import pandas as pd
@@ -26,70 +17,77 @@ import shutil
 import zipfile
 
 from src.logger import logger
+from src.neuron_morphology.arguments import define_arguments
 from src.neuron_morphology.creation_helpers import get_generation, get_contribution
 
-is_prod = True
-token = get_token(is_prod=is_prod, prompt=False)
-forge = allocate("bbp-external", "seu", is_prod=is_prod, token=token)
 
-###############################################################################
-### Extract content
-###############################################################################
-folder = os.path.join(ASSETS_DIRECTORY, '2nd_delivery_SEU_01162024')
+strategy = 'EXACT_CASE_INSENSITIVE_MATCH'
+MORPHOLOGY_EXTENSIONS = ['swc', 'asc', 'h5']
 
-re_extract = False  # set to True to re-extract all zips
 
-if re_extract:
-    brains = list(glob.iglob(os.path.join(folder, '*.zip')))
+def extract_zip(zip_file_path: str, dst_dir: str, re_extract: bool):
+
+    if re_extract:
+        with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
+            zip_ref.extractall(dst_dir)
+
+    filename, _ = os.path.splitext(os.path.basename(zip_file_path))
+    zip_files_per_brain = os.path.join(dst_dir, filename)
+    brains = list(glob.iglob(os.path.join(zip_files_per_brain, "*.zip")))
+
     logger.info(f"Extracting {len(brains)} archives (per mouse id)")
-    for fpath in brains:
-        with zipfile.ZipFile(fpath, 'r') as zip_ref:
-            logger.info(f"Extracting archive {fpath}")
-            zip_ref.extractall(folder)
 
-re_convert = False  # set to True to convert again
-name_to_file = {}
+    for f_path in brains:
+        with zipfile.ZipFile(f_path, 'r') as zip_ref:
+            if re_extract:
+                logger.info(f"Extracting archive {f_path}")
+                zip_ref.extractall(zip_files_per_brain)
+                os.remove(f_path)
 
-start_format = 'swc'  # the format of the delivery, to convert from
-other_formats = [i for i in ['swc', 'asc', 'h5'] if i != start_format]
+    directories = [x[0] for x in os.walk(zip_files_per_brain)]
+    return zip_files_per_brain, directories
 
-for fpath in glob.iglob(os.path.join(folder, '**/*.swc'), recursive=True):
-    fol, swc_name = os.path.split(fpath)
-    basename, _ = os.path.splitext(swc_name)
 
-    if basename in name_to_file:
-        raise ValueError(f'Morphologies with the same name {fpath}!!')
+def convert_swcs(dst_folders: List[str], re_convert: bool) -> Dict:
+    name_to_file = {}
 
-    name_to_file[basename] = fpath
+    start_format = 'swc'  # the format of the delivery, to convert from
+    other_formats = [i for i in MORPHOLOGY_EXTENSIONS if i != start_format]
 
-    for out_format in other_formats:
-        outfile = os.path.join(fol, f"{basename}.{out_format}")
+    for dst_folder in dst_folders:
+        for f_path in list(glob.iglob(os.path.join(dst_folder, '*.swc'))):
+            fol, swc_name = os.path.split(f_path)
+            basename, _ = os.path.splitext(swc_name)
 
-        if not os.path.isfile(outfile) or re_convert:
-            logger.info(f"Converting {fpath} into format {out_format}")
-            convert(fpath, outfile)
+            if basename in name_to_file:
+                raise ValueError(f'Morphologies with the same name {f_path}!!')
 
-print(f'Working on {len(name_to_file)} morphologies')
+            name_to_file[basename] = f_path
 
-###############################################################################
-### Reading and processing metadata
-###############################################################################
+            for out_format in other_formats:
+                outfile = os.path.join(fol, f"{basename}.{out_format}")
 
-exclude = ['processed_metadata.xlsx']
-xlsx_files = [i for i in glob.glob(os.path.join(folder, '*.xlsx')) if not any(j in i for j in exclude)]
+                if re_convert:
+                    logger.info(f"Converting {f_path} into format {out_format}")
+                    convert(f_path, outfile)
+                elif not os.path.isfile(outfile):
+                    logger.info(f"Converting {f_path} into format {out_format} needs to happen, but re-convert was set to False")
 
-if len(xlsx_files) != 1:
-    raise FileNotFoundError(f"""Cannot identify metadata excel file.
-    Provide a single excel file in {folder} or change this notebook appropriately"""
-)
+    return name_to_file
 
-xlsx_file = xlsx_files[0]
-metadata = pd.read_excel(xlsx_file, skiprows=1, na_values=' ')
 
-excel_file = 'processed_metadata.xlsx'  # the final filepath for processed metadata
+def load_excel_file(folder: str) -> pd.DataFrame:
+    xlsx_files = list(glob.glob(os.path.join(folder, '*.xlsx')))
 
-# Checking that we have metadata for all swc files and swc files for all the metadata
-assert set(name_to_file.keys()) == set(metadata['Cell Name (Cell ID)']), 'Incomplete correspondence between data (swc) and metadata (rows in excel)'
+    if len(xlsx_files) != 1:
+        raise FileNotFoundError(
+            f"Cannot identify metadata excel file. Provide a single excel file "
+            f"in {folder} or change this notebook appropriately"
+        )
+
+    xlsx_file = xlsx_files[0]
+    return pd.read_excel(xlsx_file, skiprows=1, na_values=' ')
+
 
 rowdict = {  # dictionary of fields which are the same for all morphologies
     'type': ['Dataset', 'NeuronMorphology', 'ReconstructedNeuronMorphology'],
@@ -121,46 +119,37 @@ with open(os.path.join(ASSETS_DIRECTORY, "ordered_columns.json"), "r") as f:
     columns_ordered = json.load(f)
 
 
-contribution = get_contribution(token=token, production=is_prod)
-generation = get_generation()
-
-
 @cachetools.cached(cache=cachetools.LRUCache(maxsize=100))
-def cacheresolve(text, scope='ontology', strategy='EXACT_MATCH'):
+def cacheresolve(text, forge, scope='ontology', strategy='EXACT_MATCH'):
     return forge.resolve(text=text, scope=scope, strategy=strategy)
 
 
-nrows = []
-incomplete, not_done = {}, {}
-
-
-def append_errors(register_flag, err_str, i):
-    err_append = (None if err_str is None else (incomplete if register_flag else not_done))
-    if err_append:
-        err_append[i] = err_str
-
-
-log_name = 'log.json'
-log_path = os.path.join(folder, log_name)
-strategy = 'EXACT_CASE_INSENSITIVE_MATCH'
-
-
 def make_dict(
-        name, distribution, subject_name, brain_region,
-        coordinates, subject_strain, layer
+        name, distribution, subject_name, brain_region, coordinates, subject_strain, layer, row_number
 ) -> Dict:
     nrow = copy.deepcopy(rowdict)
     nrow['name'] = name
     nrow['distribution'] = distribution
     nrow['subject.name'] = subject_name
-    nrow['brainLocation.brainRegion'] = brain_region
-    nrow['brainLocation.layer'] = layer
-    nrow['subject.strain'] = subject_strain
+
+    if brain_region:
+        brain_region = _as_list(brain_region)
+        nrow['brainLocation.brainRegion.id'] = ", ".join([i["id"] for i in brain_region])
+        nrow['brainLocation.brainRegion.label'] = ", ".join([i["label"] for i in brain_region])
+
+    if layer:
+        layer = _as_list(layer)
+        nrow['brainLocation.layer.id'] = ", ".join([i["id"] for i in layer])
+        nrow['brainLocation.layer.label'] = ", ".join([i["label"] for i in layer])
+
+    if subject_strain:
+        nrow['subject.strain.id'] = subject_strain["id"]
+        nrow['subject.strain.label'] = subject_strain["label"]
 
     for axis, v in coordinates.items():
         nrow[f'brainLocation.coordinatesInBrainAtlas.value{axis}.@value'] = float(v)
 
-    month_year = re.search(r'\w+ \d+', row['No.']).group()
+    month_year = re.search(r'\w+ \d+', row_number).group()
     start = datetime.strptime(month_year, "%B %Y")
     end = start + timedelta(days=1)
     nrow['generation.activity.startedAtTime'] = datetime.isoformat(start, sep='T', timespec='auto')
@@ -169,26 +158,26 @@ def make_dict(
     return nrow
 
 
-def _get_strain(row_strain, i) -> Tuple[Optional[Dict], Optional[str], bool]:
+def _get_strain(row_strain: str, i: int, forge: KnowledgeGraphForge) -> Tuple[Optional[Dict], Optional[str], bool]:
 
-    resolved_strain = cacheresolve(text=row_strain, scope='ontology', strategy=strategy)
+    resolved_strain = cacheresolve(text=row_strain, forge=forge, scope='ontology', strategy=strategy)
     if resolved_strain is None:
         return None, f'could not resolve strain = "{row_strain}" for row {i}', True
     else:
         return {"label": resolved_strain.label, "id": resolved_strain.id}, None, True
 
 
-def _get_layer(row_layer, i: int, brain_loc_label: str) -> Tuple[Optional[Union[Dict, List]], Optional[str], bool]:
+def _get_layer(row_layer, i: int, brain_loc_label: str, forge: KnowledgeGraphForge) -> Tuple[Optional[Union[Dict, List]], Optional[str], bool]:
     '''Value if it's there, error message if it's there, whether to register or not'''
     if not pd.notna(row_layer):
         return None, None, True
 
     text = f"{brain_loc_label}, layer {row_layer}"
-    layer = cacheresolve(text=text, scope='ontology', strategy=strategy)
+    layer = cacheresolve(text=text, forge=forge, scope='ontology', strategy=strategy)
     if layer is not None:
         return {'label': layer.label, 'id': layer.id}, None, True
 
-    layers = cacheresolve(text=text, scope='ontology', strategy='ALL_MATCHES')
+    layers = cacheresolve(text=text, forge=forge, scope='ontology', strategy='ALL_MATCHES')
 
     if layers is None:
         return None, f'could not resolve layer = "{text}" for row {i}', True
@@ -202,8 +191,8 @@ def _get_layer(row_layer, i: int, brain_loc_label: str) -> Tuple[Optional[Union[
         return None, f"could not resolve tex = \"{text}", False
 
 
-def _get_brain_region(row_br, i) -> Tuple[Optional[Dict], Optional[str], bool]:
-    brain_loc = cacheresolve(text=row_br, scope='ontology', strategy=strategy)
+def _get_brain_region(row_br: str, i: int, forge: KnowledgeGraphForge) -> Tuple[Optional[Dict], Optional[str], bool]:
+    brain_loc = cacheresolve(text=row_br, forge=forge, scope='ontology', strategy=strategy)
     brain_loc = forge.retrieve(brain_loc.id, cross_bucket=True)
     if brain_loc is None:
         return None, f"could not resolve brain location = \"{row_br}\" for row {i}", False
@@ -211,89 +200,64 @@ def _get_brain_region(row_br, i) -> Tuple[Optional[Dict], Optional[str], bool]:
         return {"label": brain_loc.label, "id": brain_loc.id}, None, True
 
 
-for i, row in zip(metadata.index, metadata.loc):
-    name = row['Cell Name (Cell ID)']
-    swc_file = name_to_file[name]
-    distribution = [f'{swc_file[:-3]}asc', f'{swc_file[:-3]}h5', swc_file]
+def do(metadata: pd.DataFrame, name_to_file: Dict, forge: KnowledgeGraphForge) -> Tuple[List[Dict], Dict, Dict]:
+    nrows = []
+    incomplete, not_done = {}, {}
 
-    strain = row['Animal strain or treatment (e.g. VPA)']
-    animal_id = row['Animal ID']
-    subject_name = f'{strain};{animal_id}'
-    coordinates = dict((axis, row[f'{axis} coordinates']) for axis in ['X', 'Y', 'Z'])
+    def append_errors(register_flag, err_str, i):
+        if err_str is None:
+            return None
+        err_append = incomplete if register_flag else not_done
+        log_fc = logger.warning if register_flag else logger.error
+        log_fc(err_str)
+        err_append[i] = err_str
 
-    subject_strain, err_str_strain, register_strain = _get_strain(strain, i)
-    append_errors(register_strain, err_str_strain, i)
+    for i, row in list(zip(metadata.index, metadata.loc)):
 
-    brain_region, err_str_br, register_br = _get_brain_region(row['Brain Region'], i)
-    append_errors(register_br, err_str_br, i)
+        name = row['Cell Name (Cell ID)']
+        logger.info(f"Processing morphology #{i+1} {name}")
+        swc_file = name_to_file[name]
 
-    row_layer = row['Layer\n(1,2, 3, etc.)']
+        swc_file_path, swc_file_name_ext = os.path.split(swc_file)
+        swc_file_name, _ = os.path.splitext(swc_file_name_ext)
 
-    layer_value, err_str_layer, register_layer = _get_layer(
-        row_layer, i, brain_region["label"] if brain_region else None
-    )
-    append_errors(register_layer, err_str_layer, i)
+        distribution = [os.path.join(swc_file_path, f"{swc_file_name}.{m_ext}") for m_ext in MORPHOLOGY_EXTENSIONS]
 
-    nrow = make_dict(
-        name=name,
-        distribution=distribution,
-        subject_name=subject_name,
-        brain_region=brain_region,
-        coordinates=coordinates,
-        subject_strain=subject_strain,
-        layer=layer_value
-    )
+        strain = row['Animal strain or treatment (e.g. VPA)']
+        animal_id = row['Animal ID']
+        subject_name = f'{strain};{animal_id}'
+        coordinates = dict((axis, row[f'{axis} coordinates']) for axis in ['X', 'Y', 'Z'])
 
-    nrows.append(nrow)
-with open(log_path, 'w') as f:
-    json.dump({'not registered': not_done, 'incomplete': incomplete}, f, indent=2)
+        subject_strain, err_str_strain, register_strain = _get_strain(strain, i, forge)
+        append_errors(register_strain, err_str_strain, i)
 
-print(f'Written log of incomplete data and not registered morphologies in {log_path}')
+        brain_region, err_str_br, register_br = _get_brain_region(row['Brain Region'], i, forge)
+        append_errors(register_br, err_str_br, i)
 
-df = pd.DataFrame(nrows)
-df = df.reindex(columns=columns_ordered)  # to always have them in the same order, for readability
-df.to_excel(os.path.join(folder, excel_file))
+        row_layer = row['Layer\n(1,2, 3, etc.)']
 
-exit()
-resources = forge.from_dataframe(df, na=np.nan, nesting=".")
-# forge.register(resources, "datashapes:neuronmorphology")
-# ids = [res.id for res in resources]
-# timestamp = datetime.today().strftime('%Y%m%d_%Hh%M')
-# logname = f'registered_resources_ids_{timestamp}.json'
-# with open(logname, 'w') as f:
-#     json.dump(ids, f, indent=2)
+        layer_value, err_str_layer, register_layer = _get_layer(
+            row_layer, i, brain_region["label"] if brain_region else None, forge=forge
+        )
+        append_errors(register_layer, err_str_layer, i)
 
-to_zip_fol = os.path.join(folder, 'to_zip')
-name = 'processed_morphologies'
-zipfp = os.path.join(folder, "morphologies.zip")
-if not os.path.isdir(to_zip_fol):
-    os.mkdir(to_zip_fol)
-for _, fpath in name_to_file.items():
-    path, fname = os.path.split(fpath)
-    basename = fname[:-4]
-    for format in ['swc', 'asc', 'h5']:
-        source = os.path.join(path, f'{basename}.{format}')
-        dest = os.path.join(to_zip_fol, f'{basename}.{format}')
-        shutil.copy(source, dest)
-shutil.copy(os.path.join(folder, excel_file), os.path.join(to_zip_fol, excel_file))  # processed metadata
-basepath, zipfolname = os.path.split(to_zip_fol)
-len_ = len(basepath)
-with zipfile.ZipFile(zipfp, "w") as zf:
-    for dirname, subdirs, files in os.walk(to_zip_fol):
-        assert dirname[:len_] == basepath
-        newfp = name if dirname == to_zip_fol else dirname[len_ + 1:]
-        zf.write(dirname, newfp)
-        for filename in files:
-            zf.write(os.path.join(dirname, filename), os.path.join(newfp, filename))
-print(f'written zip file {zipfp}')
-shutil.rmtree(to_zip_fol)  # this folder is no longer needed
+        nrow = make_dict(
+            name=name,
+            distribution=distribution,
+            subject_name=subject_name,
+            brain_region=brain_region,
+            coordinates=coordinates,
+            subject_strain=subject_strain,
+            layer=layer_value,
+            row_number=row['No.']
+        )
 
-###############################################################################
-### Register delivery as datacatalog
-###############################################################################
-orig_zipfp = '/home/ricardi/SEU/2nd_delivery_SEU_01162024.zip'
+        nrows.append(nrow)
 
-def make_catalog_resource(name: str, description: str):
+    return nrows, incomplete, not_done
+
+
+def make_catalog_resource(name: str, description: str, zip_file_path: str, forge: KnowledgeGraphForge):
     info = {
         "@context": "https://bbp.neuroshapes.org",
         "@type": [
@@ -325,19 +289,104 @@ def make_catalog_resource(name: str, description: str):
             }
         }
     }
-    return Resource.from_json(info)
+    datacatalog = Resource.from_json(info)
+    datacatalog.distribution = forge.attach(zip_file_path, content_type="application/zip")
+    return datacatalog
 
 
-datacatalog = make_catalog_resource("", "")
-datacatalog.distribution = forge.attach(zipfile, content_type="application/zip")
+def to_excel(dst_path: str, dataframe: pd.DataFrame):
+    writer = pd.ExcelWriter(dst_path, engine='xlsxwriter')
+    dataframe.to_excel(writer, index=False, sheet_name='Sheet1')
+    worksheet = writer.sheets['Sheet1']
+    for i, col in enumerate(dataframe.columns):
+        width = max(dataframe[col].apply(lambda x: len(str(x))).max(), len(col))
+        worksheet.set_column(i, i, width)
+    writer.close()
 
-# forge.register(datacatalog)
 
-print('Your datacatalog has the following ID', datacatalog.id)
+def zip_output(working_directory: str, dst_root_folder: str, processed_metadata_file_path: str, log_path: str, zip_path: str):
+    logger.info(f"Zipping output into {zip_path}.zip")
+    to_zip_folder = os.path.join(working_directory, 'to_zip')
+    os.makedirs(to_zip_folder, exist_ok=True)
+    shutil.copytree(dst_root_folder, to_zip_folder, dirs_exist_ok=True)
+    shutil.copy(processed_metadata_file_path, to_zip_folder)
+    shutil.copy(log_path, to_zip_folder)
+    shutil.make_archive(zip_path, 'zip', to_zip_folder)
+    shutil.rmtree(to_zip_folder)
 
-datacatalog.description = 'processed_morphologies'
-datacatalog.distribution = forge.attach(zipfp, content_type='application/zip')  # this can fail for large datasets
+
+if __name__ == "__main__":
+    parser = define_arguments(argparse.ArgumentParser())
+    received_args, leftovers = parser.parse_known_args()
+    working_directory = os.path.join(os.getcwd(), received_args.output_dir)
+    os.makedirs(working_directory, exist_ok=True)
+
+    original_zip_file = os.path.join(ASSETS_DIRECTORY, "2nd_delivery_SEU_01162024.zip")
+
+    local_test = False
+
+    if local_test:
+        dst_directory = os.path.join(os.getcwd(), "output")
+        dst_root_folder, dst_folders = extract_zip(zip_file_path=original_zip_file, dst_dir=dst_directory, re_extract=False)
+        logger.info(f"Converting swc files into other extensions")
+        name_to_file = convert_swcs(dst_folders, re_convert=False)
+    else:
+        dst_directory = working_directory
+        dst_root_folder, dst_folders = extract_zip(zip_file_path=original_zip_file, dst_dir=working_directory, re_extract=True)
+        logger.info(f"Converting swc files into other extensions")
+        name_to_file = convert_swcs(dst_folders, re_convert=True)
+
+    print(f'Working on {len(name_to_file)} morphologies')
+    metadata = load_excel_file(dst_root_folder)
+
+    is_prod = True
+    token = authenticate(username=received_args.username, password=received_args.password)
+    forge_instance = allocate("bbp-external", "seu", is_prod=is_prod, token=token)
+    contribution = get_contribution(token=token, production=is_prod)
+    generation = get_generation()
+
+    datacatalog_name, datacatalog_description = "", ""  # TODO
+    datacatalog = make_catalog_resource(name=datacatalog_name, description=datacatalog_description, zip_file_path=original_zip_file, forge=forge_instance)
+    # forge.register(datacatalog)
+    # print('Your datacatalog has the following ID', datacatalog.id)  # Initial catalog without changes
+
+    # Checking that we have metadata for all swc files and swc files for all the metadata
+    assert set(name_to_file.keys()) == set(metadata['Cell Name (Cell ID)']), 'Incomplete correspondence between data (swc) and metadata (rows in excel)'
+
+    excel_file = 'processed_metadata.xlsx'  # the final filepath for processed metadata
+
+    nrows, incomplete, not_done = do(metadata, name_to_file, forge_instance)
+
+    log_path = os.path.join(working_directory, 'log.json')
+
+    with open(log_path, 'w') as f:
+        json.dump({'not registered': not_done, 'incomplete': incomplete}, f, indent=2)
+
+    logger.info(f'Written log of incomplete data and not registered morphologies in {log_path}')
+
+    df = pd.DataFrame(nrows)
+    df = df.reindex(columns=columns_ordered)  # to always have them in the same order, for readability
+
+    processed_metadata_file_path = os.path.join(working_directory, excel_file)
+
+    to_excel(processed_metadata_file_path, df)
+
+    zip_path = os.path.join(working_directory, "morphologies")
+    zip_output(working_directory, dst_root_folder, processed_metadata_file_path, log_path, zip_path=zip_path)
+
+    # resources = forge_instance.from_dataframe(df, na=np.nan, nesting=".")
+    # forge.register(resources, "datashapes:neuronmorphology")
+    # ids = [res.id for res in resources]
+    # timestamp = datetime.today().strftime('%Y%m%d_%Hh%M')
+    # logname = f'registered_resources_ids_{timestamp}.json'
+    # with open(logname, 'w') as f:
+    #     json.dump(ids, f, indent=2)
+
+    # After processing, with processed excel file
+    # datacatalog.description = 'processed_morphologies'
+    # datacatalog.distribution = forge.attach(zipfp, content_type='application/zip')  # this can fail for large datasets
+    # datacatalog.hasPart = [{"@id": id_, "@type": "NeuronMorphology"} for id_ in ids]
+    # forge.update(datacatalog, schema_id="https://bbp.epfl.ch/shapes/dash/datacatalog")
 
 
-datacatalog.hasPart = [{"@id": id_, "@type": "NeuronMorphology"} for id_ in ids]
-forge.update(datacatalog, schema_id="https://bbp.epfl.ch/shapes/dash/datacatalog")
+

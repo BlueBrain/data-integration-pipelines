@@ -15,15 +15,16 @@ def get_contribution(token, production=True) -> Dict:
         if not production else "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/{}"
     )
 
+    # TODO contribution from service account?
     return {
         "type": "Contribution",
         "agent": {
             "id": contribution_id_base.format(decoded['preferred_username']),
             "type": ["Agent", "Person"],
-            "givenName": decoded["given_name"],
-            "familyName": decoded["family_name"],
-            "name": decoded["name"],
-            "email": decoded["email"]
+            # "givenName": decoded["given_name"],
+            # "familyName": decoded["family_name"],
+            # "name": decoded["name"],
+            # "email": decoded["email"]
         }
     }
 

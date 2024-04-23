@@ -36,6 +36,19 @@ quality_measurement_annotation:
       - "$OUTPUT_DIR"
 
 
+morphology_registration:
+  rules:
+    - when: manual
+  variables:
+    OUTPUT_DIR: "./output/$CI_COMMIT_TIMESTAMP"
+  script:
+  - > 
+    python src/neuron_morphology/morphology_registration.py --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR
+  artifacts:
+    paths:
+      - "$OUTPUT_DIR"
+
+
 brain_region:
   rules:
     - when: manual
