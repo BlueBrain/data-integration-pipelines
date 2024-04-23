@@ -30,6 +30,7 @@ setup(
         "morph-tool==v2.10.2",
         "morphology-workflows==0.10.1",
         "voxcell==3.1.9",
+        "python-keycloak>=0.24.0",
         # "pynwb==2.0.0",
         "pyjwt",
         "neurom==3.2.10",

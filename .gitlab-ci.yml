@@ -15,7 +15,7 @@ stages:
 #  stage: lint
 #  script: flake8 src
 
-run_on_bucket:
+quality_measurement_annotation:
   rules:
     - when: manual
   variables:
@@ -30,7 +30,7 @@ run_on_bucket:
   script:
   - > 
     python src/neuron_morphology/validation/quality_metric_resource.py 
-    --token $SA_TOKEN --output_dir $OUTPUT_DIR --bucket $BUCKET --curated yes
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated yes
   artifacts:
     paths:
       - "$OUTPUT_DIR"
@@ -47,12 +47,13 @@ brain_region:
   script:
   - > 
     python src/neuron_morphology/validation/region_comparison.py 
-    --token $SA_TOKEN --output_dir $OUTPUT_DIR --bucket $BUCKET --curated both
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated both
   artifacts:
     paths:
       - "$OUTPUT_DIR"
 
 check_links:
+  timeout: 3h 00m
   rules:
     - when: manual
   variables:
@@ -67,7 +68,7 @@ check_links:
   script:
   - > 
     python src/neuron_morphology/validation/check_links.py 
-    --token $SA_TOKEN --output_dir $OUTPUT_DIR --bucket $BUCKET --curated both
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated both
   artifacts:
     paths:
       - "$OUTPUT_DIR"

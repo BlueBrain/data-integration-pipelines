@@ -8,7 +8,7 @@ from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.mappers import DictionaryMapper
 
 from src.logger import logger
-from src.helpers import allocate, ASSETS_DIRECTORY, get_token
+from src.helpers import allocate, ASSETS_DIRECTORY, get_token, authenticate
 from src.neuron_morphology.arguments import define_arguments
 from src.neuron_morphology.query_data import get_neuron_morphologies
 from src.neuron_morphology.validation.check_swc_on_resource import check_swc_on_resource, get_swc_path
@@ -186,7 +186,7 @@ if __name__ == "__main__":
     received_args, leftovers = parser.parse_known_args()
     org, project = received_args.bucket.split("/")
     output_dir = received_args.output_dir
-    token = received_args.token
+    token = authenticate(username=received_args.username, password=received_args.password)
     is_prod = True
     to_resource = False
 

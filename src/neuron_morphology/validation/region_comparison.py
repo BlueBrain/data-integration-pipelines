@@ -11,7 +11,7 @@ import os
 import pandas as pd
 
 from src.get_atlas import _get_atlas_dir_ready
-from src.helpers import allocate, get_token, _as_list, _download_from, _format_boolean
+from src.helpers import allocate, get_token, _as_list, _download_from, _format_boolean, authenticate
 from src.logger import logger
 from src.neuron_morphology.arguments import define_arguments
 from src.neuron_morphology.query_data import get_neuron_morphologies
@@ -85,6 +85,13 @@ def do(
             log_fc = logger.info if agreement else logger.warning
             log_fc(msg)
 
+        if 'coordinatesInBrainAtlas' in morph.brainLocation.__dict__:
+
+            row['float coordinates'] = all(
+                isinstance(morph.brainLocation.coordinatesInBrainAtlas.__dict__.get(f"value{axis}").__dict__.get("@value"), float)
+                for axis in ["X", "Y", "Z"]
+            )
+
         rows.append(row)
 
     return pd.DataFrame(rows)
@@ -97,7 +104,7 @@ if __name__ == "__main__":
     received_args, leftovers = parser.parse_known_args()
     org, project = received_args.bucket.split("/")
     output_dir = received_args.output_dir
-    token = received_args.token
+    token = authenticate(username=received_args.username, password=received_args.password)
     is_prod = True
     query_limit = 10000
 

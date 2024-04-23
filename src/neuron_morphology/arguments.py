@@ -20,7 +20,10 @@ def define_arguments(parser: Union[argparse.ArgumentParser, Parser]):
         type=str, default="bbp-external/seu"
     )
     add_arg(
-        "--token", help="The nexus token", type=str, required=True
+        "--username", help="Service account username", type=str, required=True
+    )
+    add_arg(
+        "--password", help="Service account password", type=str, required=True
     )
     add_arg(
         "--output_dir", help="The path to load schemas from.",

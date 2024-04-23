@@ -3,6 +3,7 @@ import getpass
 import os
 import json
 from typing import Union
+from keycloak import KeycloakOpenID
 
 import numpy as np
 from kgforge.core import KnowledgeGraphForge, Resource
@@ -136,3 +137,15 @@ def _download_from(  # TODO better name and doc
 def _format_boolean(bool_value: bool, sparse: bool):
     return str(bool_value) if not sparse else ("" if bool_value else str(bool_value))
 
+
+def authenticate(username, password):
+
+    instance = KeycloakOpenID(
+        server_url="https://bbpauth.epfl.ch/auth/",
+        realm_name="BBP",
+        client_id=username,
+        client_secret_key=password,
+    )
+    payload = instance.token(grant_type="client_credentials")
+
+    return payload["access_token"]
