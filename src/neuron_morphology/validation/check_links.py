@@ -37,7 +37,9 @@ def check(resources: List[Resource], forge: KnowledgeGraphForge, sparse=True):
         for k in columns_with_id:
             id_ = r_df[k].values[0]
 
+            logger.info(f"Retrieving link {k} for resource of id {id_}")
             link_resource = cacheretrieve(id_, forge)
+
             not_none = link_resource is not None
             row[f"{k} can be retrieved"] = not_none
             if not not_none:
