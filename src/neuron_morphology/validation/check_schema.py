@@ -1,6 +1,6 @@
 import argparse
 import json
-from typing import List
+from typing import List, Dict
 
 from kgforge.core import KnowledgeGraphForge, Resource
 import cachetools
@@ -15,9 +15,10 @@ from src.neuron_morphology.query_data import get_neuron_morphologies
 UNCONSTRAINED_SCHEMA = "https://bluebrain.github.io/nexus/schemas/unconstrained.json"
 
 
-def check(resources: List[Resource], forge: KnowledgeGraphForge):
+def check(resources: List[Resource], forge: KnowledgeGraphForge, schema_to_type_mapping_value: Dict):
     rows = []
     failed = []
+
     for resource in resources:
 
         row = {
@@ -31,7 +32,7 @@ def check(resources: List[Resource], forge: KnowledgeGraphForge):
 
         if has_schema:
             try:
-                conforms, _, report = forge._model.service.validate(resource, type_=None)
+                conforms, _, report = forge._model.service.validate(resource, type_=schema_to_type_mapping_value[schema])
                 # TODO no possibility to specify a schema with forge, only type. Doesn't always lead to the real schema applid
             except Exception as exc:
                 failed.append({**row, "exception": str(exc)})
@@ -68,11 +69,12 @@ if __name__ == "__main__":
     forge_bucket = allocate(org, project, is_prod=is_prod, token=token)
     forge = allocate("bbp", "atlas", is_prod=is_prod, token=token)
 
+    temp = forge.retrieve("https://bbp.epfl.ch/nexus/v1/resources/neurosciencegraph/datamodels/_/schema_to_type_mapping", cross_bucket=True)
     resources = get_neuron_morphologies(forge=forge_bucket, curated=received_args.curated)
 
     logger.info(f"Found {len(resources)} morphologies in {org}/{project}")
 
-    rows, failed = check(resources, forge)
+    rows, failed = check(resources, forge, schema_to_type_mapping_value=forge.as_json(temp.value))
     df = pd.DataFrame(rows)
 
     with open(os.path.join(working_directory, "error_reports.json"), "w") as f:
