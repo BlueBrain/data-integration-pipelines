@@ -71,7 +71,7 @@ def convert_swcs(dst_folders: List[str], re_convert: bool) -> Dict:
                     logger.info(f"Converting {f_path} into format {out_format}")
                     convert(f_path, outfile)
                 elif not os.path.isfile(outfile):
-                    logger.info(f"Converting {f_path} into format {out_format} needs to happen, but re-convert was set to False")
+                    logger.error(f"Converting {f_path} into format {out_format} needs to happen, but re-convert was set to False")
 
     return name_to_file
 
@@ -82,7 +82,7 @@ def load_excel_file(folder: str) -> pd.DataFrame:
     if len(xlsx_files) != 1:
         raise FileNotFoundError(
             f"Cannot identify metadata excel file. Provide a single excel file "
-            f"in {folder} or change this notebook appropriately"
+            f"in {folder} or change this script appropriately"
         )
 
     xlsx_file = xlsx_files[0]
