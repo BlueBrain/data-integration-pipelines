@@ -32,8 +32,7 @@ def check(resources: List[Resource], forge: KnowledgeGraphForge, schema_to_type_
 
         if has_schema:
             try:
-                conforms, _, report = forge._model.service.validate(resource, type_=schema_to_type_mapping_value[schema])
-                # TODO no possibility to specify a schema with forge, only type. Doesn't always lead to the real schema applid
+                conforms, _, report = forge._model.service.validate(resource, type_=schema_to_type_mapping_value[schema], inference=None)
             except Exception as exc:
                 failed.append({**row, "exception": str(exc)})
                 row["Exception"] = str(exc)
