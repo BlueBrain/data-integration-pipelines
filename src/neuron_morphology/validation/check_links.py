@@ -14,14 +14,7 @@ from src.neuron_morphology.query_data import get_neuron_morphologies
 
 @cachetools.cached(cache=cachetools.LRUCache(maxsize=100))
 def cacheretrieve(id_, forge):
-    id_expanded = forge._model.context().expand(id_)
-    if id_expanded != id_:
-        logger.info(f"Expanded id {id_} into {id_expanded} for retrieval")  # TODO this doesn't seem to happen ever
-
-    if 'ncbitaxon' in id_:
-        id_expanded = id_.replace('ncbitaxon:', 'http://purl.obolibrary.org/obo/NCBITaxon_')
-
-    return forge.retrieve(id_expanded, cross_bucket=True)
+    return forge.retrieve(id_, cross_bucket=True)
 
 
 def check(resources: List[Resource], forge: KnowledgeGraphForge, sparse=True):

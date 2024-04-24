@@ -15,6 +15,26 @@ stages:
 #  stage: lint
 #  script: flake8 src
 
+check_schema:
+  rules:
+    - when: manual
+  variables:
+    OUTPUT_DIR: "./output/$CI_COMMIT_TIMESTAMP"
+  parallel:
+    matrix:
+      - BUCKET: bbp-external/seu
+      - BUCKET: bbp/mouselight
+      - BUCKET: public/sscx
+      - BUCKET: public/thalamus
+      - BUCKET: public/hippocampus
+  script:
+  - > 
+    python src/neuron_morphology/validation/check_schema.py 
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated both
+  artifacts:
+    paths:
+      - "$OUTPUT_DIR"
+
 quality_measurement_annotation:
   rules:
     - when: manual
