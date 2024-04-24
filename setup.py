@@ -26,7 +26,7 @@ setup(
     install_requires=[
         "pandas",
         "nexusforge@git+https://github.com/BlueBrain/nexus-forge@fix_search_unequal",
-        "morphio==v3.3.7",
+        "morphio==v3.3.8",
         "morph-tool==v2.10.2",
         "morphology-workflows==0.10.1",
         "voxcell==3.1.9",
