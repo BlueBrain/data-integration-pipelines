@@ -3,10 +3,13 @@ import getpass
 import os
 import json
 from typing import Union
-from keycloak import KeycloakOpenID
 
+from kgforge.core.commons import files
+from kgforge.specializations.stores import bluebrain_nexus
+from keycloak import KeycloakOpenID
 import numpy as np
 from kgforge.core import KnowledgeGraphForge, Resource
+
 
 from src.logger import logger
 
@@ -41,13 +44,17 @@ def allocate(org, project, is_prod, token):
 
     bucket = f"{org}/{project}"
 
-    return KnowledgeGraphForge(
+    files.REQUEST_TIMEOUT = 300
+    bluebrain_nexus.REQUEST_TIMEOUT = 300
+
+    forge = KnowledgeGraphForge(
         PROD_CONFIG_URL,
         bucket=bucket,
         token=token,
         endpoint=endpoint
     )
 
+    return forge
 
 def open_file(filename):
     e = open(filename)

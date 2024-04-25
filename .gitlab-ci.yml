@@ -38,7 +38,7 @@ check_schema:
       - "$OUTPUT_DIR"
 
 quality_measurement_annotation:
-  timeout: 3h 00m
+  timeout: 5h 00m
   rules:
     - when: manual
   variables:
@@ -90,7 +90,7 @@ brain_region:
       - "$OUTPUT_DIR"
 
 check_links:
-  timeout: 3h 00m
+  timeout: 5h 00m
   rules:
     - when: manual
   variables:
