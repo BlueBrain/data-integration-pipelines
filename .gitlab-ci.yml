@@ -27,6 +27,8 @@ check_schema:
       - BUCKET: public/sscx
       - BUCKET: public/thalamus
       - BUCKET: public/hippocampus
+      - BUCKET: mmb-point-neuron-framework-model
+
   script:
   - > 
     python src/neuron_morphology/validation/check_schema.py 
@@ -48,6 +50,7 @@ quality_measurement_annotation:
       - BUCKET: public/sscx
       - BUCKET: public/thalamus
       - BUCKET: public/hippocampus
+      - BUCKET: mmb-point-neuron-framework-model
   script:
   - > 
     python src/neuron_morphology/validation/quality_metric_resource.py 
@@ -99,6 +102,7 @@ check_links:
       - BUCKET: public/sscx
       - BUCKET: public/thalamus
       - BUCKET: public/hippocampus
+      - BUCKET: mmb-point-neuron-framework-model
   script:
   - > 
     python src/neuron_morphology/validation/check_links.py 

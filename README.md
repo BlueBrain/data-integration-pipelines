@@ -17,7 +17,7 @@ Can be ran on the buckets of Nexus holding Neuron Morphology-s featured in OBP. 
 - public/sscx
 - public/thalamus
 - public/hippocampus
-- mmb-point-neuron-framework-model (TODO)
+- mmb-point-neuron-framework-model
 
 The pipelines available: 
 - **brain region** *(bbp-external/seu only)*: checks that the brain region that was attributed to the neuron morphology and the brain region where the morphology lands when placed in the atlas by its coordinates are the same
