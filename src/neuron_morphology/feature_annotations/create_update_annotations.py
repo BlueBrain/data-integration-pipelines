@@ -24,6 +24,7 @@ from src.neuron_morphology.query_data import get_neuron_morphologies, get_swc_pa
 
 ANNOTATION_SCHEMA = "https://neuroshapes.org/dash/annotation"
 
+
 def escape_ansi(line: str) -> str:
     """
     Removes any ansi escape code (e.g. coloured text) turning it to standard text
@@ -45,9 +46,9 @@ def escape_ansi(line: str) -> str:
 
 # Only for neurom features, used for comparing features available across neuron morphologies for
 # neurite feature embedding investigation
-def _create_raw(morphology: Resource, download_dir: str, forge: KnowledgeGraphForge) -> Tuple[Dict, str]:
+def _create_raw(morphology: Resource, download_directory: str, forge: KnowledgeGraphForge) -> Tuple[Dict, str]:
 
-    morph_path = get_swc_path(morphology, swc_download_folder=download_dir, forge=forge)
+    morph_path = get_swc_path(morphology, swc_download_folder=download_directory, forge=forge)
     temp, warnings = compute_metrics_neurom_raw(morph_path)
 
     def floatify(dict_instance):
@@ -82,9 +83,9 @@ def update_create_one(
         existing_annotations,
         generation, contribution,
         download_directory: str,
+        atlas_directory: str,
         forge_data: KnowledgeGraphForge,
-        atlas_dir: str,
-        forge_atlas: KnowledgeGraphForge,
+        forge_atlas: KnowledgeGraphForge
 ) -> Tuple[List[Resource], List[Resource], Union[str, pd.DataFrame]]:
 
     morph_path = get_swc_path(morphology, swc_download_folder=download_directory, forge=forge_data)
@@ -94,7 +95,7 @@ def update_create_one(
     if with_location:
         annotations, warnings = compute_metrics_default_atlas(
             morphology_path=morph_path,
-            atlas_download_directory=atlas_dir,
+            atlas_download_directory=atlas_directory,
             forge_atlas=forge_atlas
         )
     else:
@@ -135,6 +136,8 @@ def create_update_annotations(
         morphologies: List[Resource],
         is_prod: bool,
         token: str,
+        atlas_directory: str,
+        download_directory: str
 ) -> Tuple[
     List[Resource],
     List[Resource],
@@ -174,10 +177,10 @@ def create_update_annotations(
             updated_annotations, created_annotations, warnings = update_create_one(
                 morphology=morphology,
                 existing_annotations=annotations[m_id],
-                download_directory=download_dir,
+                download_directory=download_directory,
                 forge_data=forge_data,
                 forge_atlas=forge_atlas,
-                atlas_dir=atlas_dir,
+                atlas_directory=atlas_directory,
                 generation=generation,
                 contribution=contribution,
             )
@@ -185,12 +188,10 @@ def create_update_annotations(
             annotations_create.extend(created_annotations)
 
             neurom_output, _ = _create_raw(
-                morphology=morphology, download_dir=download_dir, forge=forge_data
+                morphology=morphology, download_directory=download_directory, forge=forge_data
             )
 
-            annotations_dict[m_id] = forge_data.as_json(
-                updated_annotations + created_annotations
-            )
+            annotations_dict[m_id] = forge_data.as_json(updated_annotations + created_annotations)
 
             features_dict[m_id] = neurom_output
 
@@ -238,7 +239,9 @@ if __name__ == '__main__':
         token=token,
         forge_data=forge_data,
         morphologies=morphologies,
-        forge_atlas=forge_atlas
+        forge_atlas=forge_atlas,
+        atlas_directory=atlas_dir,
+        download_directory=download_dir
     )
 
     if really_update:
@@ -252,7 +255,6 @@ if __name__ == '__main__':
         )
     else:
         logger.info("Updating data has been disabled")
-
 
     dicts = {
         'annotations': annotations_dict,

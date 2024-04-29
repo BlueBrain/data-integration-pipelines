@@ -128,18 +128,13 @@ if __name__ == "__main__":
     #   different job and then propagate artifacts
 
     logger.info("Loading atlas")
-
     atlas = Atlas.open(atlas_dir)
     br_map: RegionMap = atlas.load_region_map()
     voxel_d: VoxelData = atlas.load_data('brain_regions')
 
-    logger.info(f"Querying for morphologies in {org}/{project}")
-
     forge_bucket = allocate(org, project, is_prod=True, token=token)
 
     resources = get_neuron_morphologies(forge=forge_bucket, curated=received_args.curated, limit=query_limit)
-
-    logger.info(f"Found {len(resources)} morphologies in {org}/{project}")
 
     morphologies_dir = os.path.join(working_directory, "morphologies")
 

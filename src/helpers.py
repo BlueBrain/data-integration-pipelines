@@ -56,6 +56,7 @@ def allocate(org, project, is_prod, token):
 
     return forge
 
+
 def open_file(filename):
     e = open(filename)
     f = e.read()

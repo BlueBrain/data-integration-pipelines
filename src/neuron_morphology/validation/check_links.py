@@ -122,14 +122,10 @@ if __name__ == "__main__":
 
     logger.info(f"Working directory {working_directory}")
 
-    logger.info(f"Querying for morphologies in {org}/{project}")
-
     forge_bucket = allocate(org, project, is_prod=is_prod, token=token)
     forge = allocate("bbp", "atlas", is_prod=is_prod, token=token)
 
     resources = get_neuron_morphologies(forge=forge_bucket, curated=received_args.curated)
-
-    logger.info(f"Found {len(resources)} morphologies in {org}/{project}")
 
     rows = check(resources, forge)
     df = pd.DataFrame(rows)

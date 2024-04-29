@@ -40,9 +40,6 @@ def quality_measurement_report_to_resource(
     reports_as_resources = []
 
     for resource, report in morphology_resources_and_report:
-        # resource.contribution = contribution
-        # resource.generation = generation
-
         body = [
             {
                 "type": [
@@ -84,7 +81,11 @@ def quality_measurement_report_to_resource(
         report_resource = forge.from_json(dict_for_res)
         reports_as_resources.append(report_resource)
 
-    batch_report = {"morphologies": resources, "name": batch_report_name, "filepath": batch_report_dir}
+    batch_report = {
+        "morphologies": [i[0] for i in morphology_resources_and_report],
+        "name": batch_report_name,
+        "filepath": batch_report_dir
+    }
     batch_report_resource = forge.map(batch_report, mapping_batch_validation_report, DictionaryMapper)
 
     batch_report_resource.contribution = contribution
@@ -156,7 +157,6 @@ def save_batch_quality_measurement_annotation_report_on_resources(
 
 
 if __name__ == "__main__":
-
     parser = define_arguments(argparse.ArgumentParser())
     received_args, leftovers = parser.parse_known_args()
     org, project = received_args.bucket.split("/")
@@ -174,16 +174,10 @@ if __name__ == "__main__":
     working_directory = os.path.join(os.getcwd(), output_dir)
 
     logger.info(f"Working directory {working_directory}")
-
     os.makedirs(working_directory, exist_ok=True)
 
-    logger.info(f"Querying for morphologies in {org}/{project}")
-
     forge = allocate(org, project, is_prod=is_prod, token=token)
-
     resources = get_neuron_morphologies(curated=received_args.curated, forge=forge, limit=limit)
-
-    logger.info(f"Found {len(resources)} morphologies in {org}/{project}")
 
     swc_download_folder = os.path.join(working_directory, "swcs")
     report_dir_path = os.path.join(working_directory, f'{org}_{project}')
@@ -231,6 +225,9 @@ if __name__ == "__main__":
         mapping_batch_validation_report=mapping_batch_validation_report,
     )
 
+    with open(os.path.join(report_dir_path, f"batch_resource_{org}_{project}.json"), "w") as f:
+        json.dump(forge.as_json(batch_quality_to_register), f, indent=4)
+
     if really_update:
         logger.info("Updating data has been enabled")
         # TODO: more programmatic way of dealing with multiple pre-existing Batch reports
@@ -240,6 +237,3 @@ if __name__ == "__main__":
         forge.update(quality_to_update, schema_id=QUALITY_SCHEMA if constrain else None)
     else:
         logger.info("Updating data has been disabled")
-
-    with open(os.path.join(report_dir_path, f"batch_resource_{org}_{project}.json"), "w") as f:
-        json.dump(forge.as_json(batch_quality_to_register), f, indent=4)

@@ -7,6 +7,14 @@ from src.logger import logger
 
 
 def get_neuron_morphologies(forge: KnowledgeGraphForge, reconstructed=True, curated="yes", limit=10000, debug=False):
+
+    org, project = forge._store.bucket.split("/")[-2:]
+
+    logger.info(
+        f"Querying for morphologies in {org}/{project}, "
+        f"Curated: {curated}, Reconstructed: {str(reconstructed)}, limit: {limit}"
+    )
+
     type_ = "ReconstructedNeuronMorphology" if reconstructed else "NeuronMorphology"
     filters = [Filter(operator=FilterOperator.EQUAL, path=["type"], value=type_)]
 
@@ -22,7 +30,10 @@ def get_neuron_morphologies(forge: KnowledgeGraphForge, reconstructed=True, cura
     else:
         raise Exception(f"Unknown curated flag when retrieving neuron morphologies {curated}")
 
-    return forge.search(*filters, limit=limit, debug=debug)
+    res = forge.search(*filters, limit=limit, debug=debug)
+    logger.info(f"Found {len(res)} morphologies in {org}/{project}")
+
+    return res
 
 
 def get_swc_path(resource: Resource, swc_download_folder: str, forge: KnowledgeGraphForge) -> str:
