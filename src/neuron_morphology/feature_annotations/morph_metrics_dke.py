@@ -29,10 +29,10 @@ from nrrd import NRRDHeader
 
 
 from src.helpers import write_obj, get_path
-from pyswcparser.Morphology import Morphology
-from pyswcparser.Parser import parse
-from pyswcparser.Node import Node
-from pyswcparser.SWC_NODE_TYPES import SWC_NODE_TYPES_BY_NAME
+from src.pyswcparser.Morphology import Morphology
+from src.pyswcparser.Parser import parse
+from src.pyswcparser.Node import Node
+from src.pyswcparser.SWC_NODE_TYPES import SWC_NODE_TYPES_BY_NAME
 
 from src.neuron_morphology.feature_annotations.data_classes.AnnotationBody import AnnotationBody
 
@@ -350,6 +350,7 @@ def index_brain_region_labels(br_ontology: str) -> Dict[str, str]:
     return index
 
 
+# TODO use the same function as quality metrics: src/get_atlas.py
 def get_parcellation_volume_and_ontology(
         download_directory: str,
         forge_atlas: KnowledgeGraphForge

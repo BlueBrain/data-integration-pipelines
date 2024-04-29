@@ -1,5 +1,9 @@
-from kgforge.core import KnowledgeGraphForge
+import os
+
+from kgforge.core import KnowledgeGraphForge, Resource
 from kgforge.core.wrappings import FilterOperator, Filter
+
+from src.logger import logger
 
 
 def get_neuron_morphologies(forge: KnowledgeGraphForge, reconstructed=True, curated="yes", limit=10000, debug=False):
@@ -19,3 +23,15 @@ def get_neuron_morphologies(forge: KnowledgeGraphForge, reconstructed=True, cura
         raise Exception(f"Unknown curated flag when retrieving neuron morphologies {curated}")
 
     return forge.search(*filters, limit=limit, debug=debug)
+
+
+def get_swc_path(resource: Resource, swc_download_folder: str, forge: KnowledgeGraphForge) -> str:
+    distributions = resource.distribution if isinstance(resource.distribution, list) else [resource.distribution]
+    distribution_name = next(d.name for d in distributions if d.encodingFormat.split('/')[-1] == "swc")
+
+    swcfpath = os.path.join(swc_download_folder, distribution_name)
+    if not os.path.isfile(swcfpath):  # If already present, no need to download
+        logger.info(f"Downloading swc file for morphology {resource.get_identifier()}")
+        forge.download(resource, follow='distribution.contentUrl', content_type='application/swc', path=swc_download_folder)
+
+    return swcfpath

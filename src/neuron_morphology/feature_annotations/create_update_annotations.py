@@ -1,18 +1,18 @@
+import argparse
+import shutil
 from typing import List, Union, Optional, Tuple, Dict
 
-from datetime import datetime
 import os
 import json
 
 from kgforge.core import Resource, KnowledgeGraphForge
 
-from src.helpers import allocate, get_token, get_path
+from src.helpers import allocate, authenticate
+from src.logger import logger
+from src.neuron_morphology.arguments import define_arguments
 
-from src.neuron_morphology.feature_annotations import common
 from src.neuron_morphology.creation_helpers import get_generation, get_contribution
 from src.neuron_morphology.feature_annotations.data_classes.AnnotationTarget import AnnotationTarget
-from src.neuron_morphology.feature_annotations.common import _get_morph_path, download_morphology_file, \
-    _get_neuron_morphologies
 from src.neuron_morphology.feature_annotations.morph_metrics import compute_metrics_default_atlas
 from src.neuron_morphology.feature_annotations.morph_metrics_neurom import compute_metrics_neurom, \
     compute_metrics_neurom_raw
@@ -20,6 +20,9 @@ from src.neuron_morphology.feature_annotations.morph_metrics_neurom import compu
 import pandas as pd
 import re
 
+from src.neuron_morphology.query_data import get_neuron_morphologies, get_swc_path
+
+ANNOTATION_SCHEMA = "https://neuroshapes.org/dash/annotation"
 
 def escape_ansi(line: str) -> str:
     """
@@ -42,8 +45,9 @@ def escape_ansi(line: str) -> str:
 
 # Only for neurom features, used for comparing features available across neuron morphologies for
 # neurite feature embedding investigation
-def _create_raw(morphology: Resource, download_dir: str) -> Tuple[Dict, str]:
-    morph_path = _get_morph_path(morphology, download_dir)
+def _create_raw(morphology: Resource, download_dir: str, forge: KnowledgeGraphForge) -> Tuple[Dict, str]:
+
+    morph_path = get_swc_path(morphology, swc_download_folder=download_dir, forge=forge)
     temp, warnings = compute_metrics_neurom_raw(morph_path)
 
     def floatify(dict_instance):
@@ -79,15 +83,13 @@ def update_create_one(
         generation, contribution,
         download_directory: str,
         forge_data: KnowledgeGraphForge,
-        with_location: bool,
         atlas_dir: str,
         forge_atlas: KnowledgeGraphForge,
 ) -> Tuple[List[Resource], List[Resource], Union[str, pd.DataFrame]]:
-    download_morphology_file(
-        morphology=morphology, download_dir=download_directory, forge_data=forge_data
-    )
 
-    morph_path = _get_morph_path(morphology, download_directory)
+    morph_path = get_swc_path(morphology, swc_download_folder=download_directory, forge=forge_data)
+
+    with_location = "coordinatesInBrainAtlas" in morphology.brainLocation.__dict__
 
     if with_location:
         annotations, warnings = compute_metrics_default_atlas(
@@ -128,9 +130,11 @@ def update_create_one(
 
 
 def create_update_annotations(
-        org: str, project: str, with_location: bool,
-        is_prod: bool, token: str, data_dir: str,
-        update: bool, nm_id_list: Optional[List] = None,
+        forge_data: KnowledgeGraphForge,
+        forge_atlas: KnowledgeGraphForge,
+        morphologies: List[Resource],
+        is_prod: bool,
+        token: str,
 ) -> Tuple[
     List[Resource],
     List[Resource],
@@ -138,19 +142,11 @@ def create_update_annotations(
     Dict[str, List[Union[Resource, Dict]]],
     Dict[str, str]
 ]:
-    forge_atlas = allocate("bbp", "atlas", is_prod, token)
-
-    download_dir = os.path.join(data_dir, f"./files_{org}_{project}")
-    atlas_dir = os.path.join(data_dir, "./raw/atlas")
-
-    morphologies, forge_data = _get_neuron_morphologies(org, project, is_prod, token, nm_id_list)
-
-    print("Retrieving neuron morphology feature annotations")
+    logger.info("Retrieving neuron morphology feature annotations")
 
     annotations = dict(
         (
-            r.id,
-            #         encode_id_rev(r.id, r.rev),
+            r.get_identifier(),
             forge_data.search({
                 "type": "NeuronMorphologyFeatureAnnotation",
                 "hasTarget": {"hasSource": {"id": r.id}}})
@@ -161,29 +157,26 @@ def create_update_annotations(
     generation = get_generation()
     contribution = get_contribution(token=token, production=is_prod)
 
-    def get_annotations(morphology):
-        # key = encode_id_rev(morphology.id, morphology._store_metadata._rev)
-        return annotations[morphology.id]
-
     annotations_update, annotations_create, log_dict = [], [], {}
 
     features_dict: Dict[str, Dict] = dict()
     annotations_dict: Dict[str, List[Union[Resource, Dict]]] = dict()
 
-    print("Building neuron morphology feature annotations")
+    logger.info("Building neuron morphology feature annotations")
 
     for i, morphology in enumerate(morphologies):
         if (i + 1) % 20 == 0:
-            print(f"{i + 1}/{len(morphologies)}")
+            logger.info(f"{i + 1}/{len(morphologies)}")
+
+        m_id = morphology.get_identifier()
 
         try:
             updated_annotations, created_annotations, warnings = update_create_one(
                 morphology=morphology,
-                existing_annotations=get_annotations(morphology),
+                existing_annotations=annotations[m_id],
                 download_directory=download_dir,
                 forge_data=forge_data,
                 forge_atlas=forge_atlas,
-                with_location=with_location,
                 atlas_dir=atlas_dir,
                 generation=generation,
                 contribution=contribution,
@@ -192,72 +185,84 @@ def create_update_annotations(
             annotations_create.extend(created_annotations)
 
             neurom_output, _ = _create_raw(
-                morphology=morphology, download_dir=download_dir
+                morphology=morphology, download_dir=download_dir, forge=forge_data
             )
 
-            annotations_dict[morphology.id] = forge_data.as_json(
+            annotations_dict[m_id] = forge_data.as_json(
                 updated_annotations + created_annotations
             )
 
-            features_dict[morphology.id] = neurom_output
+            features_dict[m_id] = neurom_output
+
             if warnings.strip():  # do not add to warning_dicts empty warnings
-                log_dict[morphology.id] = escape_ansi(warnings)
+                log_dict[m_id] = escape_ansi(warnings)
             assert (all(not e._synchronized for e in updated_annotations))
         except Exception as e:
-            print(f"Error with morphology {morphology.id}: {e}")
-            log_dict[morphology.id] = e.args[0]
+            logger.error(f"Error with morphology {m_id}: {e}")
+            log_dict[m_id] = e.args[0]
 
-    print("Validating")
+    logger.info("Validating")
     forge_data.validate(data=annotations_update, type_="Annotation")
     forge_data.validate(data=annotations_create, type_="Annotation")
-
-    if update:
-        print("Updating and creating")
-        forge_data.update(annotations_update)
-        forge_data.register(annotations_create)
-
-    print(
-        f"{len(annotations_create)} annotation created, "
-        f"{len(annotations_update)} annotations updated"
-    )
 
     return annotations_update, annotations_create, features_dict, annotations_dict, log_dict
 
 
 if __name__ == '__main__':
-
-    common.NEURON_MORPHOLOGY_RETRIEVAL_LIMIT = 10
-    really_update = False  # Important if just testing
-
-    checklist = [
-        # ("public", "hippocampus", False),
-        # ("public", "thalamus", False),
-        ("bbp-external", "seu", True),
-        # ("bbp", "mouselight", True),
-        # ("public", "sscx", False)
-    ]
+    parser = define_arguments(argparse.ArgumentParser())
+    received_args, leftovers = parser.parse_known_args()
+    org, project = received_args.bucket.split("/")
+    output_dir = received_args.output_dir
+    token = authenticate(username=received_args.username, password=received_args.password)
     is_prod = True
-    token = get_token(is_prod=is_prod, prompt=True)
-    data_dir = get_path("./examples/data")
-    dst_dir = get_path("./examples/attempts2")
 
-    os.makedirs(data_dir, exist_ok=True)
+    local_test = True
+    limit = 10 if local_test else 10000
+    really_update = not local_test
+    constrain = False
+
+    download_dir = os.path.join(output_dir, f"./files_{org}_{project}")
+    dst_dir = os.path.join(output_dir, f"./{org}_{project}")
+    atlas_dir = os.path.join(output_dir, "./atlas")
+
+    os.makedirs(output_dir, exist_ok=True)
     os.makedirs(dst_dir, exist_ok=True)
 
-    for org, project, with_location_, in checklist:
-        annotations_updated, annotations_created, features_dict, annotations_dict, log_dict = \
-            create_update_annotations(
-                org=org,
-                project=project,
-                with_location=with_location_,
-                is_prod=is_prod,
-                token=token,
-                data_dir=data_dir,
-                update=really_update,
-            )
+    forge_data = allocate(org, project, is_prod, token)
+    forge_atlas = allocate("bbp", "atlas", is_prod, token)
 
-        timestamp = datetime.today().strftime('%Y%m%d_%Hh%M')
-        fnames = [f"{dict_name}_{org}_{project}_{timestamp}.json" for dict_name in ['annotations', 'features', 'log']]
-        for fname, dict_ in zip(fnames, [annotations_dict, features_dict, log_dict]):
-            with open(os.path.join(dst_dir, fname), "w") as f:
-                json.dump(dict_, f, indent=2)
+    morphologies = get_neuron_morphologies(curated=received_args.curated, forge=forge_data, limit=limit)
+
+    annotations_to_update, annotations_to_create, features_dict, annotations_dict, log_dict = create_update_annotations(
+        is_prod=is_prod,
+        token=token,
+        forge_data=forge_data,
+        morphologies=morphologies,
+        forge_atlas=forge_atlas
+    )
+
+    if really_update:
+        logger.info("Updating data has been enabled")
+        forge_data.update(annotations_to_update, schema_id=ANNOTATION_SCHEMA if constrain else None)
+        forge_data.register(annotations_to_create, schema_id=ANNOTATION_SCHEMA if constrain else None)
+
+        logger.info(
+            f"{len(annotations_to_create)} annotation created, "
+            f"{len(annotations_to_update)} annotations updated"
+        )
+    else:
+        logger.info("Updating data has been disabled")
+
+
+    dicts = {
+        'annotations': annotations_dict,
+        'features': features_dict,
+        'log': log_dict
+    }
+
+    for dict_label, dict_ in dicts.items():
+        with open(os.path.join(dst_dir, f"{dict_label}_{org}_{project}.json"), "w") as f:
+            json.dump(dict_, f, indent=4)
+
+    shutil.rmtree(download_dir)
+    shutil.rmtree(atlas_dir)

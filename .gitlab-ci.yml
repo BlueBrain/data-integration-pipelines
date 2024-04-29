@@ -32,12 +32,12 @@ check_schema:
   script:
   - > 
     python src/neuron_morphology/validation/check_schema.py 
-    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated both
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated yes
   artifacts:
     paths:
       - "$OUTPUT_DIR"
 
-quality_measurement_annotation:
+quality_measurement_annotations:
   timeout: 5h 00m
   rules:
     - when: manual
@@ -54,6 +54,28 @@ quality_measurement_annotation:
   script:
   - > 
     python src/neuron_morphology/validation/quality_metric_resource.py 
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated yes
+  artifacts:
+    paths:
+      - "$OUTPUT_DIR"
+
+feature_annotations:
+  timeout: 5h 00m
+  rules:
+    - when: manual
+  variables:
+    OUTPUT_DIR: "./output/$CI_COMMIT_TIMESTAMP"
+  parallel:
+    matrix:
+      - BUCKET: bbp-external/seu
+      - BUCKET: bbp/mouselight
+      - BUCKET: public/sscx
+      - BUCKET: public/thalamus
+      - BUCKET: public/hippocampus
+      - BUCKET: bbp/mmb-point-neuron-framework-model
+  script:
+  - > 
+    python src/neuron_morphology/feature_annotations/create_update_annotations.py 
     --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated yes
   artifacts:
     paths:
@@ -84,7 +106,7 @@ brain_region:
   script:
   - > 
     python src/neuron_morphology/validation/region_comparison.py 
-    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated both
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated yes
   artifacts:
     paths:
       - "$OUTPUT_DIR"
@@ -106,7 +128,7 @@ check_links:
   script:
   - > 
     python src/neuron_morphology/validation/check_links.py 
-    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated both
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated yes
   artifacts:
     paths:
       - "$OUTPUT_DIR"

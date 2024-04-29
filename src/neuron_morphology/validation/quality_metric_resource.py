@@ -8,12 +8,11 @@ from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.mappers import DictionaryMapper
 
 from src.logger import logger
-from src.helpers import allocate, ASSETS_DIRECTORY, get_token, authenticate
+from src.helpers import allocate, ASSETS_DIRECTORY, authenticate
 from src.neuron_morphology.arguments import define_arguments
-from src.neuron_morphology.query_data import get_neuron_morphologies
-from src.neuron_morphology.validation.check_swc_on_resource import check_swc_on_resource, get_swc_path
+from src.neuron_morphology.query_data import get_neuron_morphologies, get_swc_path
 from src.neuron_morphology.validation.quality_metric import (
-    SOLO_TYPE, BATCH_TYPE, save_batch_quality_measurement_annotation_report
+    SOLO_TYPE, BATCH_TYPE, save_batch_quality_measurement_annotation_report, QUALITY_SCHEMA, BATCH_QUALITY_SCHEMA
 )
 from src.neuron_morphology.creation_helpers import get_contribution, get_generation
 import os
@@ -62,8 +61,8 @@ def quality_measurement_report_to_resource(
 
         dict_for_res = {
             "distribution": [
-                forge.attach(f"{batch_report_dir}/{resource.name}.json", content_type="application/json"),
-                forge.attach(f"{batch_report_dir}/{resource.name}.tsv", content_type="application/tsv")
+                forge.attach(f"{batch_report_dir}/json/{resource.name}.json", content_type="application/json"),
+                forge.attach(f"{batch_report_dir}/tsv/{resource.name}.tsv", content_type="application/tsv")
             ],
             "name": f"Quality Measurement Annotation of {resource.name}",
             "description": f"This resources contains quality measurement annotations of the neuron morphology {resource.name}",
@@ -85,7 +84,7 @@ def quality_measurement_report_to_resource(
         report_resource = forge.from_json(dict_for_res)
         reports_as_resources.append(report_resource)
 
-    batch_report = {"morphologies": resources, "name": batch_report_name, 'filepath': batch_report_dir}
+    batch_report = {"morphologies": resources, "name": batch_report_name, "filepath": batch_report_dir}
     batch_report_resource = forge.map(batch_report, mapping_batch_validation_report, DictionaryMapper)
 
     batch_report_resource.contribution = contribution
@@ -157,30 +156,6 @@ def save_batch_quality_measurement_annotation_report_on_resources(
 
 
 if __name__ == "__main__":
-    # from datetime import datetime
-    #
-    # is_prod = True
-    # org, project = "public", "sscx"
-    # token = get_token(is_prod=True, prompt=False, token_file_path=None)
-    # timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    # output_dir = f'./output/{timestamp}'
-    # working_directory = os.path.join(os.getcwd(), output_dir)
-    #
-    # forge = allocate(org, project, is_prod=is_prod, token=token)
-    # resources = [
-    #     forge.retrieve("https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/5d28973b-7b2c-4402-abbf-cdf5e470f524"),
-    #     forge.retrieve("https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/d9af605d-c94f-4599-868f-d57825fdf874")
-    # ]
-    #
-    # swc_download_folder = os.path.join(working_directory, "swcs")
-    # report_dir_path = os.path.join(working_directory, f'{org}_{project}')
-    #
-    # path_to_resource = dict(
-    #     (get_swc_path(resource, swc_download_folder=swc_download_folder, forge=forge), resource)
-    #     for resource in resources
-    # )
-    #
-    # exit()
 
     parser = define_arguments(argparse.ArgumentParser())
     received_args, leftovers = parser.parse_known_args()
@@ -188,7 +163,13 @@ if __name__ == "__main__":
     output_dir = received_args.output_dir
     token = authenticate(username=received_args.username, password=received_args.password)
     is_prod = True
-    to_resource = False
+
+    # Would push into a test project in staging a subset of the quality metrics
+    # Else would push them in the same bucket as the neuron morphology's, for all of them
+    local_test = True
+    really_update = not local_test
+    limit = 10 if local_test else 10000
+    constrain = False
 
     working_directory = os.path.join(os.getcwd(), output_dir)
 
@@ -200,7 +181,7 @@ if __name__ == "__main__":
 
     forge = allocate(org, project, is_prod=is_prod, token=token)
 
-    resources = get_neuron_morphologies(curated=received_args.curated, forge=forge)
+    resources = get_neuron_morphologies(curated=received_args.curated, forge=forge, limit=limit)
 
     logger.info(f"Found {len(resources)} morphologies in {org}/{project}")
 
@@ -240,22 +221,25 @@ if __name__ == "__main__":
 
     shutil.rmtree(swc_download_folder)
 
-    # print(json.dumps(reports, indent=4))
+    logger.info("Turning quality measurements into QualityMeasurementAnnotation Resources")
 
-    if to_resource:
-        logger.info("Turning quality measurements into QualityMeasurementAnnotation Resources")
+    mapping_batch_validation_report = DictionaryMapping.load(os.path.join(ASSETS_DIRECTORY, 'BatchQualityMeasurementAnnotation.hjson'))
 
-        mapping_batch_validation_report = DictionaryMapping.load(os.path.join(ASSETS_DIRECTORY, 'BatchQualityMeasurementAnnotation.hjson'))
+    batch_quality_to_register, quality_to_update, quality_to_register = quality_measurement_report_to_resource(
+        morphology_resources_and_report=reports, forge=forge, token=token, is_prod=is_prod,
+        batch_report_name=report_name, batch_report_dir=report_dir_path,
+        mapping_batch_validation_report=mapping_batch_validation_report,
+    )
 
-        batch_quality_to_register, quality_to_update, quality_to_register = quality_measurement_report_to_resource(
-            morphology_resources_and_report=reports, forge=forge, token=token, is_prod=is_prod,
-            batch_report_name=report_name, batch_report_dir=report_dir_path,
-            mapping_batch_validation_report=mapping_batch_validation_report,
-            # mapping_validation_report=mapping_validation_report
-        )
+    if really_update:
+        logger.info("Updating data has been enabled")
+        # TODO: more programmatic way of dealing with multiple pre-existing Batch reports
+        # TODO why is batch quality not passing validation?
+        forge.update(batch_quality_to_register, schema_id=BATCH_QUALITY_SCHEMA if constrain else None)
+        forge.register(quality_to_register, schema_id=QUALITY_SCHEMA if constrain else None)
+        forge.update(quality_to_update, schema_id=QUALITY_SCHEMA if constrain else None)
+    else:
+        logger.info("Updating data has been disabled")
 
-    # TODO: more programmatic way of dealing with multiple pre-existing Batch reports
-    # forge.update(batch_quality_to_register, BATCH_QUALITY_SCHEMA)
-    #
-    # forge.register(quality_to_register, QUALITY_SCHEMA)
-    # forge.update(quality_to_update, QUALITY_SCHEMA)
+    with open(os.path.join(report_dir_path, f"batch_resource_{org}_{project}.json"), "w") as f:
+        json.dump(forge.as_json(batch_quality_to_register), f, indent=4)

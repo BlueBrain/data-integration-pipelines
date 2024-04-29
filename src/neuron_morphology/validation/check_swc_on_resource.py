@@ -15,6 +15,8 @@ from morph_tool.converter import convert
 import pandas as pd
 import os
 
+from src.neuron_morphology.query_data import get_swc_path
+
 SWC_EXPECTED_COLUMNS_READ = {'type', 'x', 'y', 'z', 'radius', 'parent'}
 synonyms = {'r': 'radius'}
 SWC_EXPECTED_COLUMNS_SAVE = {e if e not in synonyms else synonyms[e] for e in SWC_EXPECTED_COLUMNS_READ}
@@ -45,17 +47,6 @@ def parse_header_and_comments(file_path, max_=10, comment='#'):
 def read_swc(file):
     return pd.read_csv(file, sep='\s+', index_col=0, dtype='str', comment='#', header=None)
 
-
-def get_swc_path(resource: Resource, swc_download_folder: str, forge: KnowledgeGraphForge) -> str:
-    distributions = resource.distribution if isinstance(resource.distribution, list) else [resource.distribution]
-    distribution_name = next(d.name for d in distributions if d.encodingFormat.split('/')[-1] == "swc")
-
-    swcfpath = os.path.join(swc_download_folder, distribution_name)
-    if not os.path.isfile(swcfpath):  # If already present, no need to download
-        logger.info(f"Downloading swc file for morphology {resource.id}")
-        forge.download(resource, follow='distribution.contentUrl', content_type='application/swc', path=swc_download_folder)
-
-    return swcfpath
 
 ###############################################################################
 #  Ensure distribution is ok (swc, asc, h5, optional obj), only expected columns in swc
