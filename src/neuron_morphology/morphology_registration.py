@@ -120,8 +120,8 @@ with open(os.path.join(ASSETS_DIRECTORY, "ordered_columns.json"), "r") as f:
 
 
 @cachetools.cached(cache=cachetools.LRUCache(maxsize=100))
-def cacheresolve(text, forge, scope='ontology', strategy='EXACT_MATCH'):
-    return forge.resolve(text=text, scope=scope, strategy=strategy)
+def cacheresolve(text, forge, scope='ontology', strategy='EXACT_MATCH', target=None):
+    return forge.resolve(text=text, scope=scope, strategy=strategy, target=target)
 
 
 def make_dict(
@@ -133,14 +133,11 @@ def make_dict(
     nrow['subject.name'] = subject_name
 
     if brain_region:
-        brain_region = _as_list(brain_region)
-        nrow['brainLocation.brainRegion.id'] = ", ".join([i["id"] for i in brain_region])
-        nrow['brainLocation.brainRegion.label'] = ", ".join([i["label"] for i in brain_region])
+        nrow['brainLocation.brainRegion.id'] = brain_region['id']
+        nrow['brainLocation.brainRegion.label'] = brain_region['label']
 
     if layer:
-        layer = _as_list(layer)
-        nrow['brainLocation.layer.id'] = ", ".join([i["id"] for i in layer])
-        nrow['brainLocation.layer.label'] = ", ".join([i["label"] for i in layer])
+        nrow['brainLocation.layer'] = layer
 
     if subject_strain:
         nrow['subject.strain.id'] = subject_strain["id"]
@@ -160,7 +157,7 @@ def make_dict(
 
 def _get_strain(row_strain: str, i: int, forge: KnowledgeGraphForge) -> Tuple[Optional[Dict], Optional[str], bool]:
 
-    resolved_strain = cacheresolve(text=row_strain, forge=forge, scope='ontology', strategy=strategy)
+    resolved_strain = cacheresolve(text=row_strain, forge=forge, scope='ontology', strategy=strategy, target='Species')
     if resolved_strain is None:
         return None, f'could not resolve strain = "{row_strain}" for row {i}', True
     else:
@@ -169,36 +166,33 @@ def _get_strain(row_strain: str, i: int, forge: KnowledgeGraphForge) -> Tuple[Op
 
 def _get_layer(row_layer, i: int, brain_loc_label: str, forge: KnowledgeGraphForge) -> Tuple[Optional[Union[Dict, List]], Optional[str], bool]:
     '''Value if it's there, error message if it's there, whether to register or not'''
-    if not pd.notna(row_layer):
+    def find_layer(row_layer):
+        text = f"layer {row_layer}"
+        return cacheresolve(text=text, forge=forge, scope='ontology', strategy=strategy, target='BrainRegion')
+    
+    if pd.isna(row_layer):
         return None, None, True
-
-    text = f"{brain_loc_label}, layer {row_layer}"
-    layer = cacheresolve(text=text, forge=forge, scope='ontology', strategy=strategy)
-    if layer is not None:
-        return {'label': layer.label, 'id': layer.id}, None, True
-
-    layers = cacheresolve(text=text, forge=forge, scope='ontology', strategy='ALL_MATCHES')
-
-    if layers is None:
-        return None, f'could not resolve layer = "{text}" for row {i}', True
-
-    if len(layers) > 2:
-        layers = [i for i in layers if 'Structure' in i.id]
-
-    if len(layers) == 2:
-        return [{'label': l.label, 'id': l.id} for l in layers], None, True
-    else:
-        return None, f"could not resolve tex = \"{text}", False
+    if '/' in str(row_layer):
+        layer = [find_layer(i) for i in row_layer.split('/')]
+        if None in layer:
+            return None, f'could not resolve layer = "{row_layer}" for row {i}', True
+        return [{'id': i.id, 'label': i.label} for i in layer], None, True
+    layer = find_layer(row_layer)
+    if layer is None:
+        return None, f'could not resolve layer = "{row_layer}" for row {i}', True
+    return {'id':layer.id, 'label':layer.label}, None, True
 
 
-def _get_brain_region(row_br: str, i: int, forge: KnowledgeGraphForge) -> Tuple[Optional[Dict], Optional[str], bool]:
-    brain_loc = cacheresolve(text=row_br, forge=forge, scope='ontology', strategy=strategy)
-    brain_loc = forge.retrieve(brain_loc.id, cross_bucket=True)
-    if brain_loc is None:
+def _get_brain_region(row_br: str, row_layer, i: int, forge: KnowledgeGraphForge) -> Tuple[Optional[Dict], Optional[str], bool]:
+    brain_reg = cacheresolve(text=row_br, forge=forge, scope='ontology', strategy=strategy, target='BrainRegion')
+    if brain_reg is None:
         return None, f"could not resolve brain location = \"{row_br}\" for row {i}", False
-    else:
-        return {"label": brain_loc.label, "id": brain_loc.id}, None, True
-
+    # return {"label": brain_loc.label, "id": brain_loc.id}, None, True
+    text = f"{brain_reg.label}, layer {row_layer}"
+    brain_reg_spec = cacheresolve(text=text, forge=forge, scope='ontology', strategy=strategy, target='BrainRegion')
+    if brain_reg_spec is None:
+        return {'id': brain_reg.id, 'label': brain_reg.label}, None, True
+    return {'id': brain_reg_spec.id, 'label': brain_reg_spec.label}, None, True
 
 def do(metadata: pd.DataFrame, name_to_file: Dict, forge: KnowledgeGraphForge) -> Tuple[List[Dict], Dict, Dict]:
     nrows = []
@@ -231,10 +225,9 @@ def do(metadata: pd.DataFrame, name_to_file: Dict, forge: KnowledgeGraphForge) -
         subject_strain, err_str_strain, register_strain = _get_strain(strain, i, forge)
         append_errors(register_strain, err_str_strain, i)
 
-        brain_region, err_str_br, register_br = _get_brain_region(row['Brain Region'], i, forge)
-        append_errors(register_br, err_str_br, i)
-
         row_layer = row['Layer\n(1,2, 3, etc.)']
+        brain_region, err_str_br, register_br = _get_brain_region(row['Brain Region'], row_layer, i, forge)
+        append_errors(register_br, err_str_br, i)
 
         layer_value, err_str_layer, register_layer = _get_layer(
             row_layer, i, brain_region["label"] if brain_region else None, forge=forge
@@ -328,12 +321,12 @@ if __name__ == "__main__":
     if local_test:
         dst_directory = os.path.join(os.getcwd(), "output")
         dst_root_folder, dst_folders = extract_zip(zip_file_path=original_zip_file, dst_dir=dst_directory, re_extract=False)
-        logger.info(f"Converting swc files into other extensions")
+        logger.info("Converting swc files into other extensions")
         name_to_file = convert_swcs(dst_folders, re_convert=False)
     else:
         dst_directory = working_directory
         dst_root_folder, dst_folders = extract_zip(zip_file_path=original_zip_file, dst_dir=working_directory, re_extract=True)
-        logger.info(f"Converting swc files into other extensions")
+        logger.info("Converting swc files into other extensions")
         name_to_file = convert_swcs(dst_folders, re_convert=True)
 
     print(f'Working on {len(name_to_file)} morphologies')
