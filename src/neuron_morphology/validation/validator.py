@@ -98,9 +98,9 @@ class Check:
 validation_report_checks = {
     'morphology': {
         'can_be_loaded_with_morphio': Check(
-            id_="todo",  # TODO
+            id_="https://bbp.epfl.ch/ontologies/core/bmo/CanBeLoadedWithMorphioMetric",
             pref_label="Can be loaded with morphio",
-            label="todo",  # TODO
+            label="Can be loaded with Morphio Metric",
             callable_=lambda neuron, swc_path: CheckResult(
                 status=not isinstance(_load_morph_morphio(swc_path, raise_=True), Exception),
                 info=str(_load_morph_morphio(swc_path, raise_=True))
@@ -110,8 +110,8 @@ validation_report_checks = {
             value_in_tsv=(Check.basic_tsv, True)
         ),
         'z_thickness_larger_than_50': Check(
-            id_="todo",  # TODO
-            label="todo",  # TODO
+            id_="https://bbp.epfl.ch/ontologies/core/bmo/ZThicknessMetric",  # TODO
+            label="Z Thickness Metric",
             pref_label="Z thickness is larger than 50",
             callable_=lambda neuron, swc_path: curation.z_range(neuron),
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status if x.status is True else {
@@ -130,8 +130,8 @@ validation_report_checks = {
     },
     'neurites': {
         'has_different_diameters': Check(
-            id_="todo",  # TODO
-            label="todo",  # TODO
+            id_="https://bbp.epfl.ch/ontologies/core/bmo/NeuriteHasDifferentDiametersMetric",
+            label="Neurite Has Different Diameters Metric",
             pref_label="Neurite Has Different Diameters",
             callable_=lambda neuron, swc_path: CheckResult(
                 status=len(set(_load_morph_morphio(swc_path, raise_=False).diameters)) >= 2
@@ -222,8 +222,8 @@ validation_report_checks = {
 
         ),
         "has_all_nonzero_neurite_radii": Check(
-            id_="todo",  # TODO
-            label="todo",  # TODO
+            id_="https://bbp.epfl.ch/ontologies/core/bmo/HasAllNonZeroNeuriteRadiiMetric",
+            label="Has all non-zero neurite radii Metric",
             pref_label="Neurite Has all non zero neurite radii",
             value_in_json=None,
             callable_=lambda m, swc_path: morphology_checks.has_all_nonzero_neurite_radii(m),
@@ -231,8 +231,8 @@ validation_report_checks = {
             value_in_tsv=(Check.basic_tsv, True)
         ),
         "has_all_nonzero_section_lengths": Check(
-            id_="todo",  # TODO
-            label="todo",  # TODO
+            id_="https://bbp.epfl.ch/ontologies/core/bmo/HasAllNonZeroSectionLengthsMetric",
+            label="Has all non-zero section lengths Metric",
             pref_label="Neurite Has all non-zero section lengths",
             value_in_json=None,
             callable_=lambda m, swc_path: morphology_checks.has_all_nonzero_section_lengths(m),
@@ -252,8 +252,8 @@ validation_report_checks = {
             value_in_tsv=(Check.basic_tsv, True)
         ),
         "has_no_flat_neurites": Check(
-            id_="todo",   # TODO
-            label="todo",  # TODO
+            id_="https://bbp.epfl.ch/ontologies/core/bmo/HasNoFlatNeuritesMetric",
+            label="Has no flat neurites Metric",
             pref_label="Has no flat neurites",
             value_in_json=Check.basic_json,
             callable_=lambda m, swc_path: morphology_checks.has_no_flat_neurites(m, 1e-6, method="tolerance"),
@@ -263,8 +263,8 @@ validation_report_checks = {
     },
     'bifurcations': {
         'has_unifurcation': Check(
-            id_="todo",  # TODO
-            label="todo",  # TODO
+            id_="https://bbp.epfl.ch/ontologies/core/bmo/HasUnifurcationMetric",
+            label="Has Unifurcation Metric",
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status if x.status is True else len(x.info),
             pref_label="Has Unifurcation",
             callable_=lambda neuron, swc_path: morphology_checks.has_unifurcation(neuron),
@@ -272,8 +272,8 @@ validation_report_checks = {
             value_in_tsv=(Check.basic_tsv, True)
         ),
         'has_multifurcation': Check(
-            id_="todo",  # TODO
-            label="todo",  # TODO
+            id_="https://bbp.epfl.ch/ontologies/core/bmo/HasMultifurcationMetric",
+            label="Has Multifurcation Metric",
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status if x.status is True else len(x.info),
             pref_label="Has Multifurcation",
             callable_=lambda neuron, swc_path: morphology_checks.has_multifurcation(neuron),
@@ -283,8 +283,8 @@ validation_report_checks = {
     },
     "soma": {
         "has_nonzero_soma_radius": Check(
-            id_="todo",  # TODO
-            label="todo",  # TODO
+            id_="https://bbp.epfl.ch/ontologies/core/bmo/HasNoZeroSomaRadiusMetric",
+            label="Has non-zero soma radius Metric",
             pref_label="Has nonzero soma radius",
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status,
             callable_=lambda m, swc_path: morphology_checks.has_nonzero_soma_radius(m),
@@ -294,8 +294,8 @@ validation_report_checks = {
     },
     'dendrites': {
         "has_apical_dendrite": Check(
-            id_="todo",  # TODO
-            label="todo",  # TODO
+            id_="https://bbp.epfl.ch/ontologies/core/bmo/HasApicalDendriteMetric",
+            label="Has Apical Dendrite Metric",
             pref_label="Has apical dendrite",
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status,
             callable_=lambda m, swc_path: morphology_checks.has_apical_dendrite(m),
@@ -303,8 +303,8 @@ validation_report_checks = {
             value_in_tsv=(Check.basic_tsv, True)
         ),
         "has_basal_dendrite": Check(
-            id_="todo",  # TODO
-            label="todo",  # TODO
+            id_="https://bbp.epfl.ch/ontologies/core/bmo/HasBasalDendrite",
+            label="Has Basal Dendrite Metric",
             pref_label="Has basal dendrite",
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status,
             callable_=lambda m, swc_path: morphology_checks.has_basal_dendrite(m),
@@ -314,8 +314,8 @@ validation_report_checks = {
     },
     'axons': {
         "has_axon": Check(
-            id_="todo",  # TODO
-            label="todo",  # TODO
+            id_="https://bbp.epfl.ch/ontologies/core/bmo/HasAxonMetric",
+            label="Has Axon Metric",
             pref_label="Has axon",
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status,
             callable_=lambda m, swc_path: morphology_checks.has_axon(m),
@@ -344,7 +344,7 @@ validation_report_checks = {
         # 'single_child': Check(  # TODO rm and keep neurom implementation?
         #     id_="https://neuroshapes.org/singleChildMetric",
         #     label="Single Child Metric",
-        #     pref_label="Single Child Metric",
+        #     pref_label="Has no Single Child",
         #     value_in_json=lambda x: list({
         #          "valueX": i[0],
         #          "valueY": i[1],
@@ -356,7 +356,7 @@ validation_report_checks = {
         # ),
         # 'multifurcation': Check(  # TODO rm and keep neurom implementation?
         #     id_="https://neuroshapes.org/multifurcationMetric",
-        #     pref_label="Multifurcation Metric",
+        #     pref_label="Has no Multifurcation",
         #     label="Multifurcation Metric",
         #     value_in_json=lambda x: list({
         #         "valueX": i[0],
