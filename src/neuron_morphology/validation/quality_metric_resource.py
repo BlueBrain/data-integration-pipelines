@@ -166,10 +166,9 @@ if __name__ == "__main__":
 
     # Would push into a test project in staging a subset of the quality metrics
     # Else would push them in the same bucket as the neuron morphology's, for all of them
-    local_test = True
-    really_update = not local_test
-    limit = 10 if local_test else 10000
-    constrain = False
+    limit = received_args.limit
+    really_update = received_args.really_update == "yes"
+    constrain = False  # TODO change
 
     working_directory = os.path.join(os.getcwd(), output_dir)
 

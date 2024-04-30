@@ -34,4 +34,14 @@ def define_arguments(parser: Union[argparse.ArgumentParser, Parser]):
         type=str, choices=["yes", "no", "both"], default="yes"
     )
 
+    add_arg(
+        "--really-update", help="Whether to really update data being modified by the pipeline in production",
+        type=str, choices=["yes", "no"], default="no"
+    )
+
+    add_arg(
+        "--limit", help="Query limit for morphologies, defaults to 10000",
+        type=int, default=10000
+    )
+
     return parser

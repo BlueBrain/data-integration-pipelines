@@ -217,10 +217,9 @@ if __name__ == '__main__':
     token = authenticate(username=received_args.username, password=received_args.password)
     is_prod = True
 
-    local_test = True
-    limit = 10 if local_test else 10000
-    really_update = not local_test
-    constrain = False
+    limit = received_args.limit
+    really_update = received_args.really_update == "yes"
+    constrain = False  # TODO change
 
     download_dir = os.path.join(output_dir, f"./files_{org}_{project}")
     dst_dir = os.path.join(output_dir, f"./{org}_{project}")

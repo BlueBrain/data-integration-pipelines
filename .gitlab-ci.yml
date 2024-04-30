@@ -54,7 +54,8 @@ quality_measurement_annotations:
   script:
   - > 
     python src/neuron_morphology/validation/quality_metric_resource.py 
-    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated yes
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated yes 
+    --really-update $REALLY_UPDATE --limit $LIMIT
   artifacts:
     paths:
       - "$OUTPUT_DIR"
@@ -77,6 +78,7 @@ feature_annotations:
   - > 
     python src/neuron_morphology/feature_annotations/create_update_annotations.py 
     --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated yes
+    --really-update $REALLY_UPDATE --limit $LIMIT
   artifacts:
     paths:
       - "$OUTPUT_DIR"
