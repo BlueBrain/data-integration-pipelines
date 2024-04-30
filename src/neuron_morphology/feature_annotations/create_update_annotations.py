@@ -81,7 +81,8 @@ def add_additional_info(
 def update_create_one(
         morphology: Resource,
         existing_annotations,
-        generation, contribution,
+        generation: Dict,
+        contribution: Dict,
         download_directory: str,
         atlas_directory: str,
         forge_data: KnowledgeGraphForge,
@@ -134,8 +135,8 @@ def create_update_annotations(
         forge_data: KnowledgeGraphForge,
         forge_atlas: KnowledgeGraphForge,
         morphologies: List[Resource],
-        is_prod: bool,
-        token: str,
+        contribution: Dict,
+        generation: Dict,
         atlas_directory: str,
         download_directory: str
 ) -> Tuple[
@@ -156,9 +157,6 @@ def create_update_annotations(
         )
         for r in morphologies
     )
-
-    generation = get_generation()
-    contribution = get_contribution(token=token, production=is_prod)
 
     annotations_update, annotations_create, log_dict = [], [], {}
 
@@ -219,7 +217,6 @@ if __name__ == '__main__':
 
     limit = received_args.limit
     really_update = received_args.really_update == "yes"
-    constrain = False  # TODO change
 
     logger.info(f"Neuron morphology feature annotations will be created/updated: {str(really_update)}")
 
@@ -236,14 +233,26 @@ if __name__ == '__main__':
 
     morphologies = get_neuron_morphologies(curated=received_args.curated, forge=forge_data, limit=limit)
 
+    generation = get_generation()
+
+    constrain = True
+    test_env = False
+
+    if test_env:
+        forge_push = allocate("SarahTest", "PublicThalamusTest2", is_prod=False, token=token)
+        contribution = get_contribution(token=token, production=False)
+    else:
+        forge_push = forge_data
+        contribution = get_contribution(token=token, production=is_prod)
+
     annotations_to_update, annotations_to_create, features_dict, annotations_dict, log_dict = create_update_annotations(
-        is_prod=is_prod,
-        token=token,
         forge_data=forge_data,
         morphologies=morphologies,
         forge_atlas=forge_atlas,
         atlas_directory=atlas_dir,
-        download_directory=download_dir
+        download_directory=download_dir,
+        contribution=contribution,
+        generation=generation
     )
 
     if really_update:

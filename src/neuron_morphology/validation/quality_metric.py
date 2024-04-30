@@ -14,7 +14,6 @@ from src.neuron_morphology.validation.validator import (
 import os
 from neurom.core.morphology import Morphology
 
-
 BATCH_TYPE = "BatchQualityMeasurementAnnotation"
 SOLO_TYPE = "QualityMeasurementAnnotation"
 
@@ -24,8 +23,8 @@ QUALITY_SCHEMA = "datashapes:qualitymeasurementannotation"
 
 
 def save_quality_measurement_annotation_report(
-        swc_path: str, report_dir_path: str, name: Optional[str] = None,
-        added: Optional[Dict] = None, morphology: Optional[Morphology] = None
+        swc_path: str, report_dir_path: str, individual_reports: bool, name: Optional[str] = None,
+        added: Optional[Dict] = None, morphology: Optional[Morphology] = None,
 ) -> Tuple[List[str], Dict]:
 
     os.makedirs(report_dir_path, exist_ok=True)
@@ -40,24 +39,25 @@ def save_quality_measurement_annotation_report(
     json_data = get_validation_report_as_json(swc_path, morphology=morphology, report=report)
     quality_measurement_annotation_line = get_validation_report_as_tsv_line(swc_path, morphology=morphology, report=report)
 
-    if name is None:
-        name = swc_path.split("/")[-1].split(".")[0]
+    if individual_reports:
+        if name is None:
+            name = swc_path.split("/")[-1].split(".")[0]
 
-    tsv_header = "\t".join(get_tsv_header_columns())
-    tsv_content = "# " + tsv_header + "\n" + '\t'.join(quality_measurement_annotation_line) + "\n"
+        json_report = dict(**json_data, **added) if added else dict(**json_data)
+        json_path = os.path.join(json_path, f'{name}.json')
 
-    json_report = dict(**json_data, **added) if added else dict(**json_data)
+        logger.info(f"Saving to {json_path}")
 
-    json_path = os.path.join(json_path, f'{name}.json')
-    tsv_path = os.path.join(tsv_path, f'{name}.tsv')
+        with open(json_path, "w") as f:
+            json.dump(json_report, f, indent=4)
 
-    logger.info(f"Saving to {json_path} and {tsv_path}")
+        tsv_header = "\t".join(get_tsv_header_columns())
+        tsv_content = "# " + tsv_header + "\n" + '\t'.join(quality_measurement_annotation_line) + "\n"
+        tsv_path = os.path.join(tsv_path, f'{name}.tsv')
 
-    with open(json_path, "w") as f:
-        json.dump(json_report, f, indent=4)
-
-    with open(tsv_path, "w") as f:
-        f.write(tsv_content)
+        logger.info(f"Saving to {tsv_path}")
+        with open(tsv_path, "w") as f:
+            f.write(tsv_content)
 
     return quality_measurement_annotation_line, json_data
 
@@ -66,10 +66,10 @@ def save_batch_quality_measurement_annotation_report(
         swc_paths: List[str],
         report_dir_path: str,
         report_name: str,
+        individual_reports: bool,
         morphologies: Optional[List[Morphology]] = None,
-        added_list: Optional[List[Dict]] = None
+        added_list: Optional[List[Dict]] = None,
 ) -> Tuple[Dict[str, Dict], Dict[str, Exception]]:
-
     os.makedirs(report_dir_path, exist_ok=True)
 
     if morphologies is None:
@@ -91,7 +91,8 @@ def save_batch_quality_measurement_annotation_report(
     for swc_path, morphology, added in zip(swc_paths, morphologies, added_list):
         # try:
         report_as_tsv_line, report_as_json = save_quality_measurement_annotation_report(
-            swc_path=swc_path, report_dir_path=report_dir_path, morphology=morphology, added=added
+            swc_path=swc_path, report_dir_path=report_dir_path, morphology=morphology, added=added,
+            individual_reports=individual_reports
         )
         # except Exception as e:
         #     logger.error(f"Error creating validation report for path {swc_path}: {str(e)}")
@@ -133,10 +134,8 @@ if __name__ == "__main__":
         swc_paths=paths,
         morphologies=morphologies,
         report_dir_path=report_dir_path,
-        report_name=report_name
+        report_name=report_name,
+        individual_reports=True
     )
 
     print(json.dumps(reports, indent=4))
-
-
-

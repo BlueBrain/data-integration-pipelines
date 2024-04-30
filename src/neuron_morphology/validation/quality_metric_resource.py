@@ -25,17 +25,14 @@ from src.neuron_morphology.validation.workflow_usage import run_workflow_on_path
 def quality_measurement_report_to_resource(
         morphology_resources_and_report: List[Tuple[Resource, Dict]],
         forge: KnowledgeGraphForge,
-        token: str,
-        is_prod: bool,
+        contribution: Dict,
+        generation: Dict,
         batch_report_name: str,
         batch_report_dir: str,
         mapping_batch_validation_report: DictionaryMapping
 ) -> Tuple[Resource, List[Resource], List[Resource]]:
 
     logger.info(f"Creating a {BATCH_TYPE} for {len(morphology_resources_and_report)} resources and returning the existing {SOLO_TYPE} to update, or new ones to create")
-
-    contribution = get_contribution(token=token, production=is_prod)
-    generation = get_generation()
 
     reports_as_resources = []
 
@@ -127,7 +124,8 @@ def save_batch_quality_measurement_annotation_report_on_resources(
         swc_download_folder: str,
         forge: KnowledgeGraphForge,
         report_dir_path: str,
-        report_name: str
+        report_name: str,
+        individual_reports: bool
 ) -> Tuple[List[Tuple[Resource, Dict]], List[Tuple[Resource, Exception]]]:
 
     added_list = [
@@ -147,7 +145,7 @@ def save_batch_quality_measurement_annotation_report_on_resources(
     swc_path_to_report, swc_path_to_error = save_batch_quality_measurement_annotation_report(
         swc_paths=list(path_to_resource.keys()), report_dir_path=report_dir_path,
         morphologies=None, report_name=report_name,
-        added_list=added_list
+        added_list=added_list, individual_reports=individual_reports
     )
 
     reports = [(path_to_resource[swc_path], report) for swc_path, report in swc_path_to_report.items()]
@@ -168,7 +166,6 @@ if __name__ == "__main__":
     # Else would push them in the same bucket as the neuron morphology's, for all of them
     limit = received_args.limit
     really_update = received_args.really_update == "yes"
-    constrain = False  # TODO change
 
     logger.info(f"Neuron morphology quality annotations will be created/updated: {str(really_update)}")
 
@@ -206,7 +203,8 @@ if __name__ == "__main__":
         swc_download_folder=swc_download_folder,
         report_dir_path=report_dir_path,
         forge=forge,
-        report_name=report_name
+        report_name=report_name,
+        individual_reports=False
     )
 
     for resource in resources:
@@ -220,21 +218,34 @@ if __name__ == "__main__":
 
     mapping_batch_validation_report = DictionaryMapping.load(os.path.join(ASSETS_DIRECTORY, 'BatchQualityMeasurementAnnotation.hjson'))
 
+    constrain = True
+    test_env = False
+
+    generation = get_generation()
+
+    if test_env:
+        forge_push = allocate("SarahTest", "PublicThalamusTest2", is_prod=False, token=token)
+        contribution = get_contribution(token=token, production=False)
+    else:
+        forge_push = forge
+        contribution = get_contribution(token=token, production=is_prod)
+
     batch_quality_to_register, quality_to_update, quality_to_register = quality_measurement_report_to_resource(
-        morphology_resources_and_report=reports, forge=forge, token=token, is_prod=is_prod,
+        morphology_resources_and_report=reports, forge=forge_push,
+        contribution=contribution, generation=generation,
         batch_report_name=report_name, batch_report_dir=report_dir_path,
         mapping_batch_validation_report=mapping_batch_validation_report,
     )
 
     with open(os.path.join(report_dir_path, f"batch_resource_{org}_{project}.json"), "w") as f:
-        json.dump(forge.as_json(batch_quality_to_register), f, indent=4)
+        json.dump(forge_push.as_json(batch_quality_to_register), f, indent=4)
 
     if really_update:
         logger.info("Updating data has been enabled")
         # TODO: more programmatic way of dealing with multiple pre-existing Batch reports
         # TODO why is batch quality not passing validation?
-        forge.update(batch_quality_to_register, schema_id=BATCH_QUALITY_SCHEMA if constrain else None)
-        forge.register(quality_to_register, schema_id=QUALITY_SCHEMA if constrain else None)
-        forge.update(quality_to_update, schema_id=QUALITY_SCHEMA if constrain else None)
+        forge_push.update(batch_quality_to_register, schema_id=BATCH_QUALITY_SCHEMA if constrain else None)
+        forge_push.register(quality_to_register, schema_id=QUALITY_SCHEMA if constrain else None)
+        forge_push.update(quality_to_update, schema_id=QUALITY_SCHEMA if constrain else None)
     else:
         logger.info("Updating data has been disabled")

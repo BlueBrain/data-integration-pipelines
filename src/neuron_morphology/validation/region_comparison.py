@@ -87,10 +87,10 @@ def do(
 
         if 'coordinatesInBrainAtlas' in morph.brainLocation.__dict__:
 
-            row['float coordinates'] = all(
+            row['float coordinates'] = _format_boolean(all(
                 isinstance(morph.brainLocation.coordinatesInBrainAtlas.__dict__.get(f"value{axis}").__dict__.get("@value"), float)
                 for axis in ["X", "Y", "Z"]
-            )
+            ), sparse)
 
         rows.append(row)
 
