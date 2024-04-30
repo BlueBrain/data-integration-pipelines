@@ -228,6 +228,7 @@ if __name__ == '__main__':
 
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(dst_dir, exist_ok=True)
+    os.makedirs(atlas_dir, exist_ok=True)
 
     forge_data = allocate(org, project, is_prod, token)
     forge_atlas = allocate("bbp", "atlas", is_prod, token)
