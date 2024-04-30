@@ -81,7 +81,7 @@ def quality_measurement_report_to_resource(
     batch_report = {
         "morphologies": [i[0] for i in morphology_resources_and_report],
         "name": batch_report_name,
-        "filepath": batch_report_dir
+        "filepath": os.path.join(batch_report_dir, batch_report_name)
     }
 
     batch_report_resource = forge.map(batch_report, mapping_batch_validation_report, DictionaryMapper)
@@ -207,10 +207,10 @@ if __name__ == "__main__":
         individual_reports=True
     )
 
-    for resource in resources:
-        path = Path(get_swc_path(resource, swc_download_folder, forge))
-        dst_dir = Path(os.path.join(working_directory, "workflow_output"))
-        result = run_workflow_on_path(path, dst_dir)
+    # for resource in resources:
+    #     path = Path(get_swc_path(resource, swc_download_folder, forge))
+    #     dst_dir = Path(os.path.join(working_directory, "workflow_output"))
+    #     result = run_workflow_on_path(path, dst_dir)
 
     shutil.rmtree(swc_download_folder)
 
@@ -238,14 +238,22 @@ if __name__ == "__main__":
         mapping_batch_validation_report=mapping_batch_validation_report,
     )
 
-    with open(os.path.join(report_dir_path, f"batch_resource_{org}_{project}.json"), "w") as f:
-        json.dump(forge_push.as_json(batch_quality_to_register), f, indent=4)
-
     if really_update:
         logger.info("Updating data has been enabled")
-        # TODO: more programmatic way of dealing with multiple pre-existing Batch reports
-        forge_push.register(batch_quality_to_register, schema_id=BATCH_QUALITY_SCHEMA if constrain else None)
+
+        existing = forge_push.retrieve(batch_quality_to_register.get_identifier(), cross_bucket=False)
+
+        if existing is not None:
+            batch_quality_to_register._store_metadata = existing._store_metadata
+            forge_push.update(batch_quality_to_register, schema_id=BATCH_QUALITY_SCHEMA if constrain else None)
+        else:
+            forge_push.register(batch_quality_to_register, schema_id=BATCH_QUALITY_SCHEMA if constrain else None)
+
         forge_push.register(quality_to_register, schema_id=QUALITY_SCHEMA if constrain else None)
         forge_push.update(quality_to_update, schema_id=QUALITY_SCHEMA if constrain else None)
     else:
         logger.info("Updating data has been disabled")
+
+    with open(os.path.join(report_dir_path, f"batch_resource_{org}_{project}.json"), "w") as f:
+        json.dump(forge_push.as_json(batch_quality_to_register), f, indent=4)
+

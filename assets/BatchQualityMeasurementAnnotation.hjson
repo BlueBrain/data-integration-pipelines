@@ -1,6 +1,6 @@
 {
     id: forge.format("identifier", "annotations", x["name"])
-    distribution: forge.attach(os.path.join(x['filepath'], x['name']), content_type='application/tsv')
+    distribution: forge.attach(x["filepath"], content_type='application/tsv')
     name: f"Quality Measurement Annotations"
     description: This resource contains quality measurement annotations of a batch of neuron morphologies
     type: [
