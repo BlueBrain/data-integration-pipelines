@@ -1,6 +1,7 @@
 import argparse
 import json
 import shutil
+from typing import List, Dict
 
 from kgforge.core import KnowledgeGraphForge, Resource
 from voxcell import RegionMap, VoxelData
@@ -36,18 +37,19 @@ def cacheresolve(text, forge, scope='ontology', strategy='EXACT_MATCH'):
     return forge.resolve(text=text, scope=scope, strategy=strategy)
 
 
-def do(
-        search_results: str,
+def create_brain_region_comparison(
+        search_results: List[Resource],
         morphology_dir: str,
         forge: KnowledgeGraphForge,
         brain_region_map: RegionMap,
         voxel_data: VoxelData,
-        sparse: bool = True
-) -> pd.DataFrame:
+        sparse: bool = True,
+        float_coordinates_check=False
+) -> List[Dict]:
 
     rows = []
     for n, morph in enumerate(search_results):
-        row = {'name': morph.name}
+        row = {'id': morph.get_identifier(), 'name': morph.name}
 
         swc_path = _download_from(
             forge, link=morph, label=f"morphology {n}",
@@ -85,16 +87,39 @@ def do(
             log_fc = logger.info if agreement else logger.warning
             log_fc(msg)
 
-        if 'coordinatesInBrainAtlas' in morph.brainLocation.__dict__:
+        if float_coordinates_check:
+            if 'coordinatesInBrainAtlas' in morph.brainLocation.__dict__:
 
-            row['float coordinates'] = _format_boolean(all(
-                isinstance(morph.brainLocation.coordinatesInBrainAtlas.__dict__.get(f"value{axis}").__dict__.get("@value"), float)
-                for axis in ["X", "Y", "Z"]
-            ), sparse)
+                row['float coordinates'] = _format_boolean(all(
+                    isinstance(morph.brainLocation.coordinatesInBrainAtlas.__dict__.get(f"value{axis}").__dict__.get("@value"), float)
+                    for axis in ["X", "Y", "Z"]
+                ), sparse)
 
         rows.append(row)
 
-    return pd.DataFrame(rows)
+    return rows
+
+
+def get_atlas(working_directory: str, is_prod: bool, token: str):
+    logger.info("Downloading atlas")
+
+    # atlas_dir = os.path.join(os.getcwd(), "output/atlas")
+    atlas_dir = os.path.join(working_directory, "atlas")
+    atlas_id = "https://bbp.epfl.ch/neurosciencegraph/data/4906ab85-694f-469d-962f-c0174e901885"
+    _get_atlas_dir_ready(
+        atlas_dir=atlas_dir, atlas_id=atlas_id,
+        is_prod=is_prod, token=token,
+        atlas_version=None  # TODO version
+    )
+
+    logger.info("Loading atlas")
+    atlas = Atlas.open(atlas_dir)
+    br_map: RegionMap = atlas.load_region_map()
+    voxel_d: VoxelData = atlas.load_data('brain_regions')
+
+    shutil.rmtree(atlas_dir)
+
+    return br_map, voxel_d
 
 
 if __name__ == "__main__":
@@ -113,24 +138,9 @@ if __name__ == "__main__":
 
     logger.info(f"Working directory {working_directory}")
 
-    logger.info("Downloading atlas")
-
-    # atlas_dir = os.path.join(os.getcwd(), "output/atlas")
-    atlas_dir = os.path.join(working_directory, "atlas")
-    atlas_id = "https://bbp.epfl.ch/neurosciencegraph/data/4906ab85-694f-469d-962f-c0174e901885"
-    _get_atlas_dir_ready(
-        atlas_dir=atlas_dir, atlas_id=atlas_id,
-        is_prod=is_prod, token=token,
-        atlas_version=None  # TODO version
-    )
-
+    br_map, voxel_d = get_atlas(working_directory=working_directory, is_prod=is_prod, token=token)
     #  TODO if ran against multiple buckets, do not re-run this everytime?
     #   different job and then propagate artifacts
-
-    logger.info("Loading atlas")
-    atlas = Atlas.open(atlas_dir)
-    br_map: RegionMap = atlas.load_region_map()
-    voxel_d: VoxelData = atlas.load_data('brain_regions')
 
     forge_bucket = allocate(org, project, is_prod=True, token=token)
 
@@ -138,14 +148,13 @@ if __name__ == "__main__":
 
     morphologies_dir = os.path.join(working_directory, "morphologies")
 
-    df = do(
+    df = pd.DataFrame(create_brain_region_comparison(
         search_results=resources, morphology_dir=morphologies_dir, forge=forge_bucket,
-        brain_region_map=br_map, voxel_data=voxel_d
-    )
+        brain_region_map=br_map, voxel_data=voxel_d, float_coordinates_check=True
+    ))
 
     df.sort_values(by=['agreement'], inplace=True)
 
     shutil.rmtree(morphologies_dir)
-    shutil.rmtree(atlas_dir)
 
     df.to_csv(os.path.join(working_directory, 'region_comparison.csv'))

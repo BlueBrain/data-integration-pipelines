@@ -1,11 +1,11 @@
 import argparse
 import shutil
-from pathlib import Path
 from typing import Tuple, Dict, List
 
 from kgforge.core import KnowledgeGraphForge, Resource
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.mappers import DictionaryMapper
+from voxcell import RegionMap, VoxelData
 
 from src.logger import logger
 from src.helpers import allocate, ASSETS_DIRECTORY, authenticate
@@ -18,6 +18,7 @@ from src.neuron_morphology.creation_helpers import get_contribution, get_generat
 import os
 import json
 
+from src.neuron_morphology.validation.region_comparison import get_atlas, create_brain_region_comparison
 from src.neuron_morphology.validation.validator import validation_report_checks
 from src.neuron_morphology.validation.workflow_usage import run_workflow_on_path
 
@@ -123,14 +124,24 @@ def save_batch_quality_measurement_annotation_report_on_resources(
         forge: KnowledgeGraphForge,
         report_dir_path: str,
         report_name: str,
-        individual_reports: bool
+        individual_reports: bool,
+        br_map: RegionMap,
+        voxel_d: VoxelData,
 ) -> Tuple[List[Tuple[Resource, Dict]], List[Tuple[Resource, Exception]]]:
+
+    brain_region_comp = create_brain_region_comparison(
+        search_results=resources, morphology_dir=swc_download_folder, forge=forge,
+        brain_region_map=br_map, voxel_data=voxel_d, float_coordinates_check=False
+    )
+
+    brain_region_comp_dict = dict((i["id"], i) for i in brain_region_comp)
 
     added_list = [
         {
             "name": resource.name,
-            "neuron_morphology_id": resource.id,
-            "neuron_morphology_rev": resource._store_metadata._rev
+            "id": resource.get_identifier(),
+            "rev": resource._store_metadata._rev,
+            **brain_region_comp_dict[resource.get_identifier()]
         }
         for resource in resources
     ]
@@ -198,13 +209,17 @@ if __name__ == "__main__":
     #
     # resources = [r for r in resources if r.id not in issues]
 
+    br_map, voxel_d = get_atlas(working_directory=working_directory, is_prod=is_prod, token=token)
+
     reports, errors = save_batch_quality_measurement_annotation_report_on_resources(
         resources=resources,
         swc_download_folder=swc_download_folder,
         report_dir_path=report_dir_path,
         forge=forge,
         report_name=report_name,
-        individual_reports=True
+        individual_reports=True,
+        br_map=br_map,
+        voxel_d=voxel_d
     )
 
     # for resource in resources:

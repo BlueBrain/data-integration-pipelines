@@ -486,7 +486,7 @@ def get_validation_report_as_json(
 
 
 def get_validation_report_as_tsv_line(
-        neuron_path: str, morphology: Optional[Morphology] = None, report: Optional[Dict] = None
+        neuron_path: str, morphology: Optional[Morphology] = None, report: Optional[Dict] = None, added: Optional[Dict] = None
 ) -> List[str]:
     basename = os.path.basename(neuron_path)
     report = get_report(neuron_path, morphology, report)
@@ -495,9 +495,11 @@ def get_validation_report_as_tsv_line(
     line_list = [basename] + [
         validation_report_checks[k][k_2].format_as_tsv_value(neuron_path, k, k_2, value, stdout=False, sparse=True)
         # if the expected value is equal to the obtained value, an empty cell will be in the tsv. If sparse is False, the expected value will be there
-
         for k, v_dict in report.items() for k_2, value in v_dict.items()
     ]
+
+    if added:
+        line_list += [str(i) for i in list(added.values())]
     # except Exception as e:
     #     except_name = e.__class__.__name__
     #     line_list = [basename] + [except_name for _, v in report.items() for _, _ in v.items()]
