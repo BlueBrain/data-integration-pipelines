@@ -216,8 +216,8 @@ if __name__ == '__main__':
     is_prod = True
 
     limit = received_args.limit
-    really_update = received_args.really_update
-    push_to_staging = received_args.push_to_staging
+    really_update = received_args.really_update == "yes"
+    push_to_staging = received_args.push_to_staging == "yes"
     constrain = True
 
     logger.info(f"Neuron morphology feature annotations will be created/updated: {str(really_update)}")
