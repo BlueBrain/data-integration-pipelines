@@ -237,7 +237,7 @@ if __name__ == '__main__':
 
     generation = get_generation()
 
-    if test_env:
+    if push_to_staging:
         forge_push = allocate(
             "dke", "kgforge", is_prod=False, token=token,
             es_view="https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex",

@@ -1,9 +1,9 @@
 image: python:3.8
 
 variables:
-  REALLY_UPDATE: no
-  LIMIT: 10
-  STAGING: yes
+  REALLY_UPDATE: "no"
+  LIMIT: "10"
+  STAGING: "yes"
 
 before_script:
   - export GITLAB_TOKEN=$CI_JOB_TOKEN
