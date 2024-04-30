@@ -11,6 +11,12 @@ https://bbpgitlab.epfl.ch/dke/apps/data-integration-pipelines/-/pipelines
 - Set a variable of key LIMIT and value a neuron morphology query limit (input 10000 for no limit)
 - Click the blue **Run Pipeline** button
 
+
+A pipeline will be created under the latest commit in main here https://bbpgitlab.epfl.ch/dke/apps/data-integration-pipelines/-/pipelines.
+Clicking on the round button in the stages column will unfold a list of all jobs, including the ones that were started.
+Clicking on a job will show its progress and log.
+If successful, on the right-side column, there will be a section for artifacts, which are the outputs of the pipeline. 
+You can download them or browse them
 ### Available pipelines
 #### Neuron Morphology pipelines 
 Can be ran on the buckets of Nexus holding Neuron Morphology-s featured in OBP. Those buckets are the following
