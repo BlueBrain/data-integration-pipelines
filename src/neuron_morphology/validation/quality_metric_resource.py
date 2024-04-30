@@ -83,21 +83,19 @@ def quality_measurement_report_to_resource(
         "name": batch_report_name,
         "filepath": batch_report_dir
     }
-    batch_report_resource = forge.map(batch_report, mapping_batch_validation_report, DictionaryMapper)
 
+    batch_report_resource = forge.map(batch_report, mapping_batch_validation_report, DictionaryMapper)
     batch_report_resource.contribution = contribution
     batch_report_resource.generation = generation
 
     to_upd, to_register = [], []
     for n, report in enumerate(reports_as_resources):
+        # forge._debug = True
 
-        search_results = forge.search({'name': report.name})
-
-        if not search_results:
-            search_results = forge.search({
-                'type': SOLO_TYPE,
-                'hasTarget': {'hasSource': {'@id': report.hasTarget.hasSource.id}}
-            })
+        search_results = forge.search({
+            'type': SOLO_TYPE,
+            'hasTarget': {'hasSource': {'@id': report.hasTarget.hasSource.id}}
+        })
 
         if len(search_results) == 0:
             to_register.append(report)
@@ -165,7 +163,9 @@ if __name__ == "__main__":
     # Would push into a test project in staging a subset of the quality metrics
     # Else would push them in the same bucket as the neuron morphology's, for all of them
     limit = received_args.limit
-    really_update = received_args.really_update == "yes"
+    really_update = received_args.really_update
+    push_to_staging = received_args.push_to_staging
+    constrain = True
 
     logger.info(f"Neuron morphology quality annotations will be created/updated: {str(really_update)}")
 
@@ -204,7 +204,7 @@ if __name__ == "__main__":
         report_dir_path=report_dir_path,
         forge=forge,
         report_name=report_name,
-        individual_reports=False
+        individual_reports=True
     )
 
     for resource in resources:
@@ -218,13 +218,14 @@ if __name__ == "__main__":
 
     mapping_batch_validation_report = DictionaryMapping.load(os.path.join(ASSETS_DIRECTORY, 'BatchQualityMeasurementAnnotation.hjson'))
 
-    constrain = True
-    test_env = False
-
     generation = get_generation()
 
-    if test_env:
-        forge_push = allocate("SarahTest", "PublicThalamusTest2", is_prod=False, token=token)
+    if push_to_staging:
+        forge_push = allocate(
+            "dke", "kgforge", is_prod=False, token=token,
+            es_view="https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex",
+            sparql_view="https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
+        )
         contribution = get_contribution(token=token, production=False)
     else:
         forge_push = forge
@@ -243,8 +244,7 @@ if __name__ == "__main__":
     if really_update:
         logger.info("Updating data has been enabled")
         # TODO: more programmatic way of dealing with multiple pre-existing Batch reports
-        # TODO why is batch quality not passing validation?
-        forge_push.update(batch_quality_to_register, schema_id=BATCH_QUALITY_SCHEMA if constrain else None)
+        forge_push.register(batch_quality_to_register, schema_id=BATCH_QUALITY_SCHEMA if constrain else None)
         forge_push.register(quality_to_register, schema_id=QUALITY_SCHEMA if constrain else None)
         forge_push.update(quality_to_update, schema_id=QUALITY_SCHEMA if constrain else None)
     else:

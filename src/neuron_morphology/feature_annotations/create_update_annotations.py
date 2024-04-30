@@ -216,7 +216,9 @@ if __name__ == '__main__':
     is_prod = True
 
     limit = received_args.limit
-    really_update = received_args.really_update == "yes"
+    really_update = received_args.really_update
+    push_to_staging = received_args.push_to_staging
+    constrain = True
 
     logger.info(f"Neuron morphology feature annotations will be created/updated: {str(really_update)}")
 
@@ -235,11 +237,12 @@ if __name__ == '__main__':
 
     generation = get_generation()
 
-    constrain = True
-    test_env = False
-
     if test_env:
-        forge_push = allocate("SarahTest", "PublicThalamusTest2", is_prod=False, token=token)
+        forge_push = allocate(
+            "dke", "kgforge", is_prod=False, token=token,
+            es_view="https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex",
+            sparql_view="https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
+        )
         contribution = get_contribution(token=token, production=False)
     else:
         forge_push = forge_data

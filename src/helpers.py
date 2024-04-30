@@ -38,7 +38,7 @@ def write_obj(filepath, obj):
         f.write(content)
 
 
-def allocate(org, project, is_prod, token):
+def allocate(org, project, is_prod, token, es_view=None, sparql_view=None):
 
     endpoint = Deployment.STAGING.value if not is_prod else Deployment.PRODUCTION.value
 
@@ -47,14 +47,26 @@ def allocate(org, project, is_prod, token):
     files.REQUEST_TIMEOUT = 300
     bluebrain_nexus.REQUEST_TIMEOUT = 300
 
-    forge = KnowledgeGraphForge(
-        PROD_CONFIG_URL,
-        bucket=bucket,
+    args = dict(
+        configuration=PROD_CONFIG_URL,
+        endpoint=endpoint,
         token=token,
-        endpoint=endpoint
+        bucket=bucket,
+        debug=False
     )
 
-    return forge
+    search_endpoints = {}
+
+    if es_view is not None:
+        search_endpoints["elastic"] = {"endpoint": es_view}
+
+    if sparql_view is not None:
+        search_endpoints["sparql"] = {"endpoint": sparql_view}
+
+    if len(search_endpoints) > 0:
+        args["searchendpoints"] = search_endpoints
+
+    return KnowledgeGraphForge(**args)
 
 
 def open_file(filename):

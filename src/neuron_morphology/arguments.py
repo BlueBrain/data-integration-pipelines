@@ -35,8 +35,13 @@ def define_arguments(parser: Union[argparse.ArgumentParser, Parser]):
     )
 
     add_arg(
-        "--really-update", help="Whether to really update data being modified by the pipeline in production",
+        "--really_update", help="Whether to really update data being modified by the pipeline in production",
         type=str, choices=["yes", "no"], default="no"
+    )
+
+    add_arg(
+        "--push_to_staging", help="Whether to push to staging, if really-update is True",
+        type=str, choices=["yes", "no"], default="yes"
     )
 
     add_arg(
