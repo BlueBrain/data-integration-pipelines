@@ -221,6 +221,8 @@ if __name__ == '__main__':
     really_update = received_args.really_update == "yes"
     constrain = False  # TODO change
 
+    logger.info(f"Neuron morphology feature annotations will be created/updated: {str(really_update)}")
+
     download_dir = os.path.join(output_dir, f"./files_{org}_{project}")
     dst_dir = os.path.join(output_dir, f"./{org}_{project}")
     atlas_dir = os.path.join(output_dir, "./atlas")

@@ -170,6 +170,8 @@ if __name__ == "__main__":
     really_update = received_args.really_update == "yes"
     constrain = False  # TODO change
 
+    logger.info(f"Neuron morphology quality annotations will be created/updated: {str(really_update)}")
+
     working_directory = os.path.join(os.getcwd(), output_dir)
 
     logger.info(f"Working directory {working_directory}")

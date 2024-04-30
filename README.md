@@ -7,6 +7,8 @@ See https://bbpteam.epfl.ch/project/spaces/display/BBKG/Morphology+Curation+Pipe
 - Go to 
 https://bbpgitlab.epfl.ch/dke/apps/data-integration-pipelines/-/pipelines
 - Set **Run for branch name or tag** to main
+- Set a variable of key REALLY_UPDATE and value *yes* or *no*
+- Set a variable of key LIMIT and value a neuron morphology query limit (input 10000 for no limit)
 - Click the blue **Run Pipeline** button
 
 ### Available pipelines
@@ -26,3 +28,4 @@ The pipelines available:
 - **quality_measurement_annotations**: runs quality measurement reports on morphologies (registration/update of those reports in Nexus is currently not enabled)
 - **feature_annotations**: registers/update neuron morphology feature annotations extracted by neurom
 - **morphology_registration**: runs registration/update of morphologies provided by SEU assuming a zip file is provided (TODO: where to upload the zip file, too big for git. + Update mechanism)
+
