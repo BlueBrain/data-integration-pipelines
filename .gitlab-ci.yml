@@ -14,6 +14,10 @@ before_script:
   - python -m venv venv
   - source venv/bin/activate
   - pip install .[dev]
+  - echo REALLY_UPDATE ${REALLY_UPDATE}
+  - echo LIMIT ${LIMIT}
+  - echo STAGING ${STAGING}
+  - echo CURATED ${CURATED}
 
 stages:
   - lint
