@@ -5,6 +5,8 @@ variables:
   LIMIT: "10"
   STAGING: "yes"
   CURATED: "both"
+  KUBERNETES_MEMORY_LIMIT: 8Gi
+  KUBERNETES_MEMORY_REQUEST: 8Gi
 
 before_script:
   - export GITLAB_TOKEN=$CI_JOB_TOKEN
