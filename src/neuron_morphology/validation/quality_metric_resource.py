@@ -24,7 +24,7 @@ from src.neuron_morphology.validation.workflow_usage import run_workflow_on_path
 
 
 def quality_measurement_report_to_resource(
-        morphology_resources_and_report: List[Tuple[Resource, Dict]],
+        morphology_resources_swc_path_and_report: List[Tuple[Resource, str, Dict]],
         forge: KnowledgeGraphForge,
         contribution: Dict,
         generation: Dict,
@@ -33,11 +33,11 @@ def quality_measurement_report_to_resource(
         mapping_batch_validation_report: DictionaryMapping
 ) -> Tuple[Resource, List[Resource], List[Resource]]:
 
-    logger.info(f"Creating a {BATCH_TYPE} for {len(morphology_resources_and_report)} resources and returning the existing {SOLO_TYPE} to update, or new ones to create")
+    logger.info(f"Creating a {BATCH_TYPE} for {len(morphology_resources_swc_path_and_report)} resources and returning the existing {SOLO_TYPE} to update, or new ones to create")
 
     reports_as_resources = []
 
-    for resource, report in morphology_resources_and_report:
+    for resource, swc_path, report in morphology_resources_swc_path_and_report:
         body = [
             {
                 "type": [
@@ -54,10 +54,12 @@ def quality_measurement_report_to_resource(
             for k, v in report.items() for k_2, v_2 in v.items()
         ]
 
+        name = swc_path.split("/")[-1].split(".")[0]
+
         dict_for_res = {
             "distribution": [
-                forge.attach(f"{batch_report_dir}/json/{resource.name}.json", content_type="application/json"),
-                forge.attach(f"{batch_report_dir}/tsv/{resource.name}.tsv", content_type="application/tsv")
+                forge.attach(f"{batch_report_dir}/json/{name}.json", content_type="application/json"),
+                forge.attach(f"{batch_report_dir}/tsv/{name}.tsv", content_type="application/tsv")
             ],
             "name": f"Quality Measurement Annotation of {resource.name}",
             "description": f"This resources contains quality measurement annotations of the neuron morphology {resource.name}",
@@ -80,7 +82,7 @@ def quality_measurement_report_to_resource(
         reports_as_resources.append(report_resource)
 
     batch_report = {
-        "morphologies": [i[0] for i in morphology_resources_and_report],
+        "morphologies": [i[0] for i in morphology_resources_swc_path_and_report],
         "name": batch_report_name,
         "filepath": os.path.join(batch_report_dir, batch_report_name)
     }
@@ -113,7 +115,7 @@ def quality_measurement_report_to_resource(
 
             to_upd.append(report)
 
-    logger.info(f"For {len(morphology_resources_and_report)}, {len(to_upd)} existing {SOLO_TYPE} to update, {len(to_register)} {SOLO_TYPE} to register")
+    logger.info(f"For {len(morphology_resources_swc_path_and_report)}, {len(to_upd)} existing {SOLO_TYPE} to update, {len(to_register)} {SOLO_TYPE} to register")
 
     return batch_report_resource, to_upd, to_register
 
@@ -127,7 +129,7 @@ def save_batch_quality_measurement_annotation_report_on_resources(
         individual_reports: bool,
         br_map: RegionMap,
         voxel_d: VoxelData,
-) -> Tuple[List[Tuple[Resource, Dict]], List[Tuple[Resource, Exception]]]:
+) -> Tuple[List[Tuple[Resource, str, Dict]], List[Tuple[Resource, str, Exception]]]:
 
     brain_region_comp = create_brain_region_comparison(
         search_results=resources, morphology_dir=swc_download_folder, forge=forge,
@@ -157,8 +159,8 @@ def save_batch_quality_measurement_annotation_report_on_resources(
         added_list=added_list, individual_reports=individual_reports
     )
 
-    reports = [(path_to_resource[swc_path], report) for swc_path, report in swc_path_to_report.items()]
-    errors = [(path_to_resource[swc_path], error) for swc_path, error in swc_path_to_error.items()]
+    reports = [(path_to_resource[swc_path], swc_path, report) for swc_path, report in swc_path_to_report.items()]
+    errors = [(path_to_resource[swc_path], swc_path, error) for swc_path, error in swc_path_to_error.items()]
 
     return reports, errors
 
@@ -247,7 +249,7 @@ if __name__ == "__main__":
         contribution = get_contribution(token=token, production=is_prod)
 
     batch_quality_to_register, quality_to_update, quality_to_register = quality_measurement_report_to_resource(
-        morphology_resources_and_report=reports, forge=forge_push,
+        morphology_resources_swc_path_and_report=reports, forge=forge_push,
         contribution=contribution, generation=generation,
         batch_report_name=report_name, batch_report_dir=report_dir_path,
         mapping_batch_validation_report=mapping_batch_validation_report,
