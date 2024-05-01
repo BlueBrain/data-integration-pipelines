@@ -4,6 +4,7 @@ variables:
   REALLY_UPDATE: "no"
   LIMIT: "10"
   STAGING: "yes"
+  CURATED: "both"
 
 before_script:
   - export GITLAB_TOKEN=$CI_JOB_TOKEN
@@ -37,7 +38,7 @@ check_schema:
   script:
   - > 
     python src/neuron_morphology/validation/check_schema.py 
-    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated yes
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated $CURATED
   artifacts:
     paths:
       - "$OUTPUT_DIR"
@@ -59,7 +60,7 @@ quality_measurement_annotations:
   script:
   - > 
     python src/neuron_morphology/validation/quality_metric_resource.py 
-    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated yes 
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated $CURATED 
     --really_update $REALLY_UPDATE --limit $LIMIT --push_to_staging $STAGING
   artifacts:
     paths:
@@ -82,7 +83,7 @@ feature_annotations:
   script:
   - > 
     python src/neuron_morphology/feature_annotations/create_update_annotations.py 
-    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated yes
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated $CURATED
     --really_update $REALLY_UPDATE --limit $LIMIT --push_to_staging $STAGING
   artifacts:
     paths:
@@ -113,7 +114,7 @@ brain_region:
   script:
   - > 
     python src/neuron_morphology/validation/region_comparison.py 
-    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated yes
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated $CURATED
   artifacts:
     paths:
       - "$OUTPUT_DIR"
@@ -135,7 +136,7 @@ check_links:
   script:
   - > 
     python src/neuron_morphology/validation/check_links.py 
-    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated yes
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated $CURATED
   artifacts:
     paths:
       - "$OUTPUT_DIR"

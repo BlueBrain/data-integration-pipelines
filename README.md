@@ -9,6 +9,8 @@ https://bbpgitlab.epfl.ch/dke/apps/data-integration-pipelines/-/pipelines
 - Set **Run for branch name or tag** to main
 - Set a variable of key REALLY_UPDATE and value *yes* or *no*
 - Set a variable of key LIMIT and value a neuron morphology query limit (input 10000 for no limit)
+- Set a variable of key STAGING and value "yes" or "no"
+- Set a variable of key CURATED and value "yes" or "both"
 - Click the blue **Run Pipeline** button
 
 
