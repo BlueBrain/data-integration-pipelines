@@ -8,9 +8,9 @@ from kgforge.specializations.mappers import DictionaryMapper
 from voxcell import RegionMap, VoxelData
 
 from src.logger import logger
-from src.helpers import allocate, ASSETS_DIRECTORY, authenticate
+from src.helpers import allocate, ASSETS_DIRECTORY, authenticate, _format_boolean
 from src.neuron_morphology.arguments import define_arguments
-from src.neuron_morphology.query_data import get_neuron_morphologies, get_swc_path
+from src.neuron_morphology.query_data import get_neuron_morphologies, get_swc_path, get_asc_path
 from src.neuron_morphology.validation.quality_metric import (
     SOLO_TYPE, BATCH_TYPE, save_batch_quality_measurement_annotation_report, QUALITY_SCHEMA, BATCH_QUALITY_SCHEMA
 )
@@ -120,9 +120,16 @@ def quality_measurement_report_to_resource(
     return batch_report_resource, to_upd, to_register
 
 
+def asc_has_no_nan(asc_path) -> bool:
+    with open(asc_path, "r") as f:
+        content = f.read()
+    return "nan" not in content
+
+
 def save_batch_quality_measurement_annotation_report_on_resources(
         resources: List[Resource],
         swc_download_folder: str,
+        asc_download_folder: str,
         forge: KnowledgeGraphForge,
         report_dir_path: str,
         report_name: str,
@@ -138,29 +145,35 @@ def save_batch_quality_measurement_annotation_report_on_resources(
 
     brain_region_comp_dict = dict((i["id"], i) for i in brain_region_comp)
 
+    resource_id_to_asc_path = dict(
+        (resource.get_identifier(), get_asc_path(resource, asc_download_folder=asc_download_folder, forge=forge))
+        for resource in resources
+    )
+
     added_list = [
         {
             "name": resource.name,
             "id": resource.get_identifier(),
             "rev": resource._store_metadata._rev,
+            "ASC has no nan": _format_boolean(asc_has_no_nan(resource_id_to_asc_path[resource.get_identifier()]), sparse=True),
             **brain_region_comp_dict[resource.get_identifier()]
         }
         for resource in resources
     ]
 
-    path_to_resource = dict(
+    swc_path_to_resource = dict(
         (get_swc_path(resource, swc_download_folder=swc_download_folder, forge=forge), resource)
         for resource in resources
     )
 
     swc_path_to_report, swc_path_to_error = save_batch_quality_measurement_annotation_report(
-        swc_paths=list(path_to_resource.keys()), report_dir_path=report_dir_path,
+        swc_paths=list(swc_path_to_resource.keys()), report_dir_path=report_dir_path,
         morphologies=None, report_name=report_name,
         added_list=added_list, individual_reports=individual_reports
     )
 
-    reports = [(path_to_resource[swc_path], swc_path, report) for swc_path, report in swc_path_to_report.items()]
-    errors = [(path_to_resource[swc_path], swc_path, error) for swc_path, error in swc_path_to_error.items()]
+    reports = [(swc_path_to_resource[swc_path], swc_path, report) for swc_path, report in swc_path_to_report.items()]
+    errors = [(swc_path_to_resource[swc_path], swc_path, error) for swc_path, error in swc_path_to_error.items()]
 
     return reports, errors
 
@@ -191,6 +204,8 @@ if __name__ == "__main__":
     resources = get_neuron_morphologies(curated=received_args.curated, forge=forge, limit=limit)
 
     swc_download_folder = os.path.join(working_directory, "swcs")
+    asc_download_folder = os.path.join(working_directory, "ascs")
+
     report_dir_path = os.path.join(working_directory, f'{org}_{project}')
 
     logger.info(f"Saving reports to directory {report_dir_path}")
@@ -216,6 +231,7 @@ if __name__ == "__main__":
     reports, errors = save_batch_quality_measurement_annotation_report_on_resources(
         resources=resources,
         swc_download_folder=swc_download_folder,
+        asc_download_folder=asc_download_folder,
         report_dir_path=report_dir_path,
         forge=forge,
         report_name=report_name,
@@ -230,6 +246,8 @@ if __name__ == "__main__":
     #     result = run_workflow_on_path(path, dst_dir)
 
     shutil.rmtree(swc_download_folder)
+    shutil.rmtree(asc_download_folder)
+
 
     logger.info("Turning quality measurements into QualityMeasurementAnnotation Resources")
 
