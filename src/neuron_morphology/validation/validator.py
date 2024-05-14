@@ -67,7 +67,11 @@ class Check:
         # TODO try catch and return CheckResult(false) if exception
         with io.capture_output() as captured:
             with morphio.ostream_redirect(stdout=True, stderr=True):
-                return self.callable_(neuron, swc_path)
+                try:
+                    return self.callable_(neuron, swc_path)
+                except Exception as e:
+                    return CheckResult(status=False, info=str(e))
+
 
     @staticmethod
     def basic_tsv(neuron_path, k_1, k_2, x):
