@@ -77,7 +77,7 @@ def create_brain_region_comparison(
             )
         else:
             observed_id = cacheresolve(observed_label, forge).id
-            in_in_each_other = lambda a, b: is_indirectly_in(a, b, forge) or is_indirectly_in(b, a, forge)
+            in_in_each_other = lambda a, b: is_indirectly_in(a, b, forge) or is_indirectly_in(b, a, forge) or a == b
             agreement = any(in_in_each_other(i.id, observed_id) for i in declared)
             row['agreement'] = _format_boolean(agreement, sparse)
 
