@@ -25,7 +25,6 @@ def get_region(morph_path: str, brain_region_map: RegionMap, voxel_data: VoxelDa
     return brain_region_map.get(region_id, 'name')
 
 
-# TODO stick to neurosciencegraph/datamodels
 def is_indirectly_in(a, b, forge):
     return b in [r.id for r in forge.search(
         {'hasPart*': {'id': a}}, cross_bucket=True, debug=False, search_endpoint='sparql', limit=1000
@@ -148,8 +147,10 @@ if __name__ == "__main__":
 
     morphologies_dir = os.path.join(working_directory, "morphologies")
 
+    forge_datamodels = allocate("neurosciencegraph", "datamodels", is_prod=True, token=token)
+
     df = pd.DataFrame(create_brain_region_comparison(
-        search_results=resources, morphology_dir=morphologies_dir, forge=forge_bucket,
+        search_results=resources, morphology_dir=morphologies_dir, forge=forge_datamodels,
         brain_region_map=br_map, voxel_data=voxel_d, float_coordinates_check=True
     ))
 

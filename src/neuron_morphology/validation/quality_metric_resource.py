@@ -131,6 +131,7 @@ def save_batch_quality_measurement_annotation_report_on_resources(
         swc_download_folder: str,
         asc_download_folder: str,
         forge: KnowledgeGraphForge,
+        forge_datamodels: KnowledgeGraphForge,
         report_dir_path: str,
         report_name: str,
         individual_reports: bool,
@@ -139,7 +140,7 @@ def save_batch_quality_measurement_annotation_report_on_resources(
 ) -> Tuple[List[Tuple[Resource, str, Dict]], List[Tuple[Resource, str, Exception]]]:
 
     brain_region_comp = create_brain_region_comparison(
-        search_results=resources, morphology_dir=swc_download_folder, forge=forge,
+        search_results=resources, morphology_dir=swc_download_folder, forge=forge_datamodels,
         brain_region_map=br_map, voxel_data=voxel_d, float_coordinates_check=False
     )
 
@@ -201,6 +202,8 @@ if __name__ == "__main__":
     os.makedirs(working_directory, exist_ok=True)
 
     forge = allocate(org, project, is_prod=is_prod, token=token)
+    forge_datamodels = allocate("neurosciencegraph", "datamodels", is_prod=True, token=token)
+
     resources = get_neuron_morphologies(curated=received_args.curated, forge=forge, limit=limit)
 
     swc_download_folder = os.path.join(working_directory, "swcs")
@@ -234,6 +237,7 @@ if __name__ == "__main__":
         asc_download_folder=asc_download_folder,
         report_dir_path=report_dir_path,
         forge=forge,
+        forge_datamodels=forge_datamodels,
         report_name=report_name,
         individual_reports=True,
         br_map=br_map,
