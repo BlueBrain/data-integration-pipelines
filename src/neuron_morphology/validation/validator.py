@@ -92,7 +92,10 @@ class Check:
         if x.status is True:
             return True
 
-        return x.info if x.info is not None else x.status
+        if x.info is None:
+            return x.status
+
+        return x.info if not isinstance(x.info, Exception) else str(x.info)
 
     @staticmethod
     def basic_numeric(neuron_path, k_1, k_2, x):

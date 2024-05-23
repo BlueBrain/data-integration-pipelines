@@ -122,7 +122,11 @@ def quality_measurement_report_to_resource(
 
 def asc_has_no_nan(asc_path) -> bool:
     with open(asc_path, "r") as f:
-        content = f.read()
+        try:
+            content = f.read()
+        except Exception as e:
+            return False
+
     return "nan" not in content
 
 
