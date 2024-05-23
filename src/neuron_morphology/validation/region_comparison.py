@@ -1,5 +1,4 @@
 import argparse
-import json
 import shutil
 from typing import List, Dict, Optional
 
@@ -10,25 +9,24 @@ import cachetools
 import morphio
 import os
 import pandas as pd
-import numpy as np
 
 from src.get_atlas import _get_atlas_dir_ready
-from src.helpers import allocate, get_token, _as_list, _download_from, _format_boolean, authenticate
+from src.helpers import allocate, _as_list, _download_from, _format_boolean, authenticate
 from src.logger import logger
 from src.neuron_morphology.arguments import define_arguments
 from src.neuron_morphology.query_data import get_neuron_morphologies
 
 
-def get_soma_center(morph_path: str) -> np.array:
+def get_soma_center(morph_path: str) -> Optional[List]:
     morph = morphio.Morphology(morph_path)
-    return morph.soma.center
+    return [float(i) for i in morph.soma.center]
 
 
-def get_morphology_coordinates(morphology: Resource, forge: KnowledgeGraphForge) -> Optional[np.array]:
+def get_morphology_coordinates(morphology: Resource, forge: KnowledgeGraphForge) -> Optional[List]:
     brain_location = forge.as_json(morphology.brainLocation)
 
     if 'coordinatesInBrainAtlas' in brain_location:
-        return np.array([brain_location['coordinatesInBrainAtlas'][i]["@value"] for i in ["valueX", "valueY", "valueZ"]])
+        return [float(brain_location['coordinatesInBrainAtlas'][i]["@value"]) for i in ["valueX", "valueY", "valueZ"]]
 
     return None
 
@@ -81,7 +79,7 @@ def create_brain_region_comparison(
         swc_coordinates = get_soma_center(swc_path)
         metadata_coordinates = get_morphology_coordinates(morph, forge)
 
-        def do(is_swc_coordinates: bool, coordinates: Optional[np.array]):
+        def do(is_swc_coordinates: bool, coordinates: Optional[List]):
 
             coordinate_type = 'metadata' if not is_swc_coordinates else 'swc'
             try:
@@ -121,7 +119,7 @@ def create_brain_region_comparison(
         row['coordinates_swc'] = swc_coordinates
         row[f'coordinates_metadata'] = metadata_coordinates
 
-        temp = [(np.round(np.float32(swc_coordinates[i]), 3), np.round(np.float32(metadata_coordinates[i]), 3)) for i in range(3)]
+        temp = [(round(swc_coordinates[i], 3), round(metadata_coordinates[i], 3)) for i in range(3)]
 
         coordinates_equal = False if metadata_coordinates is None else all(a == b for a, b in temp)
         row['coordinates_equal'] = _format_boolean(coordinates_equal, sparse=True)
