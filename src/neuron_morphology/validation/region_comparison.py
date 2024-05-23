@@ -1,7 +1,7 @@
 import argparse
 import json
 import shutil
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from kgforge.core import KnowledgeGraphForge, Resource
 from voxcell import RegionMap, VoxelData
@@ -10,6 +10,7 @@ import cachetools
 import morphio
 import os
 import pandas as pd
+import numpy as np
 
 from src.get_atlas import _get_atlas_dir_ready
 from src.helpers import allocate, get_token, _as_list, _download_from, _format_boolean, authenticate
@@ -18,9 +19,22 @@ from src.neuron_morphology.arguments import define_arguments
 from src.neuron_morphology.query_data import get_neuron_morphologies
 
 
-def get_region(morph_path: str, brain_region_map: RegionMap, voxel_data: VoxelData) -> str:
+def get_soma_center(morph_path: str) -> np.array:
     morph = morphio.Morphology(morph_path)
-    soma_x, soma_y, soma_z = voxel_data.positions_to_indices(morph.soma.center)
+    return morph.soma.center
+
+
+def get_morphology_coordinates(morphology: Resource, forge: KnowledgeGraphForge) -> Optional[np.array]:
+    brain_location = forge.as_json(morphology.brainLocation)
+
+    if 'coordinatesInBrainAtlas' in brain_location:
+        return np.array([brain_location['coordinatesInBrainAtlas'][i]["@value"] for i in ["valueX", "valueY", "valueZ"]])
+
+    return None
+
+
+def get_region(position, brain_region_map: RegionMap, voxel_data: VoxelData) -> str:
+    soma_x, soma_y, soma_z = voxel_data.positions_to_indices(position)
     region_id = voxel_data.raw[soma_x, soma_y, soma_z]
     return brain_region_map.get(region_id, 'name')
 
@@ -48,7 +62,10 @@ def create_brain_region_comparison(
 
     rows = []
     for n, morph in enumerate(search_results):
-        row = {'id': morph.get_identifier(), 'name': morph.name}
+
+        morphology_name = morph.name
+
+        row = {'id': morph.get_identifier(), 'name': morphology_name}
 
         swc_path = _download_from(
             forge, link=morph, label=f"morphology {n}",
@@ -59,34 +76,58 @@ def create_brain_region_comparison(
         declared_label = ",".join([i.label for i in declared])
         row['declared_region'] = declared_label
 
-        try:
-            observed_label = get_region(swc_path, brain_region_map, voxel_data)
-        except Exception as exc:
-            logger.error(f"Exception raised when retrieving brain region where soma is "
-                         f"located for {morph.name}: {str(exc)}")
+        in_in_each_other = lambda a, b: is_indirectly_in(a, b, forge) or is_indirectly_in(b, a, forge) or a == b
 
-            observed_label = None
+        swc_coordinates = get_soma_center(swc_path)
+        metadata_coordinates = get_morphology_coordinates(morph, forge)
 
-        row['observed_region'] = observed_label
+        def do(is_swc_coordinates: bool, coordinates: Optional[np.array]):
 
-        if observed_label is None:
-            logger.error(
-                f"Couldn't figure out the brain region where {morph.name}'s soma is located "
-                f"inside the parcellation volume"
-            )
-        else:
-            observed_id = cacheresolve(observed_label, forge).id
-            in_in_each_other = lambda a, b: is_indirectly_in(a, b, forge) or is_indirectly_in(b, a, forge) or a == b
-            agreement = any(in_in_each_other(i.id, observed_id) for i in declared)
-            row['agreement'] = _format_boolean(agreement, sparse)
+            coordinate_type = 'metadata' if not is_swc_coordinates else 'swc'
+            try:
+                observed_label = get_region(coordinates, brain_region_map, voxel_data) if coordinates is not None else None
 
-            msg = f"{morph.name} - Observed region {observed_label} and declared region(s) " \
-                  f"{declared_label} are {'' if agreement else 'not '}within each other"
+            except Exception as exc:
+                logger.error(
+                    f"Exception raised when retrieving brain region where {morphology_name} is "
+                    f"using {coordinate_type} coordinates: {str(exc)}"
+                )
 
-            log_fc = logger.info if agreement else logger.warning
-            log_fc(msg)
+                observed_label = None
+
+            row[f"observed_region_{coordinate_type}"] = observed_label
+
+            if observed_label is None:
+                logger.error(
+                    f"Couldn't figure out the brain region where {morphology_name} is located "
+                    f"inside the parcellation volume using {coordinate_type} coordinates"
+                )
+            else:
+                observed_id = cacheresolve(observed_label, forge).id
+
+                agreement = any(in_in_each_other(i.id, observed_id) for i in declared)
+
+                row[f"agreement_{coordinate_type}"] = _format_boolean(agreement, sparse)
+
+                msg = f"{morphology_name} - Observed region {observed_label} in {coordinate_type} and declared region(s) " \
+                      f"{declared_label} are {'' if agreement else 'not '}within each other"
+
+                log_fc = logger.info if agreement else logger.warning
+                log_fc(msg)
+
+        do(True, swc_coordinates)
+        do(False, metadata_coordinates)
+
+        row['coordinates_swc'] = swc_coordinates
+        row[f'coordinates_metadata'] = metadata_coordinates
+
+        temp = [(np.round(np.float32(swc_coordinates[i]), 3), np.round(np.float32(metadata_coordinates[i]), 3)) for i in range(3)]
+
+        coordinates_equal = False if metadata_coordinates is None else all(a == b for a, b in temp)
+        row['coordinates_equal'] = _format_boolean(coordinates_equal, sparse=True)
 
         if float_coordinates_check:
+
             if 'coordinatesInBrainAtlas' in morph.brainLocation.__dict__:
 
                 row['float coordinates'] = _format_boolean(all(
@@ -130,7 +171,7 @@ if __name__ == "__main__":
     output_dir = received_args.output_dir
     token = authenticate(username=received_args.username, password=received_args.password)
     is_prod = True
-    query_limit = 10000
+    query_limit = received_args.limit
 
     working_directory = os.path.join(os.getcwd(), output_dir)
     os.makedirs(working_directory, exist_ok=True)
@@ -154,7 +195,7 @@ if __name__ == "__main__":
         brain_region_map=br_map, voxel_data=voxel_d, float_coordinates_check=True
     ))
 
-    df.sort_values(by=['agreement'], inplace=True)
+    df.sort_values(by=['agreement_swc'], inplace=True)
 
     shutil.rmtree(morphologies_dir)
 
