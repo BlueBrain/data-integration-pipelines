@@ -8,3 +8,4 @@ data_integration_pipelines.egg-info/
 build/
 tokens/
 output/
+**/.DS_Store

@@ -275,7 +275,7 @@ def compute_metrics_neurom_raw(morphology_filepath: str) -> Tuple[Dict, str]:
     """
     with io.capture_output() as captured:
         with ostream_redirect(stdout=True, stderr=True):
-            morph = nm.load_morphology(morphology_filepath)
+            morph = nm.load_morphology(morphology_filepath, process_subtrees=True)
             stats = morph_stats.extract_stats(morph, METRIC_CONFIG)
 
     return stats, captured.stderr

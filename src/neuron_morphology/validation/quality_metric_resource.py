@@ -20,7 +20,7 @@ import json
 
 from src.neuron_morphology.validation.region_comparison import get_atlas, create_brain_region_comparison
 from src.neuron_morphology.validation.validator import validation_report_checks
-from src.neuron_morphology.validation.workflow_usage import run_workflow_on_path
+# from src.neuron_morphology.validation.workflow_usage import run_workflow_on_path
 
 
 def quality_measurement_report_to_resource(
@@ -141,30 +141,40 @@ def save_batch_quality_measurement_annotation_report_on_resources(
         individual_reports: bool,
         br_map: RegionMap,
         voxel_d: VoxelData,
+        with_br_check: bool = True,
+        with_asc_check: bool = True
 ) -> Tuple[List[Tuple[Resource, str, Dict]], List[Tuple[Resource, str, Exception]]]:
 
-    brain_region_comp = create_brain_region_comparison(
-        search_results=resources, morphology_dir=swc_download_folder, forge=forge_datamodels,
-        brain_region_map=br_map, voxel_data=voxel_d, float_coordinates_check=False
-    )
+    if with_br_check:
+        brain_region_comp = create_brain_region_comparison(
+            search_results=resources, morphology_dir=swc_download_folder, forge=forge_datamodels,
+            brain_region_map=br_map, voxel_data=voxel_d, float_coordinates_check=False
+        )
 
-    brain_region_comp_dict = dict((i["id"], i) for i in brain_region_comp)
+        brain_region_comp_dict = dict((i["id"], i) for i in brain_region_comp)
 
-    resource_id_to_asc_path = dict(
-        (resource.get_identifier(), get_asc_path(resource, asc_download_folder=asc_download_folder, forge=forge))
-        for resource in resources
-    )
+    if with_asc_check:
+        resource_id_to_asc_path = dict(
+            (resource.get_identifier(), get_asc_path(resource, asc_download_folder=asc_download_folder, forge=forge))
+            for resource in resources
+        )
 
-    added_list = [
-        {
+    def resource_added_content(resource: Resource) -> Dict:
+        temp = {
             "name": resource.name,
             "id": resource.get_identifier(),
             "rev": resource._store_metadata._rev,
-            "ASC has no nan": _format_boolean(asc_has_no_nan(resource_id_to_asc_path[resource.get_identifier()]), sparse=True),
-            **brain_region_comp_dict[resource.get_identifier()]
         }
-        for resource in resources
-    ]
+
+        if with_asc_check:
+            temp.update({"ASC has no nan": _format_boolean(asc_has_no_nan(resource_id_to_asc_path[resource.get_identifier()]), sparse=True)})
+
+        if with_br_check:
+            temp.update(brain_region_comp_dict[resource.get_identifier()])
+
+        return temp
+
+    added_list = [resource_added_content(resource) for resource in resources]
 
     swc_path_to_resource = dict(
         (get_swc_path(resource, swc_download_folder=swc_download_folder, forge=forge), resource)
@@ -208,10 +218,16 @@ if __name__ == "__main__":
     forge = allocate(org, project, is_prod=is_prod, token=token)
     forge_datamodels = allocate("neurosciencegraph", "datamodels", is_prod=True, token=token)
 
+    # with open(os.path.join(os.getcwd(), "src/neuron_morphology/axon_on_dendrite/res_to_len.json"), "r") as f:
+    #     res_to_len = list(json.loads(f.read()).keys())
+    #
+    # resources = forge.retrieve(res_to_len)
     resources = get_neuron_morphologies(curated=received_args.curated, forge=forge, limit=limit)
 
     swc_download_folder = os.path.join(working_directory, "swcs")
     asc_download_folder = os.path.join(working_directory, "ascs")
+    os.makedirs(swc_download_folder, exist_ok=True)
+    os.makedirs(asc_download_folder, exist_ok=True)
 
     report_dir_path = os.path.join(working_directory, f'{org}_{project}')
 
@@ -234,6 +250,7 @@ if __name__ == "__main__":
     # resources = [r for r in resources if r.id not in issues]
 
     br_map, voxel_d = get_atlas(working_directory=working_directory, is_prod=is_prod, token=token)
+    # br_map, voxel_d = None, None
 
     reports, errors = save_batch_quality_measurement_annotation_report_on_resources(
         resources=resources,
@@ -245,7 +262,9 @@ if __name__ == "__main__":
         report_name=report_name,
         individual_reports=True,
         br_map=br_map,
-        voxel_d=voxel_d
+        voxel_d=voxel_d,
+        with_asc_check=True,
+        with_br_check=True
     )
 
     # for resource in resources:
@@ -255,7 +274,6 @@ if __name__ == "__main__":
 
     shutil.rmtree(swc_download_folder)
     shutil.rmtree(asc_download_folder)
-
 
     logger.info("Turning quality measurements into QualityMeasurementAnnotation Resources")
 

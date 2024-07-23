@@ -119,10 +119,12 @@ def create_brain_region_comparison(
         row['coordinates_swc'] = swc_coordinates
         row[f'coordinates_metadata'] = metadata_coordinates
 
-        temp = [(round(swc_coordinates[i], 3), round(metadata_coordinates[i], 3)) for i in range(3)]
-
-        coordinates_equal = False if metadata_coordinates is None else all(a == b for a, b in temp)
-        row['coordinates_equal'] = _format_boolean(coordinates_equal, sparse=True)
+        if swc_coordinates is not None and metadata_coordinates is not None:
+            temp = [(round(swc_coordinates[i], 3), round(metadata_coordinates[i], 3)) for i in range(3)]
+            coordinates_equal = False if metadata_coordinates is None else all(a == b for a, b in temp)
+            row['coordinates_equal'] = _format_boolean(coordinates_equal, sparse=True)
+        else:
+            row['coordinates_equal'] = "Error"
 
         if float_coordinates_check:
 

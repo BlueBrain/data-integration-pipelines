@@ -1,5 +1,6 @@
 import argparse
 import shutil
+from multiprocessing.pool import ThreadPool, Pool
 from typing import List, Union, Optional, Tuple, Dict
 
 import os
@@ -19,10 +20,13 @@ from src.neuron_morphology.feature_annotations.morph_metrics_neurom import compu
 
 import pandas as pd
 import re
+import traceback
 
 from src.neuron_morphology.query_data import get_neuron_morphologies, get_swc_path
 
 ANNOTATION_SCHEMA = "https://neuroshapes.org/dash/annotation"
+
+BATCH_SIZE = 50
 
 
 def escape_ansi(line: str) -> str:
@@ -62,10 +66,8 @@ def _create_raw(morphology: Resource, download_directory: str, forge: KnowledgeG
 
 
 def add_additional_info(
-        annotation: Dict, forge_annotations: KnowledgeGraphForge,
-        generation, contribution, morphology: Resource
+        resource: Resource, generation, contribution, morphology: Resource
 ) -> Resource:
-    resource = forge_annotations.from_json(annotation)
     resource.brainLocation = morphology.brainLocation
     resource.hasTarget = AnnotationTarget.obj_to_dict(
         AnnotationTarget(
@@ -118,17 +120,62 @@ def update_create_one(
 
         existing_for_compartment = existing.get(compartment_key, None)
         if not existing_for_compartment:
+
+            annotation = computed[compartment_key]
+            resource = forge_data.from_json(annotation)
             created = add_additional_info(
-                annotation=computed[compartment_key], forge_annotations=forge_data,
+                resource=resource,
                 generation=generation, contribution=contribution, morphology=morphology
             )
             created_annotations.append(created)
         else:
             # Update hasBody of annotations only
             existing_for_compartment.hasBody = computed[compartment_key].hasBody
+            add_additional_info(
+                resource=existing_for_compartment, generation=generation,
+                contribution=contribution, morphology=morphology
+            )
             updated_annotations.append(existing_for_compartment)
 
     return updated_annotations, created_annotations, warnings
+
+
+def batch(iterable, n=BATCH_SIZE):
+    l = len(iterable)
+    for ndx in range(0, l, n):
+        yield iterable[ndx:min(ndx + n, l)]
+
+
+
+def m_1(morphology: Resource, annotations, atlas_directory, download_directory, forge_atlas, contribution, generation) -> Tuple[str, Optional[Tuple[List[Resource], List[Resource], Dict, Dict, Optional[str]]], Optional[Exception]]:
+
+    m_id = morphology.get_identifier()
+
+    try:
+        updated_annotations, created_annotations, warnings = update_create_one(
+            morphology=morphology,
+            existing_annotations=annotations[m_id],
+            download_directory=download_directory,
+            forge_data=forge_data,
+            forge_atlas=forge_atlas,
+            atlas_directory=atlas_directory,
+            generation=generation,
+            contribution=contribution,
+        )
+
+        neurom_output, _ = _create_raw(
+            morphology=morphology, download_directory=download_directory, forge=forge_data
+        )
+
+        annotation_dict_i = forge_data.as_json(updated_annotations + created_annotations)
+
+        warnings = escape_ansi(warnings) if warnings.strip() else None  # do not add to warning_dicts empty warnings
+
+        return m_id, (updated_annotations, created_annotations, neurom_output, annotation_dict_i, warnings), None
+
+    except Exception as e:
+        traceback.print_exc()
+        return m_id, None, e
 
 
 def create_update_annotations(
@@ -165,44 +212,34 @@ def create_update_annotations(
 
     logger.info("Building neuron morphology feature annotations")
 
-    for i, morphology in enumerate(morphologies):
-        if (i + 1) % 20 == 0:
-            logger.info(f"{i + 1}/{len(morphologies)}")
+    for i, morphology_batch in enumerate(batch(morphologies)):
 
-        m_id = morphology.get_identifier()
+        logger.info(f"{i*BATCH_SIZE}/{len(morphologies)}")
 
-        try:
-            updated_annotations, created_annotations, warnings = update_create_one(
-                morphology=morphology,
-                existing_annotations=annotations[m_id],
-                download_directory=download_directory,
-                forge_data=forge_data,
-                forge_atlas=forge_atlas,
-                atlas_directory=atlas_directory,
-                generation=generation,
-                contribution=contribution,
-            )
-            annotations_update.extend(updated_annotations)
-            annotations_create.extend(created_annotations)
+        # res = Pool().starmap(m_1, [(m_i, annotations, atlas_directory, download_directory, forge_atlas, contribution, generation) for m_i in morphology_batch])
 
-            neurom_output, _ = _create_raw(
-                morphology=morphology, download_directory=download_directory, forge=forge_data
-            )
+        res = [m_1(m_i, annotations, atlas_directory, download_directory, forge_atlas, contribution, generation) for m_i in morphology_batch]
 
-            annotations_dict[m_id] = forge_data.as_json(updated_annotations + created_annotations)
+        for (m_id, a, ex) in res:
 
-            features_dict[m_id] = neurom_output
+            if ex is not None:
+                logger.error(f"Error with morphology {m_id}: {ex}")
+                log_dict[m_id] = ex.args[0]
+            else:
+                updated_annotations, created_annotations, neurom_output, annotation_dict_i, warnings = a
+                if warnings is not None:
+                    log_dict[m_id] = warnings
 
-            if warnings.strip():  # do not add to warning_dicts empty warnings
-                log_dict[m_id] = escape_ansi(warnings)
-            assert (all(not e._synchronized for e in updated_annotations))
-        except Exception as e:
-            logger.error(f"Error with morphology {m_id}: {e}")
-            log_dict[m_id] = e.args[0]
+                annotations_update.extend(updated_annotations)
+                annotations_create.extend(created_annotations)
 
-    logger.info("Validating")
-    forge_data.validate(data=annotations_update, type_="Annotation")
-    forge_data.validate(data=annotations_create, type_="Annotation")
+                annotations_dict[m_id] = annotation_dict_i
+                features_dict[m_id] = neurom_output
+                assert (all(not e._synchronized for e in updated_annotations))
+
+    # logger.info("Validating")
+    # forge_data.validate(data=annotations_update, type_="Annotation")
+    # forge_data.validate(data=annotations_create, type_="Annotation")
 
     return annotations_update, annotations_create, features_dict, annotations_dict, log_dict
 
@@ -264,11 +301,15 @@ if __name__ == '__main__':
         forge_data.register(annotations_to_create, schema_id=ANNOTATION_SCHEMA if constrain else None)
 
         logger.info(
-            f"{len(annotations_to_create)} annotation created, "
+            f"{len(annotations_to_create)} annotations created, "
             f"{len(annotations_to_update)} annotations updated"
         )
     else:
-        logger.info("Updating data has been disabled")
+        logger.info("Updating data has been disabled, only validating (if constrained)")
+
+        if constrain:
+            forge_data.validate(annotations_to_create, type_="Annotation")
+            forge_data.validate(annotations_to_update, type_="Annotation")
 
     dicts = {
         'annotations': annotations_dict,

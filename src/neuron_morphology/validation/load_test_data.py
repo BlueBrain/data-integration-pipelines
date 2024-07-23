@@ -49,7 +49,7 @@ def get_neurom_test_data() -> Dict[str, Morphology]:
        (6 5 0 3)
        )
       )
-    """), reader='asc')
+    """), reader='asc', process_subtrees=True)
 
     multifurcation = load_morphology(StringIO(u"""
     	((CellBody) (-1 0 0 2) (1 0 0 2))
@@ -72,11 +72,11 @@ def get_neurom_test_data() -> Dict[str, Morphology]:
         (4 13 0 2)
       )
     )
-    """), reader='asc')
+    """), reader='asc', process_subtrees=True)
 
     def load(i):
         try:
-            return load_morphology(i)
+            return load_morphology(i, process_subtrees=True)
         except Exception as e:
             return e
     data = dict((i, load(i)) for i in all_files)

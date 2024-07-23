@@ -1,12 +1,22 @@
 image: python:3.8
 
 variables:
-  REALLY_UPDATE: "no"
-  LIMIT: "10"
-  STAGING: "yes"
-  CURATED: "both"
+  REALLY_UPDATE:
+    value: "no"
+    description: "When running pipelines that can push data into Nexus, whether the pipeline is ran just for reports or also for updates of data - Valid values: yes, no"
+  LIMIT:
+    value: "10000"
+    description: "When querying, max number of results to get (useful for testing) - Valid values: an integer"
+  STAGING:
+    value: "yes"
+    description: "Whether to push in staging or push in production (notes: 1. This is only relevant if REALLY_UPDATE = yes 2. Querying only happens in production) - Valid values: yes, no"
+  CURATED:
+    value: "both"
+    description: "Whether only curated data is selected or all - Valid values: both, yes"
   KUBERNETES_MEMORY_LIMIT: 8Gi
   KUBERNETES_MEMORY_REQUEST: 8Gi
+  KUBERNETES_CPU_LIMIT: 3
+  KUBERNETES_CPU_REQUEST: 3
 
 before_script:
   - export GITLAB_TOKEN=$CI_JOB_TOKEN
@@ -73,7 +83,7 @@ quality_measurement_annotations:
       - "$OUTPUT_DIR"
 
 feature_annotations:
-  timeout: 5h 00m
+  timeout: 10h 00m
   rules:
     - when: manual
   variables:

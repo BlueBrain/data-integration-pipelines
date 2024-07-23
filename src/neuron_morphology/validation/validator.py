@@ -10,7 +10,7 @@ from neurom.check import morphology_checks, CheckResult
 from src.neuron_morphology.validation import custom_validation
 from neurom.core.morphology import Morphology
 import morphio
-from morphology_workflows import curation
+# from morphology_workflows import curation # TODO re-enable once morphology_workflows is compatible with neurom v4
 
 morphio.set_maximum_warnings(-1)
 
@@ -51,7 +51,9 @@ class Check:
 
     def format_as_tsv_value(self, neuron_path, k, k_2, output_of_callable, stdout=False, sparse=False):
         res = self.value_in_tsv[0](neuron_path, k, k_2, output_of_callable)
+
         expected_value = self.value_in_tsv[1]
+
         if isinstance(expected_value, bool):
             if str(expected_value) != res:
                 if stdout:
@@ -72,10 +74,12 @@ class Check:
                 except Exception as e:
                     return CheckResult(status=False, info=e)
 
-
     @staticmethod
     def basic_tsv(neuron_path, k_1, k_2, x):
         if x.status is not None:
+            if not x.status and isinstance(x.info, Exception):
+                return str(x.info)
+
             return str(x.status)
 
         if x.info:
@@ -99,6 +103,9 @@ class Check:
 
     @staticmethod
     def basic_numeric(neuron_path, k_1, k_2, x):
+        if isinstance(x, CheckResult):
+            if not x.status:
+                return str(x.info)
         return str(x)
 
     @staticmethod
@@ -120,24 +127,24 @@ validation_report_checks = {
             example_failure=[],
             value_in_tsv=(Check.basic_tsv, True)
         ),
-        'z_thickness_larger_than_50': Check(
-            id_="https://bbp.epfl.ch/ontologies/core/bmo/ZThicknessMetric",  # TODO
-            label="Z Thickness Metric",
-            pref_label="Z thickness is larger than 50",
-            callable_=lambda neuron, swc_path: curation.z_range(neuron),
-            value_in_json=lambda a, b, c, d: Check.json_wrapper(a, b, c, d, lambda neuron_path, k_1, k_2, x: {
-                "min": {
-                    "section_id": x.info[0][0],
-                    "point": [float(e) for e in x.info[0][1][0]]
-                },
-                "max": {
-                    "section_id": x.info[1][0],
-                    "point": [float(e) for e in x.info[1][1][0]]
-                }
-            }),
-            example_failure=[],
-            value_in_tsv=(Check.basic_tsv, True)
-        )
+        # 'z_thickness_larger_than_50': Check(
+        #     id_="https://bbp.epfl.ch/ontologies/core/bmo/ZThicknessMetric",  # TODO
+        #     label="Z Thickness Metric",
+        #     pref_label="Z thickness is larger than 50",
+        #     callable_=lambda neuron, swc_path: curation.z_range(neuron),
+        #     value_in_json=lambda a, b, c, d: Check.json_wrapper(a, b, c, d, lambda neuron_path, k_1, k_2, x: {
+        #         "min": {
+        #             "section_id": x.info[0][0],
+        #             "point": [float(e) for e in x.info[0][1][0]]
+        #         },
+        #         "max": {
+        #             "section_id": x.info[1][0],
+        #             "point": [float(e) for e in x.info[1][1][0]]
+        #         }
+        #     }),
+        #     example_failure=[],
+        #     value_in_tsv=(Check.basic_tsv, True)
+        # )
     },
     'neurites': {
         'has_different_diameters': Check(
@@ -335,6 +342,32 @@ validation_report_checks = {
         )
     },
     'custom': {
+        'has_no_heterogeneous_neurites': Check(
+            id_="TODO",  # TODO
+            label="Has no heterogeneous neurites",
+            pref_label="Has no heterogeneous neurites",
+            value_in_json=lambda neuron_path, k_1, k_2, x: x.status,
+            callable_=lambda m, swc_path: custom_validation.has_no_heterogeneous_neurites(m),
+            value_in_tsv=(Check.basic_tsv, True)
+        ),
+        'has_no_heterogeneous_neurites_near_soma': Check(
+            id_="TODO",  # TODO
+            label="Has no heterogeneous neurites near soma (40 μm)",
+            pref_label="Has no heterogeneous neurites near soma (40 μm)",
+            value_in_json=lambda neuron_path, k_1, k_2, x: x.status,
+            callable_=lambda m, swc_path: custom_validation.has_no_heterogeneous_sections_close_to_soma(m, no_min=False, min_soma_distance=40),
+            value_in_tsv=(lambda neuron_path, k_1, k_2, x: str(x.status) if x.status is True else (str(x.info) if isinstance(x.info, Exception) else ", ".join([str(i[1]) for i in x.info])), True)
+            # output more than True/False in tsv
+        ),
+        'has_no_composite_subtree_type_starting_in_axon': Check(
+            id_="TODO",  # TODO
+            label="Has no composite subtree type starting in axon",
+            pref_label="Has no composite subtree type starting in axon",
+            value_in_json=lambda neuron_path, k_1, k_2, x: x.status,
+            callable_=lambda m, swc_path: custom_validation.has_no_composite_subtree_type_starting_in_axon(m),
+            value_in_tsv=(lambda neuron_path, k_1, k_2, x: str(x.status) if x.status is True else (str(x.info) if isinstance(x.info, Exception) else
+                                                                                                   str(x.status)), True)
+        ),
         'number_of_dendritic_trees_stemming_from_the_soma': Check(  # DONE
             id_="https://neuroshapes.org/dendriteStemmingFromSomaMetric",
             label="Dendrite Stemming From Soma Metric",
@@ -417,7 +450,7 @@ def _load_morph(swc_path: str):
 
     with io.capture_output() as captured:
         with morphio.ostream_redirect(stdout=True, stderr=True):
-            return load_morphology(swc_path)
+            return load_morphology(swc_path, process_subtrees=True)
 
 
 def _load_morph_morphio(swc_path: str, raise_: bool):
