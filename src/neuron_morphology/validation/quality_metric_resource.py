@@ -9,7 +9,7 @@ from voxcell import RegionMap, VoxelData
 
 from src.logger import logger
 from src.helpers import allocate, ASSETS_DIRECTORY, authenticate, _format_boolean
-from src.neuron_morphology.arguments import define_arguments
+from src.neuron_morphology.arguments import define_morphology_arguments
 from src.neuron_morphology.query_data import get_neuron_morphologies, get_swc_path, get_asc_path
 from src.neuron_morphology.validation.quality_metric import (
     SOLO_TYPE, BATCH_TYPE, save_batch_quality_measurement_annotation_report, QUALITY_SCHEMA, BATCH_QUALITY_SCHEMA
@@ -194,7 +194,7 @@ def save_batch_quality_measurement_annotation_report_on_resources(
 
 
 if __name__ == "__main__":
-    parser = define_arguments(argparse.ArgumentParser())
+    parser = define_morphology_arguments(argparse.ArgumentParser())
     received_args, leftovers = parser.parse_known_args()
     org, project = received_args.bucket.split("/")
     output_dir = received_args.output_dir

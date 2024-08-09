@@ -17,7 +17,7 @@ import shutil
 import zipfile
 
 from src.logger import logger
-from src.neuron_morphology.arguments import define_arguments
+from src.neuron_morphology.arguments import define_morphology_arguments
 from src.neuron_morphology.creation_helpers import get_generation, get_contribution
 
 
@@ -309,7 +309,7 @@ def zip_output(working_directory: str, dst_root_folder: str, processed_metadata_
 
 
 if __name__ == "__main__":
-    parser = define_arguments(argparse.ArgumentParser())
+    parser = define_morphology_arguments(argparse.ArgumentParser())
     received_args, leftovers = parser.parse_known_args()
     working_directory = os.path.join(os.getcwd(), received_args.output_dir)
     os.makedirs(working_directory, exist_ok=True)

@@ -13,7 +13,7 @@ import pandas as pd
 from src.get_atlas import _get_atlas_dir_ready
 from src.helpers import allocate, _as_list, _download_from, _format_boolean, authenticate
 from src.logger import logger
-from src.neuron_morphology.arguments import define_arguments
+from src.neuron_morphology.arguments import define_morphology_arguments
 from src.neuron_morphology.query_data import get_neuron_morphologies
 
 
@@ -164,7 +164,7 @@ def get_atlas(working_directory: str, is_prod: bool, token: str):
 
 if __name__ == "__main__":
 
-    parser = define_arguments(argparse.ArgumentParser())
+    parser = define_morphology_arguments(argparse.ArgumentParser())
 
     received_args, leftovers = parser.parse_known_args()
     org, project = received_args.bucket.split("/")

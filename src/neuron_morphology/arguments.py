@@ -1,34 +1,20 @@
 import argparse
-from datetime import datetime
 from typing import Union
 from _pytest.config.argparsing import Parser
 
+from src.arguments import define_arguments
 
-def define_arguments(parser: Union[argparse.ArgumentParser, Parser]):
+
+def define_morphology_arguments(parser: Union[argparse.ArgumentParser, Parser]):
     """
     Defines the arguments of the Python script
 
     :return: the argument parser
     :rtype: ArgumentParser
     """
-
-    timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    parser = define_arguments(parser)
     add_arg = parser.addoption if isinstance(parser, Parser) else parser.add_argument
 
-    add_arg(
-        "--bucket", help="The bucket against which to run the check",
-        type=str, default="bbp-external/seu"
-    )
-    add_arg(
-        "--username", help="Service account username", type=str, required=True
-    )
-    add_arg(
-        "--password", help="Service account password", type=str, required=True
-    )
-    add_arg(
-        "--output_dir", help="The path to load schemas from.",
-        default=f'./output/{timestamp}', type=str
-    )
     add_arg(
         "--curated", help="Whether to only check curated data are all",
         type=str, choices=["yes", "no", "both"], default="yes"
@@ -42,11 +28,6 @@ def define_arguments(parser: Union[argparse.ArgumentParser, Parser]):
     add_arg(
         "--push_to_staging", help="Whether to push to staging, if really-update is True",
         type=str, choices=["yes", "no"], default="yes"
-    )
-
-    add_arg(
-        "--limit", help="Query limit for morphologies, defaults to 10000",
-        type=int, default=10000
     )
 
     return parser

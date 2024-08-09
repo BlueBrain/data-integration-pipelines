@@ -10,7 +10,8 @@ from kgforge.core import Resource, KnowledgeGraphForge
 
 from src.helpers import allocate, authenticate
 from src.logger import logger
-from src.neuron_morphology.arguments import define_arguments
+from src.arguments import define_arguments
+from src.neuron_morphology.arguments import define_morphology_arguments
 
 from src.neuron_morphology.creation_helpers import get_generation, get_contribution
 from src.neuron_morphology.feature_annotations.data_classes.AnnotationTarget import AnnotationTarget
@@ -246,6 +247,7 @@ def create_update_annotations(
 
 if __name__ == '__main__':
     parser = define_arguments(argparse.ArgumentParser())
+    parser = define_morphology_arguments(parser)
     received_args, leftovers = parser.parse_known_args()
     org, project = received_args.bucket.split("/")
     output_dir = received_args.output_dir

@@ -33,11 +33,11 @@ stages:
   - lint
   - test
 
-#linting:
+# linting:
 #  stage: lint
-#  script: flake8 src
+#  script: flake8 src/schemas
 
-check_schema:
+check_morphologies_schema:
   rules:
     - when: manual
   variables:
@@ -156,3 +156,53 @@ check_links:
   artifacts:
     paths:
       - "$OUTPUT_DIR"
+
+
+check_schema_validation:
+  timeout: 8h 00m
+  rules:
+    - when: manual
+  variables:
+    OUTPUT_DIR: "./output/$BUCKET/$CI_COMMIT_TIMESTAMP"
+  parallel:
+    matrix:
+      - BUCKET: public/sscx
+      - BUCKET: public/thalamus
+      - BUCKET: public/hippocampus
+      - BUCKET: bbp/mmb-point-neuron-framework-model
+      - BUCKET: bbp-external/seu
+      - BUCKET: bbp/mouselight
+
+  script:
+  - > 
+    python src/schemas/check_schema_validation.py 
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET
+  artifacts:
+    paths:
+      - "$OUTPUT_DIR"
+    when: always
+
+check_changed_schemas:
+  timeout: 8h 00m
+  rules:
+    - when: manual
+  variables:
+    OUTPUT_DIR: "./output/$BUCKET/$CI_COMMIT_TIMESTAMP"
+  parallel:
+    matrix:
+      - BUCKET: public/sscx
+      - BUCKET: public/thalamus
+      - BUCKET: public/hippocampus
+      - BUCKET: bbp/mmb-point-neuron-framework-model
+      - BUCKET: bbp-external/seu
+      - BUCKET: bbp/mouselight
+
+  script:
+  - > 
+    python src/schemas/check_changed_schemas.py 
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET
+    --changed_schemas_filepath $CHANGED_SCHEMAS
+  artifacts:
+    paths:
+      - "$OUTPUT_DIR"
+    when: always

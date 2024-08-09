@@ -8,7 +8,7 @@ import pandas as pd
 
 from src.helpers import allocate, get_token, _as_list, _download_from, _format_boolean, authenticate
 from src.logger import logger
-from src.neuron_morphology.arguments import define_arguments
+from src.neuron_morphology.arguments import define_morphology_arguments
 from src.neuron_morphology.query_data import get_neuron_morphologies
 
 
@@ -109,7 +109,7 @@ def check(resources: List[Resource], forge: KnowledgeGraphForge, sparse=True):
 
 
 if __name__ == "__main__":
-    parser = define_arguments(argparse.ArgumentParser())
+    parser = define_morphology_arguments(argparse.ArgumentParser())
 
     received_args, leftovers = parser.parse_known_args()
     org, project = received_args.bucket.split("/")

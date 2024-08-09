@@ -1,8 +1,10 @@
 from enum import Enum
 import getpass
 import os
+import re
 import json
-from typing import Union
+import requests
+from typing import Union, List, Tuple
 
 from kgforge.core.commons import files
 from kgforge.specializations.stores import bluebrain_nexus
@@ -17,11 +19,62 @@ PROD_CONFIG_URL = "https://raw.githubusercontent.com/BlueBrain/nexus-forge/maste
 
 ASSETS_DIRECTORY = os.path.join(os.getcwd(), "./assets")
 
+ORG_OF_INTEREST = ["bbp", "bbp-external", "public"]
+
+DELTA_METADATA_KEYS = [ "_constrainedBy", "_createdAt", "_createdBy", "_deprecated", "_incoming", "_outgoing",
+        "_project", "_rev", "_schemaProject", "_self", "_updatedAt", "_updatedBy"
+]
+
+SEARCH_QUERY_URL = "https://bbp.epfl.ch/nexus/v1/search/query/suite/sbo"
+DEFAULT_ES_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex"
+DATASET_ES_VIEW = "https://bbp.epfl.ch/neurosciencegraph/data/views/es/dataset"
+ES_SIZE_LIMIT = 2000
+
 
 class Deployment(Enum):
     PRODUCTION = "https://bbp.epfl.ch/nexus/v1"
     STAGING = "https://staging.nise.bbp.epfl.ch/nexus/v1"
     # SANDBOX = "https://sandbox.bluebrainnexus.io/v1"
+
+
+def delta_get(relative_url, token, is_prod: bool):
+    endpoint_prod = Deployment.PRODUCTION.value if is_prod else Deployment.STAGING.value
+
+    headers = {
+        "mode": "cors",
+        "Content-Type": "application/json",
+        "Accept": "application/ld+json, application/json",
+        "Authorization": "Bearer " + token
+    }
+
+    return requests.get(f'{endpoint_prod}{relative_url}', headers=headers)
+
+
+def _post_delta(body, token, url=SEARCH_QUERY_URL):
+    req = requests.post(
+                url,
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                },
+                data=json.dumps(body),
+    )
+    if not req.status_code == 200:
+        error = req.reason
+    else:
+        error = None
+    req.raise_for_status()
+    return req.json(), error
+
+
+def run_index_query(query_body, token):
+    req_json, error = _post_delta(query_body, token)
+    return req_json['hits']['hits'], error
+
+
+def run_trial_request(body, endpoint, bucket, token):
+    url = f"{endpoint}/trial/resources/{bucket}"
+    return _post_delta(body, token, url)
 
 
 def write_obj(filepath, obj):
@@ -99,6 +152,37 @@ def get_token(is_prod=True, prompt=False, token_file_path=None):
 
 def get_path(path):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", path)
+
+
+def get_obp_projects(token: str, is_prod: bool = True) -> List[Tuple[str, str]]:
+    res = delta_get(
+        "/search/suites/sbo",
+        is_prod=is_prod, token=token
+    ).json()["projects"]
+
+    return [tuple(org_project.split("/")) for org_project in res]
+
+
+def get_all_projects(token: str, is_prod: bool = True, organisation_of_interest=ORG_OF_INTEREST) -> List[Tuple[str, str]]:
+    res = delta_get(
+        "/projects?size=1000&deprecated=false",
+        is_prod=is_prod, token=token
+    ).json()["_results"]
+
+    def get_org_project(string, is_prod: bool = True) -> Tuple[str, str]:
+        endpoint = Deployment.STAGING.value if not is_prod else Deployment.PRODUCTION.value 
+        m = re.match(fr'{endpoint}/projects/(.*)/(.*)', string)  # TODO for staging?
+        return m.group(1), m.group(2)
+
+    res_formatted = [get_org_project(project_entry["@id"], is_prod) for project_entry in res]
+
+    if not organisation_of_interest:
+        return res_formatted
+
+    return [
+        (org, project) for org, project in res_formatted
+        if org in organisation_of_interest
+    ]
 
 
 class CustomEx(Exception):

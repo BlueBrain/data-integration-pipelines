@@ -1,0 +1,105 @@
+
+import os
+import json
+import argparse
+import pandas as pd
+from typing import List, Dict
+
+from kgforge.core import KnowledgeGraphForge, Resource
+from src.helpers import allocate, authenticate, DEFAULT_ES_VIEW
+from src.logger import logger
+from src.arguments import define_arguments
+from src.schemas.query_data import (
+    get_resources_by_type_es,
+    get_resources_by_type_search,
+    _delta_es,
+    _payload_to_resource
+)
+from src.schemas.getters import TypeGetter
+from src.schemas.schema_validation import check_schema
+
+
+if __name__ == "__main__":
+    parser = define_arguments(argparse.ArgumentParser())
+
+    received_args, leftovers = parser.parse_known_args()
+    bucket = received_args.bucket
+    org, project = bucket.split("/")
+    output_dir = received_args.output_dir
+    is_prod = True
+
+    def initialize_objects(received_args, is_prod):
+
+        token = authenticate(username=received_args.username, password=received_args.password)
+
+        forge_bucket = allocate(org, project, is_prod=is_prod, token=token)
+        forge = allocate("bbp", "atlas", is_prod=is_prod, token=token)
+        return token, forge_bucket, forge
+    
+    token, forge_bucket, forge = initialize_objects(received_args, is_prod)
+
+    errors = []
+
+    mapping_source = forge.retrieve("https://bbp.epfl.ch/nexus/v1/resources/neurosciencegraph/datamodels/_/schema_to_type_mapping", cross_bucket=True)
+    schema_to_type_mapping = forge.as_json(mapping_source.value)
+
+    type_ = "https://neuroshapes.org/Annotation"
+
+    es_query = {"query": {
+        "bool": {
+          "must": [
+            {
+              "term": {
+                "@type": f"{type_}"
+              }
+            },
+            {
+              "term": {
+                "_deprecated": False
+              }
+            }
+          ]
+        }
+      }
+    }
+
+    endpoint = forge_bucket._store.endpoint
+    resources, error = get_resources_by_type_es(forge_bucket, type_, limit=10000)
+    print(len(resources))
+    print(error)
+    rows, failed = check_schema(resources, forge, schema_to_type_mapping_value=schema_to_type_mapping,
+                                use_forge=True)
+    # print(resources[0])
+
+    # try:
+    #     resources = get_resources_by_type_es(forge, type_, limit=10000)
+    # except Exception as exc:
+    #     if 'The provided token is invalid for user' in str(exc):
+    #         token, forge_bucket, forge = initialize_objects(received_args, is_prod)
+    #         try: 
+    #             resources = get_resources_by_type_es(forge, type_, limit=10000)
+    #         except Exception as exc:
+    #             error = str(exc)
+    #     else:
+    #         error = str(exc)
+
+    # if error:
+    #     errors.append(error)
+
+    # if len(resources) > 0:
+    #     working_directory = os.path.join(os.getcwd(), output_dir, type_.split('/')[-1])
+    #     os.makedirs(working_directory, exist_ok=True)
+
+    #     logger.info(f"Working directory {working_directory}")
+
+    #     rows, failed = check_schema(resources, forge, schema_to_type_mapping_value=schema_to_type_mapping,
+    #                                 use_forge=True)
+    #     df = pd.DataFrame(rows)
+
+    #     df.to_csv(os.path.join(working_directory, 'check_schema.csv'))
+    #     with open(os.path.join(working_directory, "errors_schema_validation.json"), "w") as f:
+    #         json.dump(failed, f, indent=4)
+
+    # if errors:
+    #     with open(os.path.join(output_directory, "errors_searching.json"), "w") as f:
+    #         json.dump(errors, f, indent=4)

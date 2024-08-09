@@ -1,0 +1,14 @@
+[
+    "https://neuroshapes.org/dash/entity",
+    "https://neuroshapes.org/dash/trace",
+    "https://neuroshapes.org/dash/morphology",
+    "https://neuroshapes.org/dash/neuronmorphology",
+    "https://neuroshapes.org/dash/emodel",
+    "https://neuroshapes.org/dash/memodel",
+    "https://neuroshapes.org/dash/reconstruction",
+    "https://neuroshapes.org/dash/patchedcell",
+    "https://neuroshapes.org/dash/brainslicing",
+    "https://neuroshapes.org/dash/cellcounting",
+    "https://neuroshapes.org/dash/reconstructedwholebraincell",
+    "https://neuroshapes.org/dash/labeledcell"
+]

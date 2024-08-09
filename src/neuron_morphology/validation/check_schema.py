@@ -9,48 +9,13 @@ import pandas as pd
 
 from src.helpers import allocate, get_token, _as_list, _download_from, _format_boolean, authenticate
 from src.logger import logger
-from src.neuron_morphology.arguments import define_arguments
+from src.neuron_morphology.arguments import define_morphology_arguments
 from src.neuron_morphology.query_data import get_neuron_morphologies
-
-UNCONSTRAINED_SCHEMA = "https://bluebrain.github.io/nexus/schemas/unconstrained.json"
-
-
-def check(resources: List[Resource], forge: KnowledgeGraphForge, schema_to_type_mapping_value: Dict):
-    rows = []
-    failed = []
-
-    for resource in resources:
-
-        row = {
-            "id": resource.get_identifier(),
-            "name": resource.name,
-        }
-
-        schema = resource._store_metadata._constrainedBy
-        has_schema = schema != UNCONSTRAINED_SCHEMA
-        row["Is Constrained"] = has_schema
-
-        if has_schema:
-            try:
-                conforms, _, report = forge._model.service.validate(resource, type_=schema_to_type_mapping_value[schema], inference=None)
-            except Exception as exc:
-                failed.append({**row, "exception": str(exc)})
-                row["Exception"] = str(exc)
-            else:
-                row["Passes Validation"] = conforms
-
-                if not conforms:
-                    failed.append({**row, "report": report})
-        else:
-            row["Passes Validation"] = "-"
-
-        rows.append(row)
-
-    return rows, failed
+from src.schemas.schema_validation import check_schema
 
 
 if __name__ == "__main__":
-    parser = define_arguments(argparse.ArgumentParser())
+    parser = define_morphology_arguments(argparse.ArgumentParser())
 
     received_args, leftovers = parser.parse_known_args()
     org, project = received_args.bucket.split("/")
@@ -69,7 +34,7 @@ if __name__ == "__main__":
     temp = forge.retrieve("https://bbp.epfl.ch/nexus/v1/resources/neurosciencegraph/datamodels/_/schema_to_type_mapping", cross_bucket=True)
     resources = get_neuron_morphologies(forge=forge_bucket, curated=received_args.curated)
 
-    rows, failed = check(resources, forge, schema_to_type_mapping_value=forge.as_json(temp.value))
+    rows, failed = check_schema(resources, forge, schema_to_type_mapping_value=forge.as_json(temp.value))
     df = pd.DataFrame(rows)
 
     with open(os.path.join(working_directory, "error_reports.json"), "w") as f:
