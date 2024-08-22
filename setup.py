@@ -25,7 +25,7 @@ setup(
     setup_requires=['setuptools_scm'],
     install_requires=[
         "pandas",
-        "nexusforge@git+https://github.com/BlueBrain/nexus-forge@timeout_fix",
+        "nexusforge@git+https://github.com/BlueBrain/nexus-forge",
         "morphio==v3.3.9",
         # "morph-tool==v2.10.2",
         # "morphology-workflows==0.10.1",
