@@ -157,7 +157,7 @@ def make_dict(
 
 def _get_strain(row_strain: str, i: int, forge: KnowledgeGraphForge) -> Tuple[Optional[Dict], Optional[str], bool]:
 
-    resolved_strain = cacheresolve(text=row_strain, forge=forge, scope='ontology', strategy=strategy, target='Species')
+    resolved_strain = cacheresolve(text=row_strain, forge=forge, scope='ontology', strategy=strategy, target='Strain')
     if resolved_strain is None:
         return None, f'could not resolve strain = "{row_strain}" for row {i}', True
     else:

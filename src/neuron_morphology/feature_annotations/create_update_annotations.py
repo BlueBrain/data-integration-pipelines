@@ -247,7 +247,7 @@ def create_update_annotations(
 
 if __name__ == '__main__':
     parser = define_arguments(argparse.ArgumentParser())
-    parser = define_morphology_arguments(parser)
+    parser = define_morphology_arguments(argparse.ArgumentParser())
     received_args, leftovers = parser.parse_known_args()
     org, project = received_args.bucket.split("/")
     output_dir = received_args.output_dir
