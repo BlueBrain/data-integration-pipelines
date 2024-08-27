@@ -26,7 +26,7 @@ def get_morphology_coordinates(morphology: Resource, forge: KnowledgeGraphForge)
     brain_location = forge.as_json(morphology.brainLocation)
 
     if 'coordinatesInBrainAtlas' in brain_location:
-        return [float(brain_location['coordinatesInBrainAtlas'][i]["@value"]) for i in ["valueX", "valueY", "valueZ"]]
+        return [float(brain_location['coordinatesInBrainAtlas'][f"value{i}"]) for i in ["X", "Y", "Z"]]
 
     return None
 
