@@ -13,6 +13,12 @@ variables:
   CURATED:
     value: "both"
     description: "Whether only curated data is selected or all - Valid values: both, yes"
+  CHANGED_SCHEMAS_FILEPATH:
+    value: "./data/test_data/schema_validation/bmo_changed_schemas.json"
+    description: "Location of the list of schemas to be validated (that probably changed recently)."
+  FORGE_VALIDATION:
+    value: "yes"
+    description: "Whether to use forge.validate or delta trial endpoint, or both. - Valid values: yes, no, both."
   KUBERNETES_MEMORY_LIMIT: 8Gi
   KUBERNETES_MEMORY_REQUEST: 8Gi
   KUBERNETES_CPU_LIMIT: 3
@@ -28,6 +34,8 @@ before_script:
   - echo LIMIT ${LIMIT}
   - echo STAGING ${STAGING}
   - echo CURATED ${CURATED}
+  - echo CHANGED_SCHEMAS_FILEPATH ${CHANGED_SCHEMAS_FILEPATH}
+  - echo FORGE_VALIDATION ${FORGE_VALIDATION}
 
 stages:
   - lint
@@ -190,18 +198,25 @@ check_changed_schemas:
     OUTPUT_DIR: "./output/$BUCKET/$CI_COMMIT_TIMESTAMP"
   parallel:
     matrix:
+      - BUCKET: public/ephys
+      - BUCKET: public/ngv
+      - BUCKET: public/ngv-anatomy
+      - BUCKET: public/topological-sampling
+      - BUCKET: public/multi-vesicular-release
       - BUCKET: public/sscx
       - BUCKET: public/thalamus
       - BUCKET: public/hippocampus
+      - BUCKET: public/morphologies
       - BUCKET: bbp/mmb-point-neuron-framework-model
       - BUCKET: bbp-external/seu
       - BUCKET: bbp/mouselight
+      - BUCKET: bbp/lnmce
 
   script:
   - > 
     python src/schemas/check_changed_schemas.py 
     --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET
-    --changed_schemas_filepath $CHANGED_SCHEMAS
+    --changed_schemas_filepath $CHANGED_SCHEMAS_FILEPATH --forge_validation $FORGE_VALIDATION
   artifacts:
     paths:
       - "$OUTPUT_DIR"

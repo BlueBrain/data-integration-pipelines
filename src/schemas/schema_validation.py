@@ -49,7 +49,9 @@ def check_schema(resources: List[Resource], forge: KnowledgeGraphForge, schema_t
 
 def _validate_schema_forge(resource: Resource, forge: KnowledgeGraphForge, type_: str, row: Dict, failed: list):
     try:
-        conforms, _, report = forge._model.service.validate(resource, type_=type_, inference=None)
+        forge.validate(resource, type_=type_, inference=None)
+        conforms = resource._validated
+        report = resource._last_action.message
     except Exception as exc:
         failed.append({**row, "exception": str(exc)})
         row["Exception"] = str(exc)
