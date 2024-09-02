@@ -175,11 +175,20 @@ def save_batch_quality_measurement_annotation_report_on_resources(
         return temp
 
     added_list = [resource_added_content(resource) for resource in resources]
+    added_dict = {resource.id: resource_added_content(resource) for resource in resources}
 
     swc_path_to_resource = dict(
         (get_swc_path(resource, swc_download_folder=swc_download_folder, forge=forge), resource)
         for resource in resources
     )
+    resource_to_swc_path = dict(
+        (resource.id, get_swc_path(resource, swc_download_folder=swc_download_folder, forge=forge))
+        for resource in resources
+    )
+    miss_resources = list(set(added_dict.keys()) - set(resource_to_swc_path.keys()))
+    
+    if len(miss_resources) > 1:
+        raise ValueError(f"Missmatch between added content and swc paths: {miss_resources}")
 
     swc_path_to_report, swc_path_to_error = save_batch_quality_measurement_annotation_report(
         swc_paths=list(swc_path_to_resource.keys()), report_dir_path=report_dir_path,

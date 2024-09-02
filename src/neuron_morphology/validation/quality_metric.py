@@ -94,7 +94,7 @@ def save_batch_quality_measurement_annotation_report(
     if added_list is None:
         added_list = [None] * len(swc_paths)
     elif len(added_list) != len(swc_paths):
-        raise Exception("Provided list of data to add to json report should be the same length as swc paths")
+        raise Exception(f"Provided list of data to add to json report should be the same length {len(added_list)} as swc paths {len(swc_paths)}")
 
     reports: Dict[str, Dict] = dict()
     errors: Dict[str, Exception] = dict()
