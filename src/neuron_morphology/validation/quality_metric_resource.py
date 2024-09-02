@@ -176,13 +176,14 @@ def save_batch_quality_measurement_annotation_report_on_resources(
 
     added_list = []
     swc_path_to_resource = {}
+    swc_paths = []
     for resource in resources:
-
         swc_path = get_swc_path(resource, swc_download_folder=swc_download_folder, forge=forge)
-        if not swc_path:
-            raise ValueError(f"No swc path was returned for resource {resource.name}")
-        swc_path_to_resource[swc_path] = resource
-        added_list.append(resource_added_content(resource))
+        if swc_path not in swc_paths:
+            swc_path_to_resource[swc_path] = resource
+            added_list.append(resource_added_content(resource))
+        else:
+            logger.info(f"swc_path {swc_path} in {resource} was already found in another resource:\n {swc_path_to_resource[swc_path]}")
 
     swc_path_to_report, swc_path_to_error = save_batch_quality_measurement_annotation_report(
         swc_paths=list(swc_path_to_resource.keys()), report_dir_path=report_dir_path,
