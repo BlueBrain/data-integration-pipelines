@@ -180,7 +180,7 @@ def save_batch_quality_measurement_annotation_report_on_resources(
     for resource in resources:
         swc_path = get_swc_path(resource, swc_download_folder=swc_download_folder, forge=forge)
         if swc_path not in swc_paths:
-            swc_path.append(swc_path)
+            swc_paths.append(swc_path)
             swc_path_to_resource[swc_path] = resource
             added_list.append(resource_added_content(resource))
         else:
