@@ -1,3 +1,4 @@
+import base64
 from enum import Enum
 import getpass
 import os
@@ -8,7 +9,6 @@ from typing import Union, List, Tuple
 
 from kgforge.core.commons import files
 from kgforge.specializations.stores import bluebrain_nexus
-from keycloak import KeycloakOpenID
 import numpy as np
 from kgforge.core import KnowledgeGraphForge, Resource
 
@@ -34,6 +34,7 @@ ES_SIZE_LIMIT = 2000
 class Deployment(Enum):
     PRODUCTION = "https://bbp.epfl.ch/nexus/v1"
     STAGING = "https://staging.nise.bbp.epfl.ch/nexus/v1"
+    AWS = "https://openbluebrain.com/api/nexus/v1"
     # SANDBOX = "https://sandbox.bluebrainnexus.io/v1"
 
 
@@ -171,7 +172,7 @@ def get_all_projects(token: str, is_prod: bool = True, organisation_of_interest=
 
     def get_org_project(string, is_prod: bool = True) -> Tuple[str, str]:
         endpoint = Deployment.STAGING.value if not is_prod else Deployment.PRODUCTION.value 
-        m = re.match(fr'{endpoint}/projects/(.*)/(.*)', string)  # TODO for staging?
+        m = re.match(fr'{endpoint}/projects/(.*)/(.*)', string)
         return m.group(1), m.group(2)
 
     res_formatted = [get_org_project(project_entry["@id"], is_prod) for project_entry in res]
@@ -242,14 +243,44 @@ def _format_boolean(bool_value: bool, sparse: bool):
     return str(bool_value) if not sparse else ("" if bool_value else str(bool_value))
 
 
-def authenticate(username, password):
+def authenticate(username, password, is_service: bool = True, is_aws: bool = False):
 
-    instance = KeycloakOpenID(
-        server_url="https://bbpauth.epfl.ch/auth/",
-        realm_name="BBP",
-        client_id=username,
-        client_secret_key=password,
+    realm, server_url = ("SBO", "https://openbluebrain.com/auth") \
+        if is_aws else ("https://bbpauth.epfl.ch/auth/", "BBP")
+
+    res = _auth(
+        username, password,
+        realm=realm, server_url=server_url,
+        is_service=is_service
     )
-    payload = instance.token(grant_type="client_credentials")
 
-    return payload["access_token"]
+    return res.json()["access_token"]
+
+
+def _auth(username, password, realm, server_url, is_service=True) -> requests.Response:
+    def basic_auth():
+        token = base64.b64encode(f"{username}:{password}".encode('utf-8')).decode("ascii")
+        return f'Basic {token}'
+
+    url = f"{server_url}/realms/{realm}/protocol/openid-connect/token"
+
+    body = {
+        'grant_type': ["password"],
+        'scope': "openid",
+        'client_id': "bbp-atlas-pipeline",
+        'username': username,
+        'password': password
+    } \
+        if not is_service else {
+        'grant_type': "client_credentials",
+        'scope': "openid"
+    }
+
+    return requests.post(
+        url=url,
+        headers={
+            'Content-Type': "application/x-www-form-urlencoded",
+            'Authorization': basic_auth()
+        },
+        data=body
+    )

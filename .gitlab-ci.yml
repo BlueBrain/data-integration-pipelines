@@ -114,6 +114,22 @@ feature_annotations:
       - "$OUTPUT_DIR"
 
 
+search_index_discrepancy:
+  timeout: 6h 00m
+  rules:
+    - when: manual
+  parallel:
+    matrix:
+      - DATA_TYPE: RECONSTRUCTED_NEURON_MORPHOLOGY
+      - DATA_TYPE: EXPERIMENTAL_TRACE
+      - DATA_TYPE: EXPERIMENTAL_NEURON_DENSITY
+      - DATA_TYPE: EXPERIMENTAL_BOUTON_DENSITY
+      - DATA_TYPE: EXPERIMENTAL_SYNAPSE_PER_CONNECTION
+  script:
+  - python src/search_index/search_index_discrepancy.py --username $AWS_USERNAME --password $AWS_PASSWORD --data_type $DATA_TYPE
+
+
+
 morphology_registration:
   rules:
     - when: manual
