@@ -34,8 +34,6 @@ before_script:
   - echo LIMIT ${LIMIT}
   - echo STAGING ${STAGING}
   - echo CURATED ${CURATED}
-  - echo CHANGED_SCHEMAS_FILEPATH ${CHANGED_SCHEMAS_FILEPATH}
-  - echo FORGE_VALIDATION ${FORGE_VALIDATION}
 
 stages:
   - lint
@@ -229,6 +227,8 @@ check_changed_schemas:
       - BUCKET: bbp/lnmce
 
   script:
+  - echo CHANGED_SCHEMAS_FILEPATH ${CHANGED_SCHEMAS_FILEPATH}
+  - echo FORGE_VALIDATION ${FORGE_VALIDATION}
   - > 
     python src/schemas/check_changed_schemas.py 
     --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET
