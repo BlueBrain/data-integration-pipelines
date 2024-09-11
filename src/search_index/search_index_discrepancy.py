@@ -189,7 +189,8 @@ def compare(
     search_idx_response = _es_view(f'{endpoint}/search/query/suite/sbo')
 
     es_composite_count = composite_response["hits"]["total"]["value"]
-    sparql_intermediate_count = len(sparql_intermediate_response['results']['bindings'])
+
+    sparql_intermediate_count = len({i["id"]['value'] for i in sparql_intermediate_response['results']['bindings']})
 
     search_idx_filtered_proj = [i for i in search_idx_response["hits"]["hits"] if f"{org}/{project}" in i["_source"]["_self"]]
     search_idx_count = search_idx_response["hits"]["total"]["value"]
