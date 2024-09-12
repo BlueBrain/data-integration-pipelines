@@ -246,7 +246,7 @@ def _format_boolean(bool_value: bool, sparse: bool):
 def authenticate(username, password, is_service: bool = True, is_aws: bool = False):
 
     realm, server_url = ("SBO", "https://openbluebrain.com/auth") \
-        if is_aws else ("https://bbpauth.epfl.ch/auth/", "BBP")
+        if is_aws else ("BBP", "https://bbpauth.epfl.ch/auth/")
 
     res = _auth(
         username, password,
