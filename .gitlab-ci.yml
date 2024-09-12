@@ -130,6 +130,18 @@ search_index_discrepancy:
   - python src/search_index/search_index_discrepancy.py --username $AWS_USERNAME --password $AWS_PASSWORD --data_type $DATA_TYPE
 
 
+emodel_validation:
+  timeout: 6h 00m
+  variables:
+    OUTPUT_DIR: "./output/e_model"
+  rules:
+    - when: manual
+  script:
+  - python src/e_model/expected_fields.py --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --is_aws no
+  artifacts:
+    paths:
+      - "$OUTPUT_DIR"
+
 
 morphology_registration:
   rules:

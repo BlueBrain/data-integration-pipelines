@@ -92,9 +92,7 @@ def write_obj(filepath, obj):
         f.write(content)
 
 
-def allocate(org, project, is_prod, token, es_view=None, sparql_view=None):
-
-    endpoint = Deployment.STAGING.value if not is_prod else Deployment.PRODUCTION.value
+def allocate_by_deployment(org, project, deployment: Deployment, token, es_view=None, sparql_view=None):
 
     bucket = f"{org}/{project}"
 
@@ -103,7 +101,7 @@ def allocate(org, project, is_prod, token, es_view=None, sparql_view=None):
 
     args = dict(
         configuration=PROD_CONFIG_URL,
-        endpoint=endpoint,
+        endpoint=deployment.value,
         token=token,
         bucket=bucket,
         debug=False
@@ -121,6 +119,11 @@ def allocate(org, project, is_prod, token, es_view=None, sparql_view=None):
         args["searchendpoints"] = search_endpoints
 
     return KnowledgeGraphForge(**args)
+
+
+def allocate(org, project, is_prod, token, es_view=None, sparql_view=None):
+    deployment = Deployment.STAGING if not is_prod else Deployment.PRODUCTION
+    return allocate_by_deployment(org, project, deployment=deployment, token=token, es_view=es_view, sparql_view=sparql_view)
 
 
 def open_file(filename):
