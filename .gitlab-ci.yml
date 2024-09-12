@@ -22,6 +22,7 @@ variables:
   FORGE_VALIDATION:
     value: "yes"
     description: "Whether to use forge.validate or delta trial endpoint, or both. - Valid values: yes, no, both."
+
   KUBERNETES_MEMORY_LIMIT: 8Gi
   KUBERNETES_MEMORY_REQUEST: 8Gi
   KUBERNETES_CPU_LIMIT: 3
@@ -33,10 +34,6 @@ before_script:
   - python -m venv venv
   - source venv/bin/activate
   - pip install .[dev]
-  - echo REALLY_UPDATE ${REALLY_UPDATE}
-  - echo LIMIT ${LIMIT}
-  - echo STAGING ${STAGING}
-  - echo CURATED ${CURATED}
 
 stages:
   - lint
@@ -61,6 +58,7 @@ check_morphologies_schema:
       - BUCKET: bbp/mmb-point-neuron-framework-model
 
   script:
+  - echo CURATED ${CURATED}
   - > 
     python src/neuron_morphology/validation/check_schema.py 
     --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated $CURATED
@@ -83,6 +81,7 @@ quality_measurement_annotations:
       - BUCKET: public/hippocampus
       - BUCKET: bbp/mmb-point-neuron-framework-model
   script:
+  - echo REALLY_UPDATE ${REALLY_UPDATE} LIMIT ${LIMIT} STAGING ${STAGING} CURATED ${CURATED}
   - > 
     python src/neuron_morphology/validation/quality_metric_resource.py 
     --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated $CURATED 
@@ -106,6 +105,7 @@ feature_annotations:
       - BUCKET: public/hippocampus
       - BUCKET: bbp/mmb-point-neuron-framework-model
   script:
+  - echo REALLY_UPDATE ${REALLY_UPDATE} LIMIT ${LIMIT} STAGING ${STAGING} CURATED ${CURATED}
   - > 
     python src/neuron_morphology/feature_annotations/create_update_annotations.py 
     --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated $CURATED
@@ -153,6 +153,7 @@ brain_region:
     matrix:
       - BUCKET: bbp-external/seu
   script:
+  - echo CURATED ${CURATED}
   - > 
     python src/neuron_morphology/validation/region_comparison.py 
     --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated $CURATED
@@ -175,6 +176,7 @@ check_links:
       - BUCKET: public/hippocampus
       - BUCKET: bbp/mmb-point-neuron-framework-model
   script:
+  - echo CURATED ${CURATED}
   - > 
     python src/neuron_morphology/validation/check_links.py 
     --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated $CURATED
