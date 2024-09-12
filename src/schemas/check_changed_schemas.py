@@ -5,7 +5,7 @@ import argparse
 from typing import List, Dict
 
 from kgforge.core import KnowledgeGraphForge
-from src.helpers import allocate, authenticate
+from src.helpers import allocate, authenticate, initialize_objects
 from src.schemas.arguments import define_schemas_arguments
 from src.schemas.schema_validation import _check_schema
 
@@ -80,17 +80,7 @@ if __name__ == "__main__":
     output_directory = os.path.join(os.getcwd(), output_dir)
     os.makedirs(output_directory, exist_ok=True)
 
-    is_prod = True
-
-    def initialize_objects(received_args, is_prod):
-
-        token = authenticate(username=received_args.username, password=received_args.password)
-
-        forge_bucket = allocate(org, project, is_prod=is_prod, token=token)
-        forge = allocate("bbp", "atlas", is_prod=is_prod, token=token)
-        return token, forge_bucket, forge
-
-    token, forge_bucket, forge = initialize_objects(received_args, is_prod)
+    token, forge_bucket, forge =  initialize_objects(received_args.username, received_args.password, org, project, is_prod=True)
 
     mapping_source = forge.retrieve("https://bbp.epfl.ch/nexus/v1/resources/neurosciencegraph/datamodels/_/schema_to_type_mapping", cross_bucket=True)
     schema_to_type_mapping = forge.as_json(mapping_source.value)

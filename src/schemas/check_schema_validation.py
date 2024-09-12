@@ -6,12 +6,13 @@ import pandas as pd
 from typing import List, Dict
 
 from kgforge.core import KnowledgeGraphForge, Resource
-from src.helpers import allocate, authenticate
+from src.helpers import allocate, authenticate, initialize_objects
 from src.logger import logger
 from src.schemas.arguments import define_schemas_arguments
 from src.schemas.query_data import get_resources_by_type_es, get_resources_by_type_search
 from src.schemas.getters import TypeGetter
 from src.schemas.schema_validation import check_schema
+
 
 
 def run_validation(resources: List[Resource],
@@ -44,15 +45,8 @@ if __name__ == "__main__":
     else:
         search_method = get_resources_by_type_search
 
-    def initialize_objects(received_args, is_prod):
-
-        token = authenticate(username=received_args.username, password=received_args.password)
-
-        forge_bucket = allocate(org, project, is_prod=is_prod, token=token)
-        forge = allocate("bbp", "atlas", is_prod=is_prod, token=token)
-        return token, forge_bucket, forge
     
-    token, forge_bucket, forge = initialize_objects(received_args, is_prod)
+    token, forge_bucket, forge = initialize_objects(received_args.username, received_args.password, org, project, is_prod=is_prod)
 
     mapping_source = forge.retrieve("https://bbp.epfl.ch/nexus/v1/resources/neurosciencegraph/datamodels/_/schema_to_type_mapping", cross_bucket=True)
     schema_to_type_mapping = forge.as_json(mapping_source.value)
@@ -78,7 +72,7 @@ if __name__ == "__main__":
             resources, error = search_method(forge_bucket, type_, limit=resource_count)
         except Exception as exc:
             if 'The provided token is invalid for user' in str(exc):
-                token, forge_bucket, forge = initialize_objects(received_args, is_prod)
+                token, forge_bucket, forge = initialize_objects(received_args.username, received_args.password, org, project, is_prod=is_prod)
                 try: 
                     resources, error = search_method(forge_bucket, type_, limit=resource_count)
                 except Exception as exc:

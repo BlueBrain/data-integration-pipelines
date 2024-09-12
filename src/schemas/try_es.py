@@ -6,7 +6,7 @@ import pandas as pd
 from typing import List, Dict
 
 from kgforge.core import KnowledgeGraphForge, Resource
-from src.helpers import allocate, authenticate, DEFAULT_ES_VIEW
+from src.helpers import allocate, authenticate, DEFAULT_ES_VIEW, initialize_objects
 from src.logger import logger
 from src.arguments import define_arguments
 from src.schemas.query_data import (
@@ -26,17 +26,8 @@ if __name__ == "__main__":
     bucket = received_args.bucket
     org, project = bucket.split("/")
     output_dir = received_args.output_dir
-    is_prod = True
 
-    def initialize_objects(received_args, is_prod):
-
-        token = authenticate(username=received_args.username, password=received_args.password)
-
-        forge_bucket = allocate(org, project, is_prod=is_prod, token=token)
-        forge = allocate("bbp", "atlas", is_prod=is_prod, token=token)
-        return token, forge_bucket, forge
-    
-    token, forge_bucket, forge = initialize_objects(received_args, is_prod)
+    token, forge_bucket, forge =  initialize_objects(received_args.username, received_args.password, org, project, is_prod=True)
 
     errors = []
 

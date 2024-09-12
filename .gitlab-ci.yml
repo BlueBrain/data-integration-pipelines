@@ -16,6 +16,9 @@ variables:
   CHANGED_SCHEMAS_FILEPATH:
     value: "./data/test_data/schema_validation/bmo_changed_schemas.json"
     description: "Location of the list of schemas to be validated (that probably changed recently)."
+  TYPELIST_FILEPATH:
+    value: "./data/test_data/schema_validation/typelist.json"
+    description: "Location of list of types. For these types the resources are found and it is checked that they are constrained by the correct schema"
   FORGE_VALIDATION:
     value: "yes"
     description: "Whether to use forge.validate or delta trial endpoint, or both. - Valid values: yes, no, both."
@@ -233,6 +236,33 @@ check_changed_schemas:
     python src/schemas/check_changed_schemas.py 
     --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET
     --changed_schemas_filepath $CHANGED_SCHEMAS_FILEPATH --forge_validation $FORGE_VALIDATION
+  artifacts:
+    paths:
+      - "$OUTPUT_DIR"
+    when: always
+
+constraint_mismatch:
+  timeout: 8h 00m
+  rules:
+    - when: manual
+  variables:
+    OUTPUT_DIR: "./output/$BUCKET/$CI_COMMIT_TIMESTAMP"
+  parallel:
+    matrix:
+      - BUCKET: public/sscx
+      - BUCKET: public/thalamus
+      - BUCKET: public/hippocampus
+      - BUCKET: bbp/mmb-point-neuron-framework-model
+      - BUCKET: bbp-external/seu
+      - BUCKET: bbp/mouselight
+
+  script:
+  - echo TYPELIST_FILEPATH ${TYPELIST_FILEPATH}
+  - > 
+    python src/schemas/constraint_mismatch.py 
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET
+    --typelist_filepath $TYPELIST_FILEPATH
+    --chunk_size 200
   artifacts:
     paths:
       - "$OUTPUT_DIR"

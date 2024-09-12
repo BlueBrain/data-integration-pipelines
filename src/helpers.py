@@ -246,14 +246,13 @@ def _format_boolean(bool_value: bool, sparse: bool):
 def authenticate(username, password, is_service: bool = True, is_aws: bool = False):
 
     realm, server_url = ("SBO", "https://openbluebrain.com/auth") \
-        if is_aws else ("BBP", "https://bbpauth.epfl.ch/auth/")
+        if is_aws else ("BBP", "https://bbpauth.epfl.ch/auth")
 
     res = _auth(
         username, password,
         realm=realm, server_url=server_url,
         is_service=is_service
     )
-
     return res.json()["access_token"]
 
 
@@ -284,3 +283,13 @@ def _auth(username, password, realm, server_url, is_service=True) -> requests.Re
         },
         data=body
     )
+
+
+def initialize_objects(username, password, org, project, is_prod=True):
+
+    token = authenticate(username, password)
+
+    forge_bucket = allocate(org, project, is_prod=is_prod, token=token)
+    forge = allocate("bbp", "atlas", is_prod=is_prod, token=token)
+    return token, forge_bucket, forge
+
