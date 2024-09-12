@@ -1,18 +1,10 @@
 import json
 import re
 from typing import List, Tuple
-import requests
 
-from src.helpers import Deployment, get_token
-from src.logger import logger
+from src.helpers import Deployment, get_token, _delta_get
 
 ORG_OF_INTEREST = ["bbp", "bbp-external", "public"]
-
-
-# 3 functions to preserve old interface with booleans
-def delta_get(relative_url: str, token: str, is_prod: bool, debug: bool = False):
-    deployment = Deployment.PRODUCTION if is_prod else Deployment.STAGING
-    return _delta_get(relative_url, token, deployment, debug)
 
 
 def get_obp_projects(token: str, is_prod: bool = True) -> List[Tuple[str, str]]:
@@ -23,22 +15,6 @@ def get_obp_projects(token: str, is_prod: bool = True) -> List[Tuple[str, str]]:
 def get_all_projects(token: str, is_prod: bool = True, organisation_of_interest=ORG_OF_INTEREST) -> List[Tuple[str, str]]:
     deployment = Deployment.PRODUCTION if is_prod else Deployment.STAGING
     return _get_all_projects(token, deployment, organisation_of_interest)
-
-
-def _delta_get(relative_url: str, token: str, deployment: Deployment = Deployment.PRODUCTION, debug: bool = False):
-
-    headers = {
-        "mode": "cors",
-        "Content-Type": "application/json",
-        "Accept": "application/ld+json, application/json",
-        "Authorization": "Bearer " + token
-    }
-
-    url = f'{deployment.value}{relative_url}'
-    if debug:
-        logger.info(f"Querying {url}")
-
-    return requests.get(url, headers=headers)
 
 
 def _get_obp_projects(token: str, deployment: Deployment = Deployment.PRODUCTION) -> List[Tuple[str, str]]:

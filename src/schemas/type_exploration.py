@@ -6,7 +6,8 @@ import os
 
 from typing import Tuple, List
 
-from src.helpers import authenticate, get_obp_projects
+from src.helpers import authenticate
+from src.get_projects import get_obp_projects
 from src.logger import logger
 from src.arguments import define_arguments
 from src.schemas.getters import (

@@ -5,7 +5,7 @@ from urllib.parse import quote_plus as url_encode, quote_plus
 import json
 
 from src.helpers import get_token, Deployment
-from src.utils.get_projects import get_all_projects
+from src.get_projects import get_all_projects
 from src.view_aggregate.common import DeltaUtils
 
 

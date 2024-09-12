@@ -8,7 +8,7 @@ from urllib.parse import quote_plus as url_encode
 from src.helpers import authenticate, Deployment, get_token
 from src.logger import logger
 
-from src.utils.get_projects import get_obp_projects
+from src.get_projects import get_obp_projects
 from src.view_aggregate.common import DeltaUtils
 
 

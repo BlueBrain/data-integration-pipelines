@@ -8,7 +8,7 @@ import requests
 
 from src.logger import logger
 from src.helpers import Deployment, authenticate
-from src.utils.get_projects import _get_obp_projects
+from src.get_projects import _get_obp_projects
 
 from enum import Enum
 
