@@ -28,6 +28,7 @@ DELTA_METADATA_KEYS = [
 
 SEARCH_QUERY_URL = "https://bbp.epfl.ch/nexus/v1/search/query/suite/sbo"
 DEFAULT_ES_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex"
+DEFAULT_SPARQL_VIEW = "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
 DATASET_ES_VIEW = "https://bbp.epfl.ch/neurosciencegraph/data/views/es/dataset"
 ES_SIZE_LIMIT = 2000
 

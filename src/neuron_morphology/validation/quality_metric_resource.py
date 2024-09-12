@@ -8,7 +8,7 @@ from kgforge.specializations.mappers import DictionaryMapper
 from voxcell import RegionMap, VoxelData
 
 from src.logger import logger
-from src.helpers import allocate, ASSETS_DIRECTORY, authenticate, _format_boolean
+from src.helpers import allocate, ASSETS_DIRECTORY, authenticate, _format_boolean, DEFAULT_ES_VIEW, DEFAULT_SPARQL_VIEW
 from src.neuron_morphology.arguments import define_morphology_arguments
 from src.neuron_morphology.query_data import get_neuron_morphologies, get_swc_path, get_asc_path
 from src.neuron_morphology.validation.quality_metric import (
@@ -284,8 +284,8 @@ if __name__ == "__main__":
     if push_to_staging:
         forge_push = allocate(
             "dke", "kgforge", is_prod=False, token=token,
-            es_view="https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex",
-            sparql_view="https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
+            es_view=DEFAULT_ES_VIEW,
+            sparql_view=DEFAULT_SPARQL_VIEW
         )
         contribution = get_contribution(token=token, production=False)
     else:

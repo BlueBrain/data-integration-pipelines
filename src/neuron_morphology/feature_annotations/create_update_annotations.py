@@ -8,7 +8,7 @@ import json
 
 from kgforge.core import Resource, KnowledgeGraphForge
 
-from src.helpers import allocate, authenticate
+from src.helpers import allocate, authenticate, DEFAULT_ES_VIEW, DEFAULT_SPARQL_VIEW
 from src.logger import logger
 from src.arguments import define_arguments
 from src.neuron_morphology.arguments import define_morphology_arguments
@@ -279,8 +279,8 @@ if __name__ == '__main__':
     if push_to_staging:
         forge_push = allocate(
             "dke", "kgforge", is_prod=False, token=token,
-            es_view="https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex",
-            sparql_view="https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex"
+            es_view=DEFAULT_ES_VIEW,
+            sparql_view=DEFAULT_SPARQL_VIEW
         )
         contribution = get_contribution(token=token, production=False)
     else:

@@ -5,7 +5,7 @@ from typing import Dict, List, Tuple
 
 from urllib.parse import quote_plus as url_encode
 
-from src.helpers import authenticate, Deployment, get_token
+from src.helpers import authenticate, Deployment, get_token, DEFAULT_SPARQL_VIEW, DEFAULT_ES_VIEW
 from src.logger import logger
 
 from src.get_projects import get_obp_projects
@@ -37,10 +37,7 @@ def update_aggregated_org_project_list(
 
     aggregated_view = get_es_view(endpoint, org, project, token, es_view_id, with_metadata)
 
-    view_id = (
-        "https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex" if is_sparql else
-        "https://bluebrain.github.io/nexus/vocabulary/defaultElasticSearchIndex"
-    )
+    view_id = DEFAULT_SPARQL_VIEW if is_sparql else DEFAULT_ES_VIEW
 
     assert all(i["viewId"] == view_id for i in aggregated_view["views"]) # TODO is that always the case?
 

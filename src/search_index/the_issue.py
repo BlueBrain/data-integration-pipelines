@@ -3,7 +3,7 @@ from urllib.parse import quote_plus
 
 import requests
 
-from src.helpers import Deployment
+from src.helpers import Deployment, DEFAULT_SPARQL_VIEW
 from src.search_index.search_index_discrepancy import _make_sp_query
 
 
@@ -66,11 +66,11 @@ def compare_sp_weirdness(token: str, endpoint: str):
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/sparql-query"
     }
-    default_sp_view = quote_plus("https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex")
-    endpoint_sp = f"{endpoint}/views/{org}/{project}/{default_sp_view}/sparql"
+
+    endpoint_sp = f"{endpoint}/views/{org}/{project}/{quote_plus(DEFAULT_SPARQL_VIEW)}/sparql"
 
     queries = [
-        _make_sp_query(brain_regions=None, type_=type_),  # No filter on encoding format
+        _make_sp_query(brain_regions=None, type_=type_, curated_flag=True),  # No filter on encoding format
         _make_sp_query2(),  # What should be - but cannot be expressed like that
         _make_sp_query3(),  # The current state
         _make_sp_query4()   # The fix

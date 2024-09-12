@@ -7,7 +7,7 @@ from urllib.parse import quote_plus
 import requests
 
 from src.logger import logger
-from src.helpers import Deployment, authenticate
+from src.helpers import Deployment, authenticate, DEFAULT_SPARQL_VIEW
 from src.get_projects import _get_obp_projects
 
 from enum import Enum
@@ -153,7 +153,7 @@ def compare(
         response_sparql.raise_for_status()
         return response_sparql.json()
 
-    default_sp_view = quote_plus('https://bluebrain.github.io/nexus/vocabulary/defaultSparqlIndex')
+    default_sp_view = quote_plus(DEFAULT_SPARQL_VIEW)
     composite_view_id = quote_plus("https://bluebrain.github.io/nexus/vocabulary/searchView")
     projection_id = quote_plus("https://bluebrain.github.io/nexus/vocabulary/searchProjection")
 
