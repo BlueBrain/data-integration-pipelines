@@ -92,6 +92,30 @@ sscx_five_extra = [
 sscx_id_list = placeholder_sscx + detailed_sscx + gen_sscx + sscx_five_extra
 
 
+def curated_e_models(forge: KnowledgeGraphForge):
+    sscx_curated = forge.retrieve(placeholder_sscx + detailed_sscx + gen_sscx)
+    thalamus_curated = forge.retrieve(placeholder_thalamus + detailed_thalamus)
+
+    hippocampus_rat_e_models = get_emodels_in_hippocampus(forge, get_rat=True)
+    hippocampus_mouse_e_models = get_emodels_in_hippocampus(forge, get_rat=False)
+
+    other_br = [
+        i for br in [CEREBELLUM_ID, CAUDOPUTAMEN_ID, MAIN_OLFACTORY_BULB_ID] for i in forge.search(
+            {
+                "type": "EModel",
+                "brainLocation": {"brainRegion": {"id": br}}
+            },
+
+            limit=10000
+        )
+    ]
+
+    all_e_models = other_br + sscx_curated + thalamus_curated + hippocampus_rat_e_models + hippocampus_mouse_e_models
+
+    assert len(all_e_models) == 112
+    return all_e_models
+
+
 def get_emodels_in_hippocampus(forge_emodels, get_rat: bool):
     res = "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/2f00630e-dd48-4acc-9909-d464858c929e"
     collection = forge_emodels.retrieve(res)
@@ -161,4 +185,4 @@ if __name__ == "__main__":
     forge_instance = allocate(org, project, is_prod=True, token=token)
 
     res = get_e_models_and_categorisation(forge_instance)
-
+    # res = curated_e_models(forge_instance)

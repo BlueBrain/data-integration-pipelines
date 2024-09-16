@@ -126,6 +126,7 @@ search_index_discrepancy:
       - DATA_TYPE: EXPERIMENTAL_NEURON_DENSITY
       - DATA_TYPE: EXPERIMENTAL_BOUTON_DENSITY
       - DATA_TYPE: EXPERIMENTAL_SYNAPSE_PER_CONNECTION
+      - DATA_TYPE: E_MODEL
   script:
   - python src/search_index/search_index_discrepancy.py --username $AWS_USERNAME --password $AWS_PASSWORD --data_type $DATA_TYPE
 

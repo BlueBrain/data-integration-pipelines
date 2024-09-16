@@ -14,11 +14,14 @@ from enum import Enum
 
 
 class OBPType(Enum):
+    # Experimental Data
     RECONSTRUCTED_NEURON_MORPHOLOGY = "https://neuroshapes.org/ReconstructedNeuronMorphology"
     EXPERIMENTAL_TRACE = "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalTrace"
     EXPERIMENTAL_NEURON_DENSITY = "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalNeuronDensity"
     EXPERIMENTAL_BOUTON_DENSITY = "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalBoutonDensity"
     EXPERIMENTAL_SYNAPSE_PER_CONNECTION = "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalSynapsesPerConnection"
+    # Model Data
+    E_MODEL = "https://neuroshapes.org/EModel"
 
 
 TYPE_TO_CURATED = {
@@ -27,6 +30,7 @@ TYPE_TO_CURATED = {
     OBPType.EXPERIMENTAL_SYNAPSE_PER_CONNECTION: False,
     OBPType.EXPERIMENTAL_BOUTON_DENSITY: False,
     OBPType.EXPERIMENTAL_NEURON_DENSITY: False,
+    OBPType.E_MODEL: True
 }
 
 TYPE_TO_EXTRA_FILTER = {
@@ -38,6 +42,7 @@ TYPE_TO_EXTRA_FILTER = {
     OBPType.EXPERIMENTAL_SYNAPSE_PER_CONNECTION: None,
     OBPType.EXPERIMENTAL_BOUTON_DENSITY: None,
     OBPType.EXPERIMENTAL_NEURON_DENSITY: None,
+    OBPType.E_MODEL: None
 }
 
 
@@ -144,6 +149,7 @@ def compare(
                 brain_regions=brain_regions, type_=type_.value,
                 extra_q=extra_sp_q, curated_flag=is_curated
             )
+
         response_sparql = requests.post(
             url=endpoint_value,
             headers=make_header("application/sparql-query"),
