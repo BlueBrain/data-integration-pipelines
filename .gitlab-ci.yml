@@ -55,6 +55,7 @@ check_morphologies_schema:
       - BUCKET: public/sscx
       - BUCKET: public/thalamus
       - BUCKET: public/hippocampus
+      - BUCKET: public/morphologies
       - BUCKET: bbp/mmb-point-neuron-framework-model
 
   script:
@@ -79,6 +80,7 @@ quality_measurement_annotations:
       - BUCKET: public/sscx
       - BUCKET: public/thalamus
       - BUCKET: public/hippocampus
+      - BUCKET: public/morphologies
       - BUCKET: bbp/mmb-point-neuron-framework-model
   script:
   - echo REALLY_UPDATE ${REALLY_UPDATE} LIMIT ${LIMIT} STAGING ${STAGING} CURATED ${CURATED}
@@ -103,6 +105,7 @@ feature_annotations:
       - BUCKET: public/sscx
       - BUCKET: public/thalamus
       - BUCKET: public/hippocampus
+      - BUCKET: public/morphologies
       - BUCKET: bbp/mmb-point-neuron-framework-model
   script:
   - echo REALLY_UPDATE ${REALLY_UPDATE} LIMIT ${LIMIT} STAGING ${STAGING} CURATED ${CURATED}
@@ -157,6 +160,30 @@ morphology_registration:
       - "$OUTPUT_DIR"
 
 
+check_update_curated:
+  rules:
+    - when: manual
+  variables:
+    OUTPUT_DIR: "./output/$CI_COMMIT_TIMESTAMP"
+  parallel:
+    matrix:
+      - BUCKET: bbp-external/seu
+      - BUCKET: bbp/mouselight
+      - BUCKET: public/sscx
+      - BUCKET: public/thalamus
+      - BUCKET: public/hippocampus
+      - BUCKET: public/morphologies
+      - BUCKET: bbp/mmb-point-neuron-framework-model
+
+  script:
+  - > 
+    python src/neuron_morphology/validation/check_update_curated.py 
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated $CURATED
+  artifacts:
+    paths:
+      - "$OUTPUT_DIR"
+
+
 brain_region:
   rules:
     - when: manual
@@ -187,6 +214,7 @@ check_links:
       - BUCKET: public/sscx
       - BUCKET: public/thalamus
       - BUCKET: public/hippocampus
+      - BUCKET: public/morphologies
       - BUCKET: bbp/mmb-point-neuron-framework-model
   script:
   - echo CURATED ${CURATED}
@@ -267,6 +295,7 @@ constraint_mismatch:
       - BUCKET: public/sscx
       - BUCKET: public/thalamus
       - BUCKET: public/hippocampus
+      - BUCKET: public/morphologies
       - BUCKET: bbp/mmb-point-neuron-framework-model
       - BUCKET: bbp-external/seu
       - BUCKET: bbp/mouselight
