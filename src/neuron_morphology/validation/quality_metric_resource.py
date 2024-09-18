@@ -1,7 +1,8 @@
 import argparse
 import shutil
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict, List, Optional
 
+import pandas as pd
 from kgforge.core import KnowledgeGraphForge, Resource
 from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.mappers import DictionaryMapper
@@ -10,7 +11,7 @@ from voxcell import RegionMap, VoxelData
 from src.logger import logger
 from src.helpers import allocate, ASSETS_DIRECTORY, authenticate, _format_boolean, DEFAULT_ES_VIEW, DEFAULT_SPARQL_VIEW
 from src.neuron_morphology.arguments import define_morphology_arguments
-from src.neuron_morphology.query_data import get_neuron_morphologies, get_swc_path, get_asc_path
+from src.neuron_morphology.query_data import get_neuron_morphologies, get_ext_path
 from src.neuron_morphology.validation.quality_metric import (
     SOLO_TYPE, BATCH_TYPE, save_batch_quality_measurement_annotation_report, QUALITY_SCHEMA, BATCH_QUALITY_SCHEMA
 )
@@ -18,7 +19,8 @@ from src.neuron_morphology.creation_helpers import get_contribution, get_generat
 import os
 import json
 
-from src.neuron_morphology.validation.region_comparison import get_atlas, create_brain_region_comparison
+from src.neuron_morphology.validation.region_comparison import get_atlas, create_brain_region_comparison, SEU_METADATA_FILEPATH, ALLEN_ANNOT_LABEL, ADDITIONAL_ANNOTATION_VOLUME, \
+    ATLAS_TAG
 from src.neuron_morphology.validation.validator import validation_report_checks
 # from src.neuron_morphology.validation.workflow_usage import run_workflow_on_path
 
@@ -121,10 +123,10 @@ def quality_measurement_report_to_resource(
 
 
 def asc_has_no_nan(asc_path) -> bool:
-    with open(asc_path, "r") as f:
+    with open(asc_path, "r") as asc_file:
         try:
-            content = f.read()
-        except Exception as e:
+            content = asc_file.read()
+        except Exception:
             return False
 
     return "nan" not in content
@@ -141,28 +143,34 @@ def save_batch_quality_measurement_annotation_report_on_resources(
         individual_reports: bool,
         br_map: RegionMap,
         voxel_d: VoxelData,
+        external_metadata: Optional[pd.DataFrame],
         with_br_check: bool = True,
         with_asc_check: bool = True
 ) -> Tuple[List[Tuple[Resource, str, Dict]], List[Tuple[Resource, str, Exception]]]:
 
+    n_resources = len(resources)
+
     if with_br_check:
-        brain_region_comp = create_brain_region_comparison(
+        brain_region_comp, sort_column = create_brain_region_comparison(
             search_results=resources, morphology_dir=swc_download_folder, forge=forge_datamodels,
-            brain_region_map=br_map, voxel_data=voxel_d, float_coordinates_check=False
+            brain_region_map=br_map, voxel_data=voxel_d, float_coordinates_check=False, ext_metadata=external_metadata
+        )
+        brain_region_comp_dict = dict(
+            (i["morphology_id"], i) for i in brain_region_comp
         )
 
-        brain_region_comp_dict = dict((i["id"], i) for i in brain_region_comp)
-
     if with_asc_check:
+        logger.info(f"Performing asc check on {n_resources} Resources:")
         resource_id_to_asc_path = dict(
-            (resource.get_identifier(), get_asc_path(resource, asc_download_folder=asc_download_folder, forge=forge))
-            for resource in resources
+            (resource.get_identifier(), get_ext_path(resource, ext_download_folder=asc_download_folder,
+                forge=forge, i_res=i_res, n_resources=n_resources, ext="asc"))
+            for i_res, resource in enumerate(resources)
         )
 
     def resource_added_content(resource: Resource) -> Dict:
         temp = {
-            "name": resource.name,
-            "id": resource.get_identifier(),
+            "morphology_name": resource.name,
+            "morphology_id": resource.get_identifier(),
             "rev": resource._store_metadata._rev,
         }
 
@@ -177,8 +185,9 @@ def save_batch_quality_measurement_annotation_report_on_resources(
     added_list = [resource_added_content(resource) for resource in resources]
 
     swc_path_to_resource = dict(
-        (get_swc_path(resource, swc_download_folder=swc_download_folder, forge=forge), resource)
-        for resource in resources
+        (get_ext_path(resource, ext_download_folder=swc_download_folder, forge=forge,
+            ext="swc", i_res=i_res, n_resources=n_resources), resource)
+        for i_res, resource in enumerate(resources)
     )
 
     swc_path_to_report, swc_path_to_error = save_batch_quality_measurement_annotation_report(
@@ -195,6 +204,12 @@ def save_batch_quality_measurement_annotation_report_on_resources(
 
 if __name__ == "__main__":
     parser = define_morphology_arguments(argparse.ArgumentParser())
+
+    parser.add_argument(
+        "--default_annotation", help="Whether to use the default atlas annotation volume or not",
+        type=str, choices=["yes", "no"], required=True
+    )
+
     received_args, leftovers = parser.parse_known_args()
     org, project = received_args.bucket.split("/")
     output_dir = received_args.output_dir
@@ -207,6 +222,7 @@ if __name__ == "__main__":
     really_update = received_args.really_update == "yes"
     push_to_staging = received_args.push_to_staging == "yes"
     constrain = True
+    is_default_annotation = received_args.default_annotation == "yes"
 
     logger.info(f"Neuron morphology quality annotations will be created/updated: {str(really_update)}")
 
@@ -222,6 +238,17 @@ if __name__ == "__main__":
     #     res_to_len = list(json.loads(f.read()).keys())
     #
     # resources = forge.retrieve(res_to_len)
+
+    # resources = [
+    #    forge.retrieve("https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/ed3bfb7b-bf43-4e92-abed-e2ca1170c654"),
+    #    forge.retrieve("https://bbp.epfl.ch/data/bbp-external/seu/0f9021f0-83b2-4ff7-a11c-c7b91fd6d9be"),
+    #    forge.retrieve("https://bbp.epfl.ch/data/bbp-external/seu/ed3aa595-d7eb-4fc4-a080-6894e544ad31"),
+    #    forge.retrieve("https://bbp.epfl.ch/data/bbp-external/seu/e429ecc8-ed1e-4920-9846-e51c4cc14b4b"),
+    #    forge.retrieve("https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/b08710aa-53ec-403e-8c30-51b626659e63"),
+    #    forge.retrieve("https://bbp.epfl.ch/data/bbp-external/seu/2902f601-1dc0-4d7e-93da-698f4fa5c64c"),
+    #    forge.retrieve("https://bbp.epfl.ch/data/bbp-external/seu/52230e08-9f86-40e4-b7ab-201c482e7445")
+    # ]
+
     resources = get_neuron_morphologies(curated=received_args.curated, forge=forge, limit=limit)
 
     swc_download_folder = os.path.join(working_directory, "swcs")
@@ -232,7 +259,9 @@ if __name__ == "__main__":
     report_dir_path = os.path.join(working_directory, f'{org}_{project}')
 
     logger.info(f"Saving reports to directory {report_dir_path}")
-    report_name = "batch_report.tsv"
+
+    v_string = f"BBP {ATLAS_TAG}" if is_default_annotation else ALLEN_ANNOT_LABEL
+    report_name = f"batch_report_for_atlas_{v_string.replace(' ', '_')}.tsv"
 
     # morphologies_to_update = []
     # issues = dict()
@@ -249,8 +278,15 @@ if __name__ == "__main__":
     #
     # resources = [r for r in resources if r.id not in issues]
 
-    br_map, voxel_d = get_atlas(working_directory=working_directory, is_prod=is_prod, token=token)
-    # br_map, voxel_d = None, None
+    br_map, voxel_d, add_voxel_d = get_atlas(
+        working_dir=working_directory,
+        is_prod=is_prod, token=token,
+        tag=ATLAS_TAG, add_annot=list(ADDITIONAL_ANNOTATION_VOLUME.values())[0]
+    )
+
+    used_voxel_data = voxel_d if is_default_annotation else add_voxel_d
+
+    external_metadata = pd.read_excel(SEU_METADATA_FILEPATH, skiprows=1, na_values=' ') if org == "bbp-external" and project == "seu" else None
 
     reports, errors = save_batch_quality_measurement_annotation_report_on_resources(
         resources=resources,
@@ -260,11 +296,12 @@ if __name__ == "__main__":
         forge=forge,
         forge_datamodels=forge_datamodels,
         report_name=report_name,
-        individual_reports=True,
+        individual_reports=False,
         br_map=br_map,
-        voxel_d=voxel_d,
+        voxel_d=used_voxel_data,
+        external_metadata=external_metadata,
         with_asc_check=True,
-        with_br_check=True
+        with_br_check=True,
     )
 
     # for resource in resources:
@@ -315,6 +352,5 @@ if __name__ == "__main__":
     else:
         logger.info("Updating data has been disabled")
 
-    with open(os.path.join(report_dir_path, f"batch_resource_{org}_{project}.json"), "w") as f:
-        json.dump(forge_push.as_json(batch_quality_to_register), f, indent=4)
-
+    with open(os.path.join(report_dir_path, f"batch_resource_{org}_{project}.json"), "w") as batch_file:
+        json.dump(forge_push.as_json(batch_quality_to_register), batch_file, indent=4)

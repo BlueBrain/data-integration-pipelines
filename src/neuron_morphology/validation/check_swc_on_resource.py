@@ -9,13 +9,13 @@ from collections import defaultdict
 
 from kgforge.core import KnowledgeGraphForge, Resource
 from src.logger import logger
-from src.helpers import allocate, get_token, CustomEx
+from src.helpers import CustomEx
 from kgforge.core.commons.actions import LazyAction
 from morph_tool.converter import convert
 import pandas as pd
 import os
 
-from src.neuron_morphology.query_data import get_swc_path
+from src.neuron_morphology.query_data import get_ext_path
 
 SWC_EXPECTED_COLUMNS_READ = {'type', 'x', 'y', 'z', 'radius', 'parent'}
 synonyms = {'r': 'radius'}
@@ -81,11 +81,11 @@ def check_swc_on_resource(resource: Resource, swc_download_folder: str, forge: K
             f" {len(distributions_per_format[initial_format])} found"
         )
 
-    swcfpath = get_swc_path(resource, swc_download_folder=swc_download_folder, forge=forge)
+    swcfpath = get_ext_path(resource, ext_download_folder=swc_download_folder, forge=forge, ext="swc")
 
     df = read_swc(swcfpath)
 
-    logger.info(f"Check that morphology {resource.name}"'s swc has the appropriate columns')
+    logger.info(f"Check that morphology {resource.name}'s swc has the appropriate columns")
 
     # More columns than the expected
     if len(df.columns) != len(SWC_EXPECTED_COLUMNS_SAVE):
@@ -184,8 +184,8 @@ if __name__ == "__main__":
 
         for k, v in paths_complete.items():
             try:
-                e = parse_header_and_comments(v[0])
-            except ValueError as ex:
+                parse_header_and_comments(v[0])
+            except ValueError:
                 print(f"failed {k}")
 
     for el in to_check:

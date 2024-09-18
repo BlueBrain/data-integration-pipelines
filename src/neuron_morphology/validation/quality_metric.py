@@ -6,7 +6,7 @@ from typing import Tuple, Dict, List, Optional, Union
 from src.helpers import _as_list
 from src.logger import logger
 from src.neuron_morphology.arguments import define_arguments
-from src.neuron_morphology.validation.load_test_data import get_neurom_test_data, get_random_test_data
+from src.neuron_morphology.validation.load_test_data import get_random_test_data #, get_neurom_test_data
 from src.neuron_morphology.validation.validator import (
     get_validation_report_as_tsv_line,
     get_validation_report_as_json,
@@ -103,7 +103,9 @@ def save_batch_quality_measurement_annotation_report(
     tsv_header = "\t".join(columns)
     batch_quality_measurement_annotation_tsv = "# " + tsv_header + "\n"
 
-    for swc_path, morphology, added in zip(swc_paths, morphologies, added_list):
+    n_paths = len(swc_paths)
+    for i_path, (swc_path, morphology, added) in enumerate(zip(swc_paths, morphologies, added_list)):
+        logger.info(f"Processing swc path {i_path +1} of {n_paths}")
         # try:
         report_as_tsv_line, report_as_json = save_quality_measurement_annotation_report(
             swc_path=swc_path, report_dir_path=report_dir_path, morphology=morphology, added=added,

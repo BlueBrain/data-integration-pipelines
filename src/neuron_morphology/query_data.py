@@ -36,15 +36,9 @@ def get_neuron_morphologies(forge: KnowledgeGraphForge, reconstructed=True, cura
     return res
 
 
-def get_swc_path(resource: Resource, swc_download_folder: str, forge: KnowledgeGraphForge) -> str:
-    return get_ext_path(resource=resource, ext_download_folder=swc_download_folder, forge=forge, ext="swc")
-
-
-def get_asc_path(resource: Resource, asc_download_folder: str, forge: KnowledgeGraphForge) -> str:
-    return get_ext_path(resource=resource, ext_download_folder=asc_download_folder, forge=forge, ext="asc")
-
-
-def get_ext_path(resource: Resource, ext_download_folder: str, forge: KnowledgeGraphForge, ext: str) -> str:
+def get_ext_path(resource: Resource, ext_download_folder: str, forge: KnowledgeGraphForge, ext: str, i_res: int = None, n_resources: int = None) -> str:
+    if i_res is not None and n_resources is not None:
+        logger.info(f"Getting {ext} file for Resource {i_res +1} of {n_resources}")
     distributions = resource.distribution if isinstance(resource.distribution, list) else [resource.distribution]
     distribution_name = next(d.name for d in distributions if d.encodingFormat.split('/')[-1] == ext)
 

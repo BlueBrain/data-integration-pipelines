@@ -1,6 +1,6 @@
 import argparse
 import shutil
-from multiprocessing.pool import ThreadPool, Pool
+#from multiprocessing.pool import ThreadPool, Pool
 from typing import List, Union, Optional, Tuple, Dict
 
 import os
@@ -10,7 +10,6 @@ from kgforge.core import Resource, KnowledgeGraphForge
 
 from src.helpers import allocate, authenticate, DEFAULT_ES_VIEW, DEFAULT_SPARQL_VIEW
 from src.logger import logger
-from src.arguments import define_arguments
 from src.neuron_morphology.arguments import define_morphology_arguments
 
 from src.neuron_morphology.creation_helpers import get_generation, get_contribution
@@ -23,7 +22,7 @@ import pandas as pd
 import re
 import traceback
 
-from src.neuron_morphology.query_data import get_neuron_morphologies, get_swc_path
+from src.neuron_morphology.query_data import get_neuron_morphologies, get_ext_path
 
 ANNOTATION_SCHEMA = "https://neuroshapes.org/dash/annotation"
 
@@ -53,7 +52,7 @@ def escape_ansi(line: str) -> str:
 # neurite feature embedding investigation
 def _create_raw(morphology: Resource, download_directory: str, forge: KnowledgeGraphForge) -> Tuple[Dict, str]:
 
-    morph_path = get_swc_path(morphology, swc_download_folder=download_directory, forge=forge)
+    morph_path = get_ext_path(morphology, ext_download_folder=download_directory, forge=forge, ext="swc")
     temp, warnings = compute_metrics_neurom_raw(morph_path)
 
     def floatify(dict_instance):
@@ -92,7 +91,7 @@ def update_create_one(
         forge_atlas: KnowledgeGraphForge
 ) -> Tuple[List[Resource], List[Resource], Union[str, pd.DataFrame]]:
 
-    morph_path = get_swc_path(morphology, swc_download_folder=download_directory, forge=forge_data)
+    morph_path = get_ext_path(morphology, ext_download_folder=download_directory, forge=forge_data, ext="swc")
 
     with_location = "coordinatesInBrainAtlas" in morphology.brainLocation.__dict__
 
@@ -145,7 +144,6 @@ def batch(iterable, n=BATCH_SIZE):
     l = len(iterable)
     for ndx in range(0, l, n):
         yield iterable[ndx:min(ndx + n, l)]
-
 
 
 def m_1(morphology: Resource, annotations, atlas_directory, download_directory, forge_atlas, contribution, generation) -> Tuple[str, Optional[Tuple[List[Resource], List[Resource], Dict, Dict, Optional[str]]], Optional[Exception]]:
@@ -246,7 +244,6 @@ def create_update_annotations(
 
 
 if __name__ == '__main__':
-    parser = define_arguments(argparse.ArgumentParser())
     parser = define_morphology_arguments(argparse.ArgumentParser())
     received_args, leftovers = parser.parse_known_args()
     org, project = received_args.bucket.split("/")

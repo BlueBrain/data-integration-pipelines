@@ -2,10 +2,9 @@ import base64
 from enum import Enum
 import getpass
 import os
-import re
 import json
 import requests
-from typing import Union, List, Tuple, Dict
+from typing import Union, Dict
 
 from kgforge.core.commons import files
 from kgforge.specializations.stores import bluebrain_nexus
@@ -126,6 +125,7 @@ def allocate_by_deployment(org, project, deployment: Deployment, token, es_view=
     if len(search_endpoints) > 0:
         args["searchendpoints"] = search_endpoints
 
+    logger.info(f"Allocating forge session tied to bucket {bucket}")
     return KnowledgeGraphForge(**args)
 
 
@@ -176,12 +176,12 @@ def _as_list(obj):
 
 def _download_from(  # TODO better name and doc
         forge: KnowledgeGraphForge, link: Union[str, Resource], label: str,
-        format_of_interest: str, download_dir: str, rename=None
+        format_of_interest: str, download_dir: str, rename=None, tag=None
 ) -> str:
 
     if isinstance(link, str):
         logger.info(f"Retrieving {label}")
-        link_resource = forge.retrieve(link)
+        link_resource = forge.retrieve(link, version=tag)
 
         if link_resource is None:
             err_msg = f"Failed to retrieve {label} {link}"
@@ -194,7 +194,7 @@ def _download_from(  # TODO better name and doc
             link_resource = link
 
     logger.info(f"Attempting to download distribution of type {format_of_interest} "
-                f"from {link_resource.get_identifier()}")
+                f"from {link_resource.get_identifier()} at tag {tag}")
 
     d = next(
         (d for d in _as_list(link_resource.distribution)
@@ -206,17 +206,19 @@ def _download_from(  # TODO better name and doc
         # logger.error(err_msg)
         raise Exception(err_msg)
 
-    forge.download(d, path=download_dir, follow="contentUrl")
-
-    filename, _ = forge._store._retrieve_filename(d.contentUrl)
-
-    if filename is None:
+    orig_filename, _ = forge._store._retrieve_filename(d.contentUrl)
+    if orig_filename is None:
         raise Exception(f"Couldn't get filename from {label}")
 
-    if rename is not None:
-        os.rename(os.path.join(download_dir, filename), os.path.join(download_dir, rename))
+    filename = orig_filename if not rename else rename
+    filepath = os.path.join(download_dir, filename)
+    if os.path.isfile(filepath):  # If already present, no need to download
+        return filepath
 
-    return os.path.join(download_dir, (filename if rename is None else rename))
+    forge.download(d, path=download_dir, follow="contentUrl")
+    if rename:
+        os.rename(os.path.join(download_dir, orig_filename), os.path.join(download_dir, filename))
+    return os.path.join(download_dir, filename)
 
 
 def _format_boolean(bool_value: bool, sparse: bool):

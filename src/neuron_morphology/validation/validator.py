@@ -1,7 +1,7 @@
 '''A backend that return a validation report for a given morphology. This script was originally shared here: ≈2'''
 
 import os
-from typing import Dict, Union, Any, List, Callable, Optional, Tuple
+from typing import Dict, Any, List, Callable, Optional, Tuple #, Union
 
 import neurom as nm
 from IPython.utils import io
@@ -78,7 +78,7 @@ class Check:
     def basic_tsv(neuron_path, k_1, k_2, x):
         if x.status is not None:
             if not x.status and isinstance(x.info, Exception):
-                return str(x.info)
+                return str(x.info).replace("\n", "")
 
             return str(x.status)
 

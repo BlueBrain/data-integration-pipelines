@@ -22,6 +22,9 @@ variables:
   FORGE_VALIDATION:
     value: "yes"
     description: "Whether to use forge.validate or delta trial endpoint, or both. - Valid values: yes, no, both."
+  DEFAULT_ANNOTATION:
+    value: "yes"
+    description: "Whether to use the parcellation volume from the BBP atlas or a different one (Allen CCFv3 2017). - Valid values: yes, no."
 
   KUBERNETES_MEMORY_LIMIT: 8Gi
   KUBERNETES_MEMORY_REQUEST: 8Gi
@@ -83,11 +86,11 @@ quality_measurement_annotations:
       - BUCKET: public/morphologies
       - BUCKET: bbp/mmb-point-neuron-framework-model
   script:
-  - echo REALLY_UPDATE ${REALLY_UPDATE} LIMIT ${LIMIT} STAGING ${STAGING} CURATED ${CURATED}
+  - echo REALLY_UPDATE ${REALLY_UPDATE} LIMIT ${LIMIT} STAGING ${STAGING} CURATED ${CURATED} DEFAULT_ANNOTATION ${DEFAULT_ANNOTATION}
   - > 
     python src/neuron_morphology/validation/quality_metric_resource.py 
     --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated $CURATED 
-    --really_update $REALLY_UPDATE --limit $LIMIT --push_to_staging $STAGING
+    --really_update $REALLY_UPDATE --limit $LIMIT --push_to_staging $STAGING --default_annotation $DEFAULT_ANNOTATION
   artifacts:
     paths:
       - "$OUTPUT_DIR"
@@ -196,7 +199,8 @@ brain_region:
   - echo CURATED ${CURATED}
   - > 
     python src/neuron_morphology/validation/region_comparison.py 
-    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated $CURATED
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated $CURATED --limit $LIMIT
+  timeout: 2h 30m
   artifacts:
     paths:
       - "$OUTPUT_DIR"
