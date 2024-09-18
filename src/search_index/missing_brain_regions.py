@@ -1254,14 +1254,18 @@ def compare(token: str, deployment: Deployment,  type_: OBPType, loaded_brain_re
     # search_idx_len = len(search_idx_filtered_proj)
 
     print(
+        "BR from UI",
         len(search_idx_response_br_filter_ui),
+        "BR from file",
         len(search_idx_response_br_filter_file),
+        "No BR filter",
         len(search_idx_response_no_br_filter),
         # len(dict(search_idx_response_no_br_filter)),
         # len(dict(search_idx_response_br_filter))
     )
 
     diff = set([i[0] for i in search_idx_response_no_br_filter]).difference(set([i[0] for i in search_idx_response_br_filter_ui]))
+    print("Data points filtered out")
     print(diff)
 
 
@@ -1298,15 +1302,20 @@ if __name__ == "__main__":
     with open("brainregion.json", "r") as f:
         brs_from_file = json.loads(f.read())
 
-    br_ids_from_file = [
-        i["@id"] for i in brs_from_file["defines"]
+    br_from_file = [
+        i for i in brs_from_file["defines"]
         if "https://neuroshapes.org/BrainRegion" in _as_list(i.get("hasHierarchyView"))
     ]
 
-    # print(len(brs))
-    # print(len(br_ids_from_file))
-    # print(set(br_ids_from_file).difference(set(brs)))
+    br_from_file_in_annotation = [i for i in br_from_file if i.get("representedInAnnotation", False)]
 
-    compare(token=t, deployment=deployment, type_=type_v, loaded_brain_regions=br_ids_from_file)
+    print("Number of brain regions from the UI", len(brs))
+    print("Number of brain regions from brainregion.json in default hierarchy", len(br_from_file))
+    print("Number of brain regions from brainregion.json in default hierarchy and representedInAnnotation", len(br_from_file_in_annotation))
 
+    br_ids_from_file_in_annotation = [i["@id"] for i in br_from_file_in_annotation]
+    print(set(br_ids_from_file_in_annotation).difference(set(brs)))
 
+    compare(
+        token=t, deployment=deployment, type_=type_v, loaded_brain_regions=br_ids_from_file_in_annotation
+    )
