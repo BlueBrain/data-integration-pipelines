@@ -13,6 +13,9 @@ variables:
   CURATED:
     value: "both"
     description: "Whether only curated data is selected or all - Valid values: both, yes"
+  MORPHOLOGY_TAG:
+    value: "-"
+    description: "Tag of the morphology Resources to require"
   CHANGED_SCHEMAS_FILEPATH:
     value: "./data/test_data/schema_validation/bmo_changed_schemas.json"
     description: "Location of the list of schemas to be validated (that probably changed recently)."
@@ -86,10 +89,10 @@ quality_measurement_annotations:
       - BUCKET: public/morphologies
       - BUCKET: bbp/mmb-point-neuron-framework-model
   script:
-  - echo REALLY_UPDATE ${REALLY_UPDATE} LIMIT ${LIMIT} STAGING ${STAGING} CURATED ${CURATED} DEFAULT_ANNOTATION ${DEFAULT_ANNOTATION}
+  - echo REALLY_UPDATE ${REALLY_UPDATE} LIMIT ${LIMIT} STAGING ${STAGING} CURATED ${CURATED} MORPHOLOGY_TAG ${MORPHOLOGY_TAG} DEFAULT_ANNOTATION ${DEFAULT_ANNOTATION}
   - > 
     python src/neuron_morphology/validation/quality_metric_resource.py 
-    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated $CURATED 
+    --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --bucket $BUCKET --curated $CURATED --morphology_tag $MORPHOLOGY_TAG
     --really_update $REALLY_UPDATE --limit $LIMIT --push_to_staging $STAGING --default_annotation $DEFAULT_ANNOTATION
   artifacts:
     paths:

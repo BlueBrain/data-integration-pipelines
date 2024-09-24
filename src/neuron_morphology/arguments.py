@@ -30,4 +30,9 @@ def define_morphology_arguments(parser: Union[argparse.ArgumentParser, Parser]):
         type=str, choices=["yes", "no"], default="yes"
     )
 
+    add_arg(
+        "--morphology_tag", help="Tag of the morphology Resources to require",
+        type=str
+    )
+
     return parser

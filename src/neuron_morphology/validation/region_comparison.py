@@ -61,11 +61,19 @@ def get_soma_center(morph_path: str) -> Optional[List]:
     return [float(i) for i in morph.soma.center]
 
 
+def get_value(coordinate):
+    # Different morphology revisions store coordinates with or without an extra dict
+    if not isinstance(coordinate, dict):
+        return coordinate
+    else:
+        return coordinate["@value"]
+
+
 def get_morphology_coordinates(morphology: Resource, forge: KnowledgeGraphForge) -> Optional[List]:
     brain_location = forge.as_json(morphology.brainLocation)
 
     if 'coordinatesInBrainAtlas' in brain_location:
-        return [float(brain_location['coordinatesInBrainAtlas'][f"value{i}"]) for i in ["X", "Y", "Z"]]
+        return [get_value(brain_location['coordinatesInBrainAtlas'][f"value{i}"]) for i in ["X", "Y", "Z"]]
 
     return None
 
@@ -224,7 +232,8 @@ def create_brain_region_comparison(
             add_external_info(row, ext_metadata.loc[ext_metadata["Cell Name (Cell ID)"] == morphology_name])
 
         swc_coordinates = get_soma_center(swc_path)
-        metadata_coordinates = get_morphology_coordinates(morph, forge)
+        metadata_coordinates_orig = get_morphology_coordinates(morph, forge)
+        metadata_coordinates = [float(coord) for coord in metadata_coordinates_orig]
 
         def do(is_swc_coordinates: bool, coordinates: Optional[List]):
 
@@ -335,8 +344,7 @@ def create_brain_region_comparison(
         if float_coordinates_check:
             if 'coordinatesInBrainAtlas' in morph.brainLocation.__dict__:
                 row['float coordinates'] = _format_boolean(all(
-                    isinstance(morph.brainLocation.coordinatesInBrainAtlas.__dict__.get(f"value{axis}"), float)
-                    for axis in ["X", "Y", "Z"]
+                    isinstance(coord, float) for coord in metadata_coordinates_orig
                 ), sparse)
 
         rows.append(row)

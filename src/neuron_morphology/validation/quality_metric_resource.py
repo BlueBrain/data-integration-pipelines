@@ -218,6 +218,7 @@ if __name__ == "__main__":
 
     # Would push into a test project in staging a subset of the quality metrics
     # Else would push them in the same bucket as the neuron morphology's, for all of them
+    morphology_tag = received_args.morphology_tag if received_args.morphology_tag != "-" else None
     limit = received_args.limit
     really_update = received_args.really_update == "yes"
     push_to_staging = received_args.push_to_staging == "yes"
@@ -249,7 +250,7 @@ if __name__ == "__main__":
     #    forge.retrieve("https://bbp.epfl.ch/data/bbp-external/seu/52230e08-9f86-40e4-b7ab-201c482e7445")
     # ]
 
-    resources = get_neuron_morphologies(curated=received_args.curated, forge=forge, limit=limit)
+    resources = get_neuron_morphologies(curated=received_args.curated, forge=forge, tag=morphology_tag, limit=limit)
 
     swc_download_folder = os.path.join(working_directory, "swcs")
     asc_download_folder = os.path.join(working_directory, "ascs")
@@ -262,6 +263,8 @@ if __name__ == "__main__":
 
     v_string = f"BBP {ATLAS_TAG}" if is_default_annotation else ALLEN_ANNOT_LABEL
     report_name = f"batch_report_for_atlas_{v_string.replace(' ', '_')}.tsv"
+    if morphology_tag:
+        report_name = report_name.replace("batch_report", f"batch_report_{morphology_tag}")
 
     # morphologies_to_update = []
     # issues = dict()
@@ -286,7 +289,7 @@ if __name__ == "__main__":
 
     used_voxel_data = voxel_d if is_default_annotation else add_voxel_d
 
-    external_metadata = pd.read_excel(SEU_METADATA_FILEPATH, skiprows=1, na_values=' ') if org == "bbp-external" and project == "seu" else None
+    external_metadata_seu = pd.read_excel(SEU_METADATA_FILEPATH, skiprows=1, na_values=' ') if org == "bbp-external" and project == "seu" else None
 
     reports, errors = save_batch_quality_measurement_annotation_report_on_resources(
         resources=resources,
@@ -299,7 +302,7 @@ if __name__ == "__main__":
         individual_reports=False,
         br_map=br_map,
         voxel_d=used_voxel_data,
-        external_metadata=external_metadata,
+        external_metadata=external_metadata_seu,
         with_asc_check=True,
         with_br_check=True,
     )
