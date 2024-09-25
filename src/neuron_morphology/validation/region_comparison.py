@@ -303,9 +303,9 @@ def create_brain_region_comparison(
                     if regions_match:
                         relationship = "same region"
                     elif is_descendant_of_region_map(seu_int, observed_int, brain_region_map):
-                        relationship = "descendant"
-                    elif is_descendant_of_region_map(observed_int, seu_int, brain_region_map):
                         relationship = "ancestor"
+                    elif is_descendant_of_region_map(observed_int, seu_int, brain_region_map):
+                        relationship = "descendant"
                     elif sibling_regions:
                         relationship = "sibling"
                     else:
