@@ -165,18 +165,6 @@ def create_brain_region_comparison(
         sparse: bool = True,
         float_coordinates_check=False
 ) -> Tuple[List[Dict], str]:
-    brain_areas_descendants = {}
-    for brain_area in BRAIN_AREAS:
-        brain_areas_descendants[brain_area] = brain_region_map.find(
-            brain_area, REGION_ATTRIBUTE, ignore_case=False, with_descendants=True
-        )
-
-    default_coordinates = 'swc'
-    default_region = "declared"
-    seu_regions_ref = {REGION_ACRONYM_COLUMN: default_region,
-                       SEU_METADATA_COLUMNS[1]: "original brain",
-                       SEU_METADATA_COLUMNS[3].replace("Allen CCFv3", ALLEN_ANNOT_LABEL): ALLEN_ANNOT_LABEL}
-    def_sort_column = get_agreement_col_name(AGREEMENT_CRITERIA, default_coordinates, default_region)
 
     descend_or_ancest_forge = lambda a, b: (
             is_descendant_of_forge(a, b, forge)
@@ -185,19 +173,44 @@ def create_brain_region_comparison(
     #descend_or_ancest_reg_map = lambda a, b: (is_descendant_of_region_map(a, b, brain_region_map)
     #    or is_descendant_of_region_map(b, a, brain_region_map))
 
+    default_region = "declared"
+    neigh_col_label = "neighbours"
+    def get_coord_col_names(coord_label):
+        col_names = [f'observed_region_{coord_label}']
+        for ref in [default_region, 'original brain', ALLEN_ANNOT_LABEL]:
+            col_names.append(get_agreement_col_name(AGREEMENT_CRITERIA, coord_label, ref))
+            col_names.append(get_relation_col_name(coord_label, ref))
+        # Neighbours
+        col_names.append(get_neigh_col_name(coord_label))
+        col_names.append(get_agreement_col_name(AGREEMENT_CRITERIA, f'{coord_label}_{neigh_col_label}', default_region))
+        col_names.append(get_relation_col_name(f"{coord_label}_{neigh_col_label}", default_region))
+
+        return col_names
+
+
+    # This is the order with which keys will be inserted in the final dict, which should be
     column_order = [
         'morphology_id', 'morphology_name', REGION_NAME_COLUMN, REGION_AREA_COLUMN,
-        REGION_ACRONYM_COLUMN, SEU_METADATA_COLUMNS[0], SEU_METADATA_COLUMNS[1], SEU_METADATA_COLUMNS[3].replace("Allen CCFv3", ALLEN_ANNOT_LABEL),
-        'observed_region_swc', get_neigh_col_name('swc'),
-        get_agreement_col_name(AGREEMENT_CRITERIA, 'swc', 'declared'), get_relation_col_name('swc', 'declared'),
-        get_agreement_col_name(AGREEMENT_CRITERIA, 'swc', 'original brain'), get_relation_col_name('swc', 'original brain'),
-        get_agreement_col_name(AGREEMENT_CRITERIA, 'swc', ALLEN_ANNOT_LABEL), get_relation_col_name('swc', ALLEN_ANNOT_LABEL),
-        COORD_SWC_COLUMN, COORD_METADATA_COLUMN, 'coordinates_equal',
-        'observed_region_metadata', get_neigh_col_name('metadata'),
-        get_agreement_col_name(AGREEMENT_CRITERIA, 'metadata', 'declared'), get_relation_col_name('metadata', 'declared'),
-        get_agreement_col_name(AGREEMENT_CRITERIA, 'metadata', 'original brain'), get_relation_col_name('metadata', 'original brain'),
-        get_agreement_col_name(AGREEMENT_CRITERIA, 'metadata', ALLEN_ANNOT_LABEL), get_relation_col_name('metadata', ALLEN_ANNOT_LABEL)
-    ]
+        REGION_ACRONYM_COLUMN, SEU_METADATA_COLUMNS[0], SEU_METADATA_COLUMNS[1], SEU_METADATA_COLUMNS[3].replace("Allen CCFv3", ALLEN_ANNOT_LABEL)]
+    # swc coordinates
+    column_order.extend(get_coord_col_names('swc'))
+    # Coordinates comparison
+    column_order.extend([COORD_SWC_COLUMN, COORD_METADATA_COLUMN, 'coordinates_equal'])
+    # metadata coordinates
+    column_order.extend(get_coord_col_names('metadata'))
+
+    default_coordinates = 'swc'
+    seu_regions_ref = {REGION_ACRONYM_COLUMN: default_region,
+                       SEU_METADATA_COLUMNS[1]: "original brain",
+                       SEU_METADATA_COLUMNS[3].replace("Allen CCFv3", ALLEN_ANNOT_LABEL): ALLEN_ANNOT_LABEL}
+    #def_sort_column = get_agreement_col_name(AGREEMENT_CRITERIA, default_coordinates, default_region)
+    def_sort_column = 'morphology_name'
+
+    brain_areas_descendants = {}
+    for brain_area in BRAIN_AREAS:
+        brain_areas_descendants[brain_area] = brain_region_map.find(
+            brain_area, REGION_ATTRIBUTE, ignore_case=False, with_descendants=True
+        )
 
     tot_morphs = len(search_results)
     rows = []
@@ -237,7 +250,9 @@ def create_brain_region_comparison(
 
         def do(is_swc_coordinates: bool, coordinates: Optional[List]):
 
-            coordinate_type = 'metadata' if not is_swc_coordinates else default_coordinates
+            coord_type = 'metadata' if not is_swc_coordinates else default_coordinates
+            coord_neigh_label = f"{coord_type}_{neigh_col_label}"
+            neigh_agr, neigh_rel = None, None
             try:
                 observed_label, neighbour_labels = get_region(coordinates, brain_region_map, voxel_data, "acronym", with_neighbours=True) \
                     if coordinates is not None \
@@ -245,27 +260,70 @@ def create_brain_region_comparison(
 
             except Exception as exc:
                 logger.error(
-                    f"Exception raised when retrieving brain region where {morphology_name} is "
-                    f"using {coordinate_type} coordinates: '{str(exc)}'"
-                )
+                    f"Exception raised when retrieving brain region where "
+                    f"{morphology_name} is using {coord_type} coordinates: '{str(exc)}'")
                 observed_label, neighbour_labels = None, None
 
-            row[f"observed_region_{coordinate_type}"] = observed_label
+            row[f"observed_region_{coord_type}"] = observed_label
             if observed_label is None:
                 logger.error(
-                    f"Couldn't figure out the brain region where {morphology_name} is located "
-                    f"inside the parcellation volume using {coordinate_type} coordinates"
-                )
+                    f"Couldn't figure out the brain region where {morphology_name} is located"
+                    f" inside the parcellation volume using {coord_type} coordinates")
                 return
-            row[get_neigh_col_name(coordinate_type)] = neighbour_labels
             observed_res = cacheresolve(observed_label, forge)
             observed_id = observed_res.id
-            observed_int = int(observed_id.split("/")[-1])
-            observed_ancestors = brain_region_map.get(observed_int, "id",
-                                                      with_ascendants=True)
+
+
+            def check_agreement(obs_id, ref_id):
+                # Match observed region with declared region
+                regions_match = False
+                sibling_regions = False
+                if ref_id == obs_id:
+                    regions_match = True
+                if regions_match:
+                    agr = True
+                else:
+                    agr = descend_or_ancest_forge(ref_id, obs_id)
+                if not agr:
+                    if ("barrel field" in declared_label) or ("layer 2/3" in declared_label):
+                        sibling_regions = are_siblings(obs_id, ref_id, forge)
+                        agr = sibling_regions
+
+                # Add relationship
+                ref_int = int(ref_id.split("/")[-1])
+                obs_int = int(obs_id.split("/")[-1])
+                obs_ancestors = brain_region_map.get(obs_int, "id", with_ascendants=True)
+
+                if agr:
+                    if regions_match:
+                        rel = "same region"
+                    elif is_descendant_of_region_map(ref_int, obs_int, brain_region_map):
+                        rel = "ancestor"
+                    elif is_descendant_of_region_map(obs_int, ref_int, brain_region_map):
+                        rel = "descendant"
+                    elif sibling_regions:
+                        rel = "sibling"
+                    else:
+                        raise Exception("Agreement error")
+                    rel_string = f'relationship: {rel}'
+                else:
+                    ref_ancestors = brain_region_map.get(ref_int, "id", with_ascendants=True)
+                    logger.info(f"observed_ancestors: {obs_ancestors}", )
+                    logger.info(f"ref_ancestors: {ref_ancestors}")
+
+                    common_ancestors: List[str] = [anc for anc in obs_ancestors if anc in ref_ancestors]
+                    if not common_ancestors:
+                        raise Exception("No common ancestor!")
+                    first_common_ancestor = forge.retrieve(
+                        "http://api.brain-map.org/api/v2/data/Structure/" + str(common_ancestors[0])
+                        ).notation
+                    rel_string = f'first common ancestor: {first_common_ancestor}'
+
+                return agr, rel_string
+
 
             for seu_label, ref in seu_regions_ref.items():
-                logger.info(f"{coordinate_type} - {seu_label}")
+                logger.info(f"{coord_type} - {seu_label}")
                 seu_region = row[seu_label]
                 if not seu_region:
                     continue
@@ -274,59 +332,38 @@ def create_brain_region_comparison(
                         ((type(seu_region) is str) and seu_region == "unknown"):
                     continue
 
-                agreement_column = get_agreement_col_name(AGREEMENT_CRITERIA, coordinate_type, ref)
+                agreement_column = get_agreement_col_name(AGREEMENT_CRITERIA, coord_type, ref)
                 seu_res = cacheresolve(seu_region, forge)
                 if not seu_res:
                     row[agreement_column] = "region not resolved"
                     continue
 
                 seu_id = seu_res.id
-                seu_int = int(seu_id.split("/")[-1])
-                # Match observed region with declared region
-                regions_match = False
-                sibling_regions = False
-                if seu_id == observed_id:
-                    regions_match = True
-                if regions_match:
-                    agreement = True
-                else:
-                    agreement = descend_or_ancest_forge(seu_id, observed_id)
-                if not agreement:
-                    if ("barrel field" in declared_label) or ("layer 2/3" in declared_label):
-                        sibling_regions = are_siblings(observed_id, seu_id, forge)
-                        agreement = sibling_regions
 
+                agreement, relationship = check_agreement(observed_id, seu_id)
                 row[agreement_column] = agreement
+                row[get_relation_col_name(coord_type, ref)] = relationship
 
-                # Add relationship
-                if agreement:
-                    if regions_match:
-                        relationship = "same region"
-                    elif is_descendant_of_region_map(seu_int, observed_int, brain_region_map):
-                        relationship = "ancestor"
-                    elif is_descendant_of_region_map(observed_int, seu_int, brain_region_map):
-                        relationship = "descendant"
-                    elif sibling_regions:
-                        relationship = "sibling"
-                    else:
-                        raise Exception("Agreement error")
-                    relationship_string = f'relationship: {relationship}'
-                else:
-                    seu_ancestors = brain_region_map.get(seu_int, "id", with_ascendants=True)
-                    logger.info(f"observed_ancestors: {observed_ancestors}", )
-                    logger.info(f"seu_ancestors: {seu_ancestors}")
-
-                    common_ancestors: List[str] = [anc for anc in observed_ancestors if anc in seu_ancestors]
-                    if not common_ancestors:
-                        raise Exception("No common ancestor!")
-                    first_common_ancestor = forge.retrieve("http://api.brain-map.org/api/v2/data/Structure/" + str(common_ancestors[0])).notation
-                    relationship_string = f'first common ancestor: {first_common_ancestor}'
-                row[get_relation_col_name(coordinate_type, ref)] = relationship_string
-
-                msg = f"{morphology_name} - Observed region '{observed_label}' in {coordinate_type} and {ref} region '{seu_region}'" \
+                msg = f"{morphology_name} - Observed region '{observed_label}' in {coord_type} and {ref} region '{seu_region}'" \
                       f" are {'' if agreement else 'not '}within each other."
                 log_fc = logger.info if agreement else logger.warning
                 log_fc(msg)
+
+                if ref == default_region:
+                    for neigh_label in neighbour_labels:
+                        neigh_res = cacheresolve(neigh_label, forge)
+                        if not neigh_res:
+                            continue
+                        neigh_agr, neigh_rel = check_agreement(neigh_res.id, seu_id)
+                        neigh_rel = f"{neigh_label} {neigh_rel}"
+                        if neigh_agr:
+                            # one agreement is enough
+                            break
+
+            row[get_neigh_col_name(coord_type)] = neighbour_labels
+            if neighbour_labels:
+                row[get_agreement_col_name(AGREEMENT_CRITERIA, coord_neigh_label, default_region)] = neigh_agr
+                row[get_relation_col_name(coord_neigh_label, default_region)] = neigh_rel
 
         do(True, swc_coordinates)
         row[COORD_SWC_COLUMN] = swc_coordinates
