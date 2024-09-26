@@ -120,7 +120,7 @@ def warning_unknown_brain_region(volume_value, p_world_v4: np.ndarray, p_voxel_v
 
 
 def warning_outside_bounds(p_voxel_v4: np.ndarray, volume_data: NDArray):
-    return f"Voxel position {p_voxel_v4}) outside of boundingbox with shape {volume_data.shape}"
+    return f"Voxel position {p_voxel_v4}) outside of boundingBox with shape {volume_data.shape}"
 
 
 def p_inside_volume(volume_data: NDArray, p_voxel_v4: np.ndarray):
@@ -181,6 +181,17 @@ def _compute_section_leaf_regions(
     def get_volume_data(p_voxel):
         return int(volume_data[int(p_voxel[0]), int(p_voxel[1]), int(p_voxel[2])])
 
+    def increment_metric(s_node, metric):
+        p_world_v4, p_voxel_v4 = node_to_world_voxel_position(s_node, world_to_voxel_mat)
+        if p_inside_volume(volume_data, p_voxel_v4):
+            volume_value = get_volume_data(p_voxel_v4)
+            if volume_value in brain_region_index:
+                metric[volume_value] += 1
+            else:
+                print(warning_unknown_brain_region(volume_value, p_world_v4, p_voxel_v4))
+        else:
+            print(warning_outside_bounds(p_voxel_v4, volume_data))
+
     unique_node_control = set()
 
     # we compute the contribution of each section to the final metrics
@@ -209,43 +220,17 @@ def _compute_section_leaf_regions(
         for node in s_nodes:
             if node in unique_node_control:
                 continue
-
             unique_node_control.add(node)
-
-            p_world_v4, p_voxel_v4 = node_to_world_voxel_position(node, world_to_voxel_mat)
-
-            if p_inside_volume(volume_data, p_voxel_v4):
-
-                volume_value = get_volume_data(p_voxel_v4)
-
-                if volume_value in brain_region_index:
-                    metrics["traversedBrainRegion"][volume_value] += 1
-                else:
-                    print(warning_unknown_brain_region(volume_value, p_world_v4, p_voxel_v4))
-            else:
-                print(warning_outside_bounds(p_voxel_v4, volume_data))
+            increment_metric(node, metrics["traversedBrainRegion"])
 
         if s_is_projection:
-            p_world_v4, p_voxel_v4 = node_to_world_voxel_position(s_nodes[-1], world_to_voxel_mat)
-
-            if p_inside_volume(volume_data, p_voxel_v4):
-                volume_value = get_volume_data(p_voxel_v4)
-
-                if volume_value in brain_region_index:
-                    metrics["projectionBrainRegion"][volume_value] += 1
-                else:
-                    print(warning_unknown_brain_region(volume_value, p_world_v4, p_voxel_v4))
-            else:
-                print(warning_outside_bounds(p_voxel_v4, volume_data))
+            increment_metric(s_nodes[-1], metrics["projectionBrainRegion"])
 
     def reformat(metrics_i):
-
         for key in ["projectionBrainRegion", "traversedBrainRegion"]:
             metrics_i[key] = list(
-                {
-                    "brainRegion": {
-                        "@id": f"http://api.brain-map.org/api/v2/data/Structure/{str(reg_id)}"
-                    },
+                {"brainRegion": {
+                    "@id": f"http://api.brain-map.org/api/v2/data/Structure/{str(reg_id)}"},
                     "count": count
                 }
                 for reg_id, count in metrics_i[key].items()
@@ -369,8 +354,8 @@ def get_parcellation_volume_and_ontology(
         parcellation_volume, "distribution.contentUrl", download_directory, overwrite=True
     )
 
-    volume_path = f"{download_directory}/{parcellation_volume.distribution.name}"
-    volume_data, volume_metadata = nrrd.read(volume_path)
+    volume_p = f"{download_directory}/{parcellation_volume.distribution.name}"
+    volume_data, volume_metadata = nrrd.read(volume_p)
 
     world_to_vox_mat = compute_world_to_vox_mat(volume_metadata)
 
@@ -385,9 +370,9 @@ def get_parcellation_volume_and_ontology(
 
     forge_atlas.download(ontology_distribution, "contentUrl", download_directory, overwrite=True)
 
-    brain_region_onto_path = f"{download_directory}/{ontology_distribution.name}"
+    brain_region_onto = f"{download_directory}/{ontology_distribution.name}"
 
-    brain_region_index = index_brain_region_labels(brain_region_onto_path)
+    brain_region_index = index_brain_region_labels(brain_region_onto)
 
     return brain_region_index, volume_data, world_to_vox_mat
 
