@@ -440,6 +440,13 @@ validation_report_checks = {
             unit_code="μm",
             example_failure=None,
             value_in_tsv=(Check.basic_numeric, None)
+        ),
+        'axon_outside_brain': Check(
+            id_="TODO",
+            pref_label="Axon outside brain",
+            label="Axon outside brain metric",
+            value_in_json=Check.basic_numeric,
+            callable_=?
         )
     }
 }

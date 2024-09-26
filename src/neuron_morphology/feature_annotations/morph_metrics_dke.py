@@ -101,6 +101,7 @@ def init_thing(s_type: str, s_type_name: str) -> Dict[str, Any]:
         # imported by the neuron morphology schema
         "traversedBrainRegion": defaultdict(int),
         "projectionBrainRegion": defaultdict(int),
+        "outsideBrain": False,
         "cumulatedLength": {
             "value": 0,
             "unitCode": "μm"
@@ -182,15 +183,22 @@ def _compute_section_leaf_regions(
         return int(volume_data[int(p_voxel[0]), int(p_voxel[1]), int(p_voxel[2])])
 
     def increment_metric(s_node, metric):
+        outside = False
+
         p_world_v4, p_voxel_v4 = node_to_world_voxel_position(s_node, world_to_voxel_mat)
         if p_inside_volume(volume_data, p_voxel_v4):
             volume_value = get_volume_data(p_voxel_v4)
             if volume_value in brain_region_index:
                 metric[volume_value] += 1
             else:
+                outside = True
                 print(warning_unknown_brain_region(volume_value, p_world_v4, p_voxel_v4))
         else:
+            outside = True
             print(warning_outside_bounds(p_voxel_v4, volume_data))
+
+        return outside
+
 
     unique_node_control = set()
 
@@ -224,7 +232,9 @@ def _compute_section_leaf_regions(
             increment_metric(node, metrics["traversedBrainRegion"])
 
         if s_is_projection:
-            increment_metric(s_nodes[-1], metrics["projectionBrainRegion"])
+            outside_brain = increment_metric(s_nodes[-1], metrics["projectionBrainRegion"])
+            if outside_brain:
+                metrics["outsideBrain"] = outside_brain
 
     def reformat(metrics_i):
         for key in ["projectionBrainRegion", "traversedBrainRegion"]:
