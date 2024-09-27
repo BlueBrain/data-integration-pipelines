@@ -1,3 +1,4 @@
+import nrrd
 import numpy as np
 from typing import List, Tuple
 
@@ -6,6 +7,9 @@ from neurom import NeuriteType, iter_sections, iter_segments, iter_neurites
 from neurom.check import CheckResult
 from neurom.core import Morphology, Section
 from neurom.core.dataformat import COLS
+from voxcell import RegionMap
+
+from src.neuron_morphology.feature_annotations.morph_metrics_dke import increment_metric, compute_world_to_vox_mat
 
 
 def has_no_heterogeneous_sections_close_to_soma(
@@ -115,6 +119,24 @@ def has_no_composite_subtree_type_starting_in_axon(neuron: Morphology):
 def number_of_axons(neuron) -> int:
     # Correct start point of the axon (or axons if there are 2) = boolean (A)
     return len([neurite for neurite in iter_neurites(neuron) if neurite.type == NeuriteType.axon])
+
+
+def axon_outside_brain(neuron, brain_region_onto_path, volume_path) -> bool:
+    brain_region_map = RegionMap.load_json(brain_region_onto_path)
+    volume_data, volume_metadata = nrrd.read(volume_path)
+    world_to_voxel_mat = compute_world_to_vox_mat(volume_metadata)
+
+    sections = neuron.get_sections()
+
+    projection_brain_region = {}
+    outside_brain = False
+    for section in sections:
+        s_is_projection = len(section.get_children()) == 0
+        if s_is_projection:
+            outside_brain = increment_metric(section.get_nodes()[-1], projection_brain_region,
+                world_to_voxel_mat, volume_data, brain_region_map)
+
+    return outside_brain
 
 
 def has_zero_soma_radius(morph, threshold=0.0):

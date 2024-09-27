@@ -30,6 +30,7 @@ def save_quality_measurement_annotation_report(
         name: Optional[str] = None,
         added: Optional[Dict] = None,
         morphology: Optional[Morphology] = None,
+        volume_path=None
 ) -> Tuple[List[str], Dict]:
 
     os.makedirs(report_dir_path, exist_ok=True)
@@ -40,7 +41,7 @@ def save_quality_measurement_annotation_report(
 
     logger.info(f"Processing {swc_path}")
 
-    report = get_report(swc_path, morphology, None)
+    report = get_report(swc_path, morphology, report=None, volume_path=volume_path)
     json_data = get_validation_report_as_json(swc_path, morphology=morphology, report=report)
     quality_measurement_annotation_line = get_validation_report_as_tsv_line(swc_path, morphology=morphology, report=report, added=added)
 
@@ -83,6 +84,7 @@ def save_batch_quality_measurement_annotation_report(
         individual_reports: bool,
         morphologies: Optional[List[Morphology]] = None,
         added_list: Optional[List[Dict]] = None,
+        volume_path=None
 ) -> Tuple[Dict[str, Dict], Dict[str, Exception]]:
     os.makedirs(report_dir_path, exist_ok=True)
 
@@ -109,7 +111,7 @@ def save_batch_quality_measurement_annotation_report(
         # try:
         report_as_tsv_line, report_as_json = save_quality_measurement_annotation_report(
             swc_path=swc_path, report_dir_path=report_dir_path, morphology=morphology, added=added,
-            individual_reports=individual_reports
+            individual_reports=individual_reports, volume_path=volume_path
         )
         # except Exception as e:
         #     logger.error(f"Error creating validation report for path {swc_path}: {str(e)}")

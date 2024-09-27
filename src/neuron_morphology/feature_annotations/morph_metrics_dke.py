@@ -26,7 +26,7 @@ from IPython.utils import io
 from kgforge.core import KnowledgeGraphForge
 from nptyping.ndarray import NDArray
 from nrrd import NRRDHeader
-
+from voxcell import RegionMap
 
 from src.helpers import write_obj, get_path
 from src.pyswcparser.Morphology import Morphology
@@ -44,7 +44,7 @@ def compute_metrics_dke(
         volume_data: NDArray,
         world_to_vox_mat: np.matrix,
         morphology_path: str,
-        brain_region_index: Dict[str, str],
+        brain_region_map: RegionMap,
         as_annotation_body=False
 ) -> Tuple[Dict[str, Union[Any, AnnotationBody]], str]:
     """
@@ -63,7 +63,7 @@ def compute_metrics_dke(
             "neuriteFeature": _compute_section_leaf_regions(
                 morphology=morph, volume_data=volume_data,
                 world_to_voxel_mat=world_to_vox_mat,
-                brain_region_index=brain_region_index
+                brain_region_map=brain_region_map
             )
         }
 
@@ -163,43 +163,43 @@ def compute_world_to_vox_mat(volume_metadata: NRRDHeader):
     return world_to_voxel_mat
 
 
+def increment_metric(s_node, metric, world_to_voxel_mat, volume_data, brain_region_map):
+    def get_volume_data(p_voxel):
+        return int(volume_data[int(p_voxel[0]), int(p_voxel[1]), int(p_voxel[2])])
+
+    outside = False
+
+    p_world_v4, p_voxel_v4 = node_to_world_voxel_position(s_node, world_to_voxel_mat)
+    if p_inside_volume(volume_data, p_voxel_v4):
+        volume_value = get_volume_data(p_voxel_v4)
+        if brain_region_map.find(volume_value, attr="id"):
+            metric[volume_value] += 1
+        else:
+            outside = True
+            print(warning_unknown_brain_region(volume_value, p_world_v4, p_voxel_v4))
+    else:
+        outside = True
+        print(warning_outside_bounds(p_voxel_v4, volume_data))
+
+    return outside
+
+
 def compute_section_leaf_regions(
         morph: Morphology,
         volume_data: NDArray,
         volume_metadata: NRRDHeader,
-        brain_region_index: Dict[str, str]
+        brain_region_map: RegionMap
 ):
     world_to_voxel_mat = compute_world_to_vox_mat(volume_metadata)
-    return _compute_section_leaf_regions(morph, brain_region_index, world_to_voxel_mat, volume_data)
+    return _compute_section_leaf_regions(morph, brain_region_map, world_to_voxel_mat, volume_data)
 
 
 def _compute_section_leaf_regions(
         morphology: Morphology,
-        brain_region_index: Dict[str, str],
+        brain_region_map: RegionMap,
         world_to_voxel_mat: np.matrix,
         volume_data: NDArray
 ):
-    def get_volume_data(p_voxel):
-        return int(volume_data[int(p_voxel[0]), int(p_voxel[1]), int(p_voxel[2])])
-
-    def increment_metric(s_node, metric):
-        outside = False
-
-        p_world_v4, p_voxel_v4 = node_to_world_voxel_position(s_node, world_to_voxel_mat)
-        if p_inside_volume(volume_data, p_voxel_v4):
-            volume_value = get_volume_data(p_voxel_v4)
-            if volume_value in brain_region_index:
-                metric[volume_value] += 1
-            else:
-                outside = True
-                print(warning_unknown_brain_region(volume_value, p_world_v4, p_voxel_v4))
-        else:
-            outside = True
-            print(warning_outside_bounds(p_voxel_v4, volume_data))
-
-        return outside
-
-
     unique_node_control = set()
 
     # we compute the contribution of each section to the final metrics
@@ -229,10 +229,12 @@ def _compute_section_leaf_regions(
             if node in unique_node_control:
                 continue
             unique_node_control.add(node)
-            increment_metric(node, metrics["traversedBrainRegion"])
+            increment_metric(node, metrics["traversedBrainRegion"],
+                world_to_voxel_mat, volume_data, brain_region_map)
 
         if s_is_projection:
-            outside_brain = increment_metric(s_nodes[-1], metrics["projectionBrainRegion"])
+            outside_brain = increment_metric(s_nodes[-1], metrics["projectionBrainRegion"],
+                world_to_voxel_mat, volume_data, brain_region_map)
             if outside_brain:
                 metrics["outsideBrain"] = outside_brain
 
@@ -349,7 +351,7 @@ def index_brain_region_labels(br_ontology: str) -> Dict[str, str]:
 def get_parcellation_volume_and_ontology(
         download_directory: str,
         forge_atlas: KnowledgeGraphForge
-) -> Tuple[Dict[str, str], NDArray, np.matrix]:
+) -> Tuple[RegionMap, NDArray, np.matrix]:
 
     atlas_release = forge_atlas.retrieve(ATLAS_RELEASE_ID)
 
@@ -382,9 +384,9 @@ def get_parcellation_volume_and_ontology(
 
     brain_region_onto = f"{download_directory}/{ontology_distribution.name}"
 
-    brain_region_index = index_brain_region_labels(brain_region_onto)
+    brain_region_map = RegionMap.load_json(brain_region_onto)
 
-    return brain_region_index, volume_data, world_to_vox_mat
+    return brain_region_map, volume_data, world_to_vox_mat
 
 
 if __name__ == "__main__":
@@ -399,11 +401,11 @@ if __name__ == "__main__":
 
         v_data, v_metadata = nrrd.read(volume_path)
 
-        br_index = index_brain_region_labels(brain_region_onto_path)
+        br_map = RegionMap.load_json(brain_region_onto_path)
 
         annotations, warnings = compute_metrics_dke(
             volume_data=v_data, world_to_vox_mat=compute_world_to_vox_mat(v_metadata),
-            morphology_path=morph_path, brain_region_index=br_index,
+            morphology_path=morph_path, brain_region_map=br_map,
             as_annotation_body=False
         )
         write_obj(os.path.join(dst_dir, "17302_00023_metrics_dke.json"), annotations)

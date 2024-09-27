@@ -22,12 +22,12 @@ from kgforge.core import KnowledgeGraphForge
 
 from nrrd import NRRDHeader, read
 from nptyping.ndarray import NDArray
+from voxcell import RegionMap
 
 from src.neuron_morphology.feature_annotations.data_classes.Annotation import Annotation
 from src.neuron_morphology.feature_annotations.morph_metrics_dke import (
     compute_metrics_dke,
     compute_world_to_vox_mat,
-    index_brain_region_labels,
     get_parcellation_volume_and_ontology
 )
 from src.neuron_morphology.feature_annotations.morph_metrics_neurom import compute_metrics_neurom
@@ -38,7 +38,7 @@ def _compute_metrics(
         volume_data: NDArray,
         world_to_vox_mat: np.matrix,
         morphology_path: str,
-        brain_region_index: Dict[str, str]
+        brain_region_map: RegionMap
 ) -> Tuple[List[Dict], str]:
     """
     Compute neurom and dke metrics using an atlas' volume data,
@@ -56,7 +56,7 @@ def _compute_metrics(
         volume_data=volume_data,
         world_to_vox_mat=world_to_vox_mat,
         morphology_path=morphology_path,
-        brain_region_index=brain_region_index,
+        brain_region_map=brain_region_map,
         as_annotation_body=True
     )
 
@@ -80,7 +80,7 @@ def compute_metrics(
         volume_data: NDArray,
         volume_metadata: NRRDHeader,
         morphology_path: str,
-        brain_region_index: Dict[str, str]
+        brain_region_map: RegionMap
 ) -> Tuple[List[Dict], str]:
 
     """
@@ -92,7 +92,7 @@ def compute_metrics(
 
     return _compute_metrics(
         volume_data=volume_data, world_to_vox_mat=world_to_vox_mat,
-        morphology_path=morphology_path, brain_region_index=brain_region_index
+        morphology_path=morphology_path, brain_region_map=brain_region_map
     )
 
 
@@ -101,13 +101,13 @@ def compute_metrics_default_atlas(
         forge_atlas: KnowledgeGraphForge,
         atlas_download_directory: str
 ) -> Tuple[List[Dict], str]:
-    brain_region_index, volume_data, world_to_vox_mat = get_parcellation_volume_and_ontology(
+    brain_region_map, volume_data, world_to_vox_mat = get_parcellation_volume_and_ontology(
         forge_atlas=forge_atlas, download_directory=atlas_download_directory
     )
 
     return _compute_metrics(
         volume_data=volume_data, world_to_vox_mat=world_to_vox_mat,
-        morphology_path=morphology_path, brain_region_index=brain_region_index
+        morphology_path=morphology_path, brain_region_map=brain_region_map
     )
 
 
@@ -121,11 +121,11 @@ if __name__ == "__main__":
     morph_path = os.path.join(data_dir, "17302_00023.swc")
 
     v_data, v_metadata = read(volume_path)
-    br_index = index_brain_region_labels(brain_region_onto_path)
+    br_map = RegionMap.load_json(brain_region_onto_path)
 
     annotations = compute_metrics(
         volume_data=v_data, volume_metadata=v_metadata,
-        morphology_path=morph_path, brain_region_index=br_index
+        morphology_path=morph_path, brain_region_map=br_map
     )
 
     os.makedirs(dst_dir, exist_ok=True)

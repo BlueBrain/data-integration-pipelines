@@ -65,12 +65,12 @@ class Check:
                     return ""
         return res
 
-    def run(self, neuron, swc_path):
+    def run(self, neuron, swc_path, brain_region_hierarchy_path=None, volume_path=None):
         # TODO try catch and return CheckResult(false) if exception
         with io.capture_output() as captured:
             with morphio.ostream_redirect(stdout=True, stderr=True):
                 try:
-                    return self.callable_(neuron, swc_path)
+                    return self.callable_(neuron, swc_path, brain_region_hierarchy_path, volume_path)
                 except Exception as e:
                     return CheckResult(status=False, info=e)
 
@@ -446,7 +446,8 @@ validation_report_checks = {
             pref_label="Axon outside brain",
             label="Axon outside brain metric",
             value_in_json=Check.basic_numeric,
-            callable_=?
+            callable_=lambda neuron, swc_path, brain_region_hierarchy_path, volume_path:
+                custom_validation.axon_outside_brain(neuron, brain_region_hierarchy_path, volume_path)
         )
     }
 }
@@ -469,12 +470,12 @@ def _load_morph_morphio(swc_path: str, raise_: bool):
         return e
 
 
-def _validation_report(neuron: Morphology, swc_path: str) -> Dict[str, Dict[str, Any]]:
+def _validation_report(neuron: Morphology, swc_path: str, brain_region_hierarchy_path=None, volume_path=None) -> Dict[str, Dict[str, Any]]:
     '''Return the payload that will be sent back to the user'''
 
     return dict(
         (check_top_key, dict(
-            (check_sub_key, check.run(neuron, swc_path))
+            (check_sub_key, check.run(neuron, swc_path, brain_region_hierarchy_path, volume_path))
             for check_sub_key, check in sub_dictionary.items()
         ))
         for check_top_key, sub_dictionary in validation_report_checks.items()
@@ -502,11 +503,11 @@ def _validation_report(neuron: Morphology, swc_path: str) -> Dict[str, Dict[str,
 #     return report
 
 
-def get_report(neuron_path: str, morphology: Optional[Morphology] = None, report: Optional[Dict] = None):
+def get_report(neuron_path: str, morphology: Optional[Morphology] = None, report: Optional[Dict] = None, brain_region_hierarchy_path=None, volume_path=None):
     if report is None:
         if morphology is None:
             morphology = _load_morph(neuron_path)
-        report = _validation_report(morphology, neuron_path)
+        report = _validation_report(morphology, neuron_path, brain_region_hierarchy_path, volume_path)
 
     return report
 

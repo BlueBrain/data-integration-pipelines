@@ -389,7 +389,7 @@ def create_brain_region_comparison(
     return rows, def_sort_column
 
 
-def get_atlas(working_dir: str, is_prod: bool, token: str, tag: str = None, add_annot: str = None) -> Tuple[RegionMap, VoxelData, Optional[VoxelData]]:
+def get_atlas(working_dir: str, is_prod: bool, token: str, tag: str = None, add_annot: str = None) -> Tuple[RegionMap, VoxelData, str, Optional[VoxelData]]:
     logger.info(f"Downloading atlas at tag {tag}")
 
     atlas_dir = os.path.join(working_dir, "atlas")
@@ -400,10 +400,12 @@ def get_atlas(working_dir: str, is_prod: bool, token: str, tag: str = None, add_
     atlas = Atlas.open(atlas_dir)
     brain_region_map: RegionMap = atlas.load_region_map()
     voxel_data: VoxelData = atlas.load_data('brain_regions')
+    volume_path = os.path.join(atlas_dir, 'brain_regions.nrrd')
     shutil.rmtree(atlas_dir)
 
     add_voxel_data: VoxelData = atlas.load_data(add_annot) if add_annot else None
-    return brain_region_map, voxel_data, add_voxel_data
+    return brain_region_map, voxel_data, volume_path, add_voxel_data
+
 
 if __name__ == "__main__":
 
@@ -423,7 +425,7 @@ if __name__ == "__main__":
 
     logger.info(f"Working directory {working_directory}")
 
-    br_map, voxel_d, add_voxel_d = get_atlas(
+    br_map, voxel_d, _, add_voxel_d = get_atlas(
         working_dir=working_directory,
         is_prod=is_prod_env, token=nexus_token,
         tag=ATLAS_TAG, add_annot=list(ADDITIONAL_ANNOTATION_VOLUME.values())[0]
