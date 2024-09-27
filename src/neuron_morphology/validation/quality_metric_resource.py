@@ -282,13 +282,17 @@ if __name__ == "__main__":
     #
     # resources = [r for r in resources if r.id not in issues]
 
+    add_volume_path = list(ADDITIONAL_ANNOTATION_VOLUME.values())[0]
     brain_region_map, voxel_data, volume_path, add_voxel_data = get_atlas(
-        working_dir=working_directory,
-        is_prod=is_prod, token=token,
-        tag=ATLAS_TAG, add_annot=list(ADDITIONAL_ANNOTATION_VOLUME.values())[0]
-    )
+        working_dir=working_directory, is_prod=is_prod, token=token,
+        tag=ATLAS_TAG, add_annot=add_volume_path)
 
-    used_voxel_data = voxel_data if is_default_annotation else add_voxel_data
+    if is_default_annotation:
+        used_voxel_data = voxel_data
+        used_volume_path = volume_path
+    else:
+        used_voxel_data = add_voxel_data
+        used_volume_path = add_volume_path
 
     external_metadata_seu = pd.read_excel(SEU_METADATA_FILEPATH, skiprows=1, na_values=' ') if org == "bbp-external" and project == "seu" else None
 
@@ -303,7 +307,7 @@ if __name__ == "__main__":
         individual_reports=False,
         br_map=brain_region_map,
         voxel_d=used_voxel_data,
-        volume_p=volume_path,
+        volume_p=used_volume_path,
         external_metadata=external_metadata_seu,
         with_asc_check=True,
         with_br_check=True,

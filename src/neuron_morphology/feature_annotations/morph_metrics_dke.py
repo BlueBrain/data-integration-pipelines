@@ -372,19 +372,14 @@ def get_parcellation_volume_and_ontology(
     world_to_vox_mat = compute_world_to_vox_mat(volume_metadata)
 
     ontology = forge_atlas.retrieve(atlas_release.parcellationOntology.id)
-
     if ontology is None:
         raise Exception("Ontology not found")
 
     ontology_distribution = next(
         d for d in ontology.distribution if d.encodingFormat == "application/json"
     )
-
     forge_atlas.download(ontology_distribution, "contentUrl", download_directory, overwrite=True)
-
-    brain_region_onto = f"{download_directory}/{ontology_distribution.name}"
-
-    brain_region_map = RegionMap.load_json(brain_region_onto)
+    brain_region_map = RegionMap.load_json(os.path.join(download_directory, ontology_distribution.name))
 
     return brain_region_map, volume_data, world_to_vox_mat
 
