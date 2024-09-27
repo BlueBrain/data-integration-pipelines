@@ -446,6 +446,7 @@ validation_report_checks = {
             pref_label="Axon outside brain",
             label="Axon outside brain metric",
             value_in_json=Check.basic_numeric,
+            value_in_tsv=(Check.basic_numeric, None),
             callable_=lambda neuron, swc_path, brain_region_hierarchy_path, volume_path:
                 custom_validation.axon_outside_brain(neuron, brain_region_hierarchy_path, volume_path)
         )

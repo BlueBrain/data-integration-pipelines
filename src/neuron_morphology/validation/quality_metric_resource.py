@@ -303,7 +303,7 @@ if __name__ == "__main__":
         individual_reports=False,
         br_map=br_map,
         voxel_d=used_voxel_data,
-        volume_path=volume_path,
+        volume_p=volume_path,
         external_metadata=external_metadata_seu,
         with_asc_check=True,
         with_br_check=True,
