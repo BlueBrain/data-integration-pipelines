@@ -401,7 +401,7 @@ def get_atlas(working_dir: str, is_prod: bool, token: str, tag: str = None, add_
     brain_region_map: RegionMap = atlas.load_region_map()
     voxel_data: VoxelData = atlas.load_data('brain_regions')
     volume_path = os.path.join(atlas_dir, 'brain_regions.nrrd')
-    shutil.rmtree(atlas_dir)
+    #shutil.rmtree(atlas_dir)
 
     add_voxel_data: VoxelData = atlas.load_data(add_annot) if add_annot else None
     return brain_region_map, voxel_data, volume_path, add_voxel_data

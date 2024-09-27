@@ -7,9 +7,9 @@ from neurom import NeuriteType, iter_sections, iter_segments, iter_neurites
 from neurom.check import CheckResult
 from neurom.core import Morphology, Section
 from neurom.core.dataformat import COLS
-from voxcell import RegionMap
 
 from src.neuron_morphology.feature_annotations.morph_metrics_dke import increment_metric, compute_world_to_vox_mat
+from src.pyswcparser import parse
 
 
 def has_no_heterogeneous_sections_close_to_soma(
@@ -121,11 +121,12 @@ def number_of_axons(neuron) -> int:
     return len([neurite for neurite in iter_neurites(neuron) if neurite.type == NeuriteType.axon])
 
 
-def axon_outside_brain(neuron, brain_region_onto_path, volume_path) -> bool:
-    brain_region_map = RegionMap.load_json(brain_region_onto_path)
+def axon_outside_brain(swc_path, brain_region_map, volume_path) -> bool:
     volume_data, volume_metadata = nrrd.read(volume_path)
     world_to_voxel_mat = compute_world_to_vox_mat(volume_metadata)
 
+    with open(swc_path, "r") as f:
+        neuron = parse(f.read())
     sections = neuron.get_sections()
 
     projection_brain_region = {}
@@ -135,6 +136,8 @@ def axon_outside_brain(neuron, brain_region_onto_path, volume_path) -> bool:
         if s_is_projection:
             outside_brain = increment_metric(section.get_nodes()[-1], projection_brain_region,
                 world_to_voxel_mat, volume_data, brain_region_map)
+            if outside_brain:
+                break
 
     return outside_brain
 

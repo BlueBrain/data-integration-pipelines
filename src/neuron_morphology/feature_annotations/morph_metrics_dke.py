@@ -173,7 +173,7 @@ def increment_metric(s_node, metric, world_to_voxel_mat, volume_data, brain_regi
     if p_inside_volume(volume_data, p_voxel_v4):
         volume_value = get_volume_data(p_voxel_v4)
         if brain_region_map.find(volume_value, attr="id"):
-            metric[volume_value] += 1
+            metric[volume_value] = metric.get(volume_value, 0) + 1
         else:
             outside = True
             print(warning_unknown_brain_region(volume_value, p_world_v4, p_voxel_v4))

@@ -193,8 +193,8 @@ def save_batch_quality_measurement_annotation_report_on_resources(
 
     swc_path_to_report, swc_path_to_error = save_batch_quality_measurement_annotation_report(
         swc_paths=list(swc_path_to_resource.keys()), report_dir_path=report_dir_path,
-        morphologies=None, report_name=report_name,
-        added_list=added_list, individual_reports=individual_reports, volume_path=volume_p
+        morphologies=None, report_name=report_name, added_list=added_list,
+        individual_reports=individual_reports, brain_region_map=br_map, volume_path=volume_p
     )
 
     reports = [(swc_path_to_resource[swc_path], swc_path, report) for swc_path, report in swc_path_to_report.items()]
@@ -282,13 +282,13 @@ if __name__ == "__main__":
     #
     # resources = [r for r in resources if r.id not in issues]
 
-    br_map, voxel_d, volume_path, add_voxel_d = get_atlas(
+    brain_region_map, voxel_data, volume_path, add_voxel_data = get_atlas(
         working_dir=working_directory,
         is_prod=is_prod, token=token,
         tag=ATLAS_TAG, add_annot=list(ADDITIONAL_ANNOTATION_VOLUME.values())[0]
     )
 
-    used_voxel_data = voxel_d if is_default_annotation else add_voxel_d
+    used_voxel_data = voxel_data if is_default_annotation else add_voxel_data
 
     external_metadata_seu = pd.read_excel(SEU_METADATA_FILEPATH, skiprows=1, na_values=' ') if org == "bbp-external" and project == "seu" else None
 
@@ -301,7 +301,7 @@ if __name__ == "__main__":
         forge_datamodels=forge_datamodels,
         report_name=report_name,
         individual_reports=False,
-        br_map=br_map,
+        br_map=brain_region_map,
         voxel_d=used_voxel_data,
         volume_p=volume_path,
         external_metadata=external_metadata_seu,
