@@ -40,7 +40,7 @@ COORD_METADATA_COLUMN = 'coordinates_metadata (brainLocation.coordinatesInBrainA
 ATLAS_TAG = "v1.1.0"
 ALLEN_ANNOT_LABEL = "Allen CCFv3 2017"
 ADDITIONAL_ANNOTATION_VOLUME = {
-    ALLEN_ANNOT_LABEL: os.path.join(ASSETS_DIRECTORY, "annotation_25_Allen_CCFv3_2017")
+    ALLEN_ANNOT_LABEL: os.path.join(ASSETS_DIRECTORY, "annotation_25_Allen_CCFv3_2017.nrrd")
 }
 
 
@@ -401,7 +401,7 @@ def get_atlas(working_dir: str, is_prod: bool, token: str, tag: str = None, add_
     volume_path = os.path.join(atlas_dir, 'brain_regions.nrrd')
     #shutil.rmtree(atlas_dir)
 
-    add_voxel_data: VoxelData = atlas.load_data(add_annot) if add_annot else None
+    add_voxel_data: VoxelData = atlas.load_data(add_annot.replace('.nrrd', '')) if add_annot else None
     return brain_region_map, voxel_data, volume_path, add_voxel_data
 
 
