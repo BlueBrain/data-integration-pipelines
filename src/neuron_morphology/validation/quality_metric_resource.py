@@ -28,11 +28,11 @@ from src.neuron_morphology.validation.validator import validation_report_checks
 def quality_measurement_report_to_resource(
         morphology_resources_swc_path_and_report: List[Tuple[Resource, str, Dict]],
         forge: KnowledgeGraphForge,
-        contribution: Dict,
-        generation: Dict,
+        contrib: Dict,
+        generat: Dict,
         batch_report_name: str,
         batch_report_dir: str,
-        mapping_batch_validation_report: DictionaryMapping
+        mapping_batch_validation_r: DictionaryMapping
 ) -> Tuple[Resource, List[Resource], List[Resource]]:
 
     logger.info(f"Creating a {BATCH_TYPE} for {len(morphology_resources_swc_path_and_report)} resources and returning the existing {SOLO_TYPE} to update, or new ones to create")
@@ -89,9 +89,9 @@ def quality_measurement_report_to_resource(
         "filepath": os.path.join(batch_report_dir, batch_report_name)
     }
 
-    batch_report_resource = forge.map(batch_report, mapping_batch_validation_report, DictionaryMapper)
-    batch_report_resource.contribution = contribution
-    batch_report_resource.generation = generation
+    batch_report_resource = forge.map(batch_report, mapping_batch_validation_r, DictionaryMapper)
+    batch_report_resource.contribution = contrib
+    batch_report_resource.generation = generat
 
     to_upd, to_register = [], []
     for n, report in enumerate(reports_as_resources):
@@ -133,13 +133,13 @@ def asc_has_no_nan(asc_path) -> bool:
 
 
 def save_batch_quality_measurement_annotation_report_on_resources(
-        resources: List[Resource],
-        swc_download_folder: str,
-        asc_download_folder: str,
+        ress: List[Resource],
+        swc_download_fold: str,
+        asc_download_fold: str,
         forge: KnowledgeGraphForge,
-        forge_datamodels: KnowledgeGraphForge,
-        report_dir_path: str,
-        report_name: str,
+        forge_dm: KnowledgeGraphForge,
+        report_dir_p: str,
+        report_n: str,
         individual_reports: bool,
         br_map: RegionMap,
         voxel_d: VoxelData,
@@ -149,11 +149,11 @@ def save_batch_quality_measurement_annotation_report_on_resources(
         with_asc_check: bool = True
 ) -> Tuple[List[Tuple[Resource, str, Dict]], List[Tuple[Resource, str, Exception]]]:
 
-    n_resources = len(resources)
+    n_resources = len(ress)
 
     if with_br_check:
         brain_region_comp, sort_column = create_brain_region_comparison(
-            search_results=resources, morphology_dir=swc_download_folder, forge=forge_datamodels,
+            search_results=ress, morphology_dir=swc_download_fold, forge=forge_dm,
             brain_region_map=br_map, voxel_data=voxel_d, float_coordinates_check=False, ext_metadata=external_metadata
         )
         brain_region_comp_dict = dict(
@@ -163,9 +163,9 @@ def save_batch_quality_measurement_annotation_report_on_resources(
     if with_asc_check:
         logger.info(f"Performing asc check on {n_resources} Resources:")
         resource_id_to_asc_path = dict(
-            (resource.get_identifier(), get_ext_path(resource, ext_download_folder=asc_download_folder,
+            (resource.get_identifier(), get_ext_path(resource, ext_download_folder=asc_download_fold,
                 forge=forge, i_res=i_res, n_resources=n_resources, ext="asc"))
-            for i_res, resource in enumerate(resources)
+            for i_res, resource in enumerate(ress)
         )
 
     def resource_added_content(resource: Resource) -> Dict:
@@ -183,17 +183,17 @@ def save_batch_quality_measurement_annotation_report_on_resources(
 
         return temp
 
-    added_list = [resource_added_content(resource) for resource in resources]
+    added_list = [resource_added_content(resource) for resource in ress]
 
     swc_path_to_resource = dict(
-        (get_ext_path(resource, ext_download_folder=swc_download_folder, forge=forge,
+        (get_ext_path(resource, ext_download_folder=swc_download_fold, forge=forge,
             ext="swc", i_res=i_res, n_resources=n_resources), resource)
-        for i_res, resource in enumerate(resources)
+        for i_res, resource in enumerate(ress)
     )
 
     swc_path_to_report, swc_path_to_error = save_batch_quality_measurement_annotation_report(
-        swc_paths=list(swc_path_to_resource.keys()), report_dir_path=report_dir_path,
-        morphologies=None, report_name=report_name, added_list=added_list,
+        swc_paths=list(swc_path_to_resource.keys()), report_dir_p=report_dir_p,
+        morphs=None, report_n=report_n, added_list=added_list,
         individual_reports=individual_reports, brain_region_map=br_map, volume_path=volume_p
     )
 
@@ -233,25 +233,25 @@ if __name__ == "__main__":
     logger.info(f"Working directory {working_directory}")
     os.makedirs(working_directory, exist_ok=True)
 
-    forge = allocate(org, project, is_prod=is_prod, token=token)
+    forge_data = allocate(org, project, is_prod=is_prod, token=token)
     forge_datamodels = allocate("neurosciencegraph", "datamodels", is_prod=True, token=token)
 
     # with open(os.path.join(os.getcwd(), "src/neuron_morphology/axon_on_dendrite/res_to_len.json"), "r") as f:
     #     res_to_len = list(json.loads(f.read()).keys())
     #
-    # resources = forge.retrieve(res_to_len)
+    # resources = forge_data.retrieve(res_to_len)
 
     # resources = [
-    #    forge.retrieve("https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/ed3bfb7b-bf43-4e92-abed-e2ca1170c654"),
-    #    forge.retrieve("https://bbp.epfl.ch/data/bbp-external/seu/0f9021f0-83b2-4ff7-a11c-c7b91fd6d9be"),
-    #    forge.retrieve("https://bbp.epfl.ch/data/bbp-external/seu/ed3aa595-d7eb-4fc4-a080-6894e544ad31"),
-    #    forge.retrieve("https://bbp.epfl.ch/data/bbp-external/seu/e429ecc8-ed1e-4920-9846-e51c4cc14b4b"),
-    #    forge.retrieve("https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/b08710aa-53ec-403e-8c30-51b626659e63"),
-    #    forge.retrieve("https://bbp.epfl.ch/data/bbp-external/seu/2902f601-1dc0-4d7e-93da-698f4fa5c64c"),
-    #    forge.retrieve("https://bbp.epfl.ch/data/bbp-external/seu/52230e08-9f86-40e4-b7ab-201c482e7445")
+    #    forge_data.retrieve("https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/ed3bfb7b-bf43-4e92-abed-e2ca1170c654"),
+    #    forge_data.retrieve("https://bbp.epfl.ch/data/bbp-external/seu/0f9021f0-83b2-4ff7-a11c-c7b91fd6d9be"),
+    #    forge_data.retrieve("https://bbp.epfl.ch/data/bbp-external/seu/ed3aa595-d7eb-4fc4-a080-6894e544ad31"),
+    #    forge_data.retrieve("https://bbp.epfl.ch/data/bbp-external/seu/e429ecc8-ed1e-4920-9846-e51c4cc14b4b"),
+    #    forge_data.retrieve("https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/b08710aa-53ec-403e-8c30-51b626659e63"),
+    #    forge_data.retrieve("https://bbp.epfl.ch/data/bbp-external/seu/2902f601-1dc0-4d7e-93da-698f4fa5c64c"),
+    #    forge_data.retrieve("https://bbp.epfl.ch/data/bbp-external/seu/52230e08-9f86-40e4-b7ab-201c482e7445")
     # ]
 
-    resources = get_neuron_morphologies(curated=received_args.curated, forge=forge, tag=morphology_tag, limit=limit)
+    resources = get_neuron_morphologies(curated=received_args.curated, forge=forge_data, tag=morphology_tag, limit=limit)
 
     swc_download_folder = os.path.join(working_directory, "swcs")
     asc_download_folder = os.path.join(working_directory, "ascs")
@@ -271,14 +271,14 @@ if __name__ == "__main__":
     # issues = dict()
     # for resource in resources:
     #     try:
-    #         to_update = check_swc_on_resource(resource, swc_download_folder=swc_download_folder, forge=forge)
+    #         to_update = check_swc_on_resource(resource, swc_download_fold=swc_download_folder, forge=forge_data)
     #         if to_update:
     #             morphologies_to_update.append(resource)
     #
     #     except CustomEx as ex:
     #         issues[resource.id] = (resource, ex)
     #
-    # forge.update(morphologies_to_update, NEURON_MORPHOLOGY_SCHEMA)
+    # forge_data.update(morphologies_to_update, NEURON_MORPHOLOGY_SCHEMA)
     #
     # resources = [r for r in resources if r.id not in issues]
 
@@ -296,14 +296,14 @@ if __name__ == "__main__":
 
     external_metadata_seu = pd.read_excel(SEU_METADATA_FILEPATH, skiprows=1, na_values=' ') if org == "bbp-external" and project == "seu" else None
 
-    reports, errors = save_batch_quality_measurement_annotation_report_on_resources(
-        resources=resources,
-        swc_download_folder=swc_download_folder,
-        asc_download_folder=asc_download_folder,
-        report_dir_path=report_dir_path,
-        forge=forge,
-        forge_datamodels=forge_datamodels,
-        report_name=report_name,
+    reports_list, _ = save_batch_quality_measurement_annotation_report_on_resources(
+        ress=resources,
+        swc_download_fold=swc_download_folder,
+        asc_download_fold=asc_download_folder,
+        report_dir_p=report_dir_path,
+        forge=forge_data,
+        forge_dm=forge_datamodels,
+        report_n=report_name,
         individual_reports=False,
         br_map=brain_region_map,
         voxel_d=used_voxel_data,
@@ -314,7 +314,7 @@ if __name__ == "__main__":
     )
 
     # for resource in resources:
-    #     path = Path(get_swc_path(resource, swc_download_folder, forge))
+    #     path = Path(get_swc_path(resource, swc_download_folder, forge_data))
     #     dst_dir = Path(os.path.join(working_directory, "workflow_output"))
     #     result = run_workflow_on_path(path, dst_dir)
 
@@ -335,14 +335,14 @@ if __name__ == "__main__":
         )
         contribution = get_contribution(token=token, production=False)
     else:
-        forge_push = forge
+        forge_push = forge_data
         contribution = get_contribution(token=token, production=is_prod)
 
     batch_quality_to_register, quality_to_update, quality_to_register = quality_measurement_report_to_resource(
-        morphology_resources_swc_path_and_report=reports, forge=forge_push,
-        contribution=contribution, generation=generation,
+        morphology_resources_swc_path_and_report=reports_list, forge=forge_push,
+        contrib=contribution, generat=generation,
         batch_report_name=report_name, batch_report_dir=report_dir_path,
-        mapping_batch_validation_report=mapping_batch_validation_report,
+        mapping_batch_validation_r=mapping_batch_validation_report,
     )
 
     if really_update:

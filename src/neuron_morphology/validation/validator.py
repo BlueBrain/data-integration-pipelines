@@ -1,7 +1,7 @@
 '''A backend that return a validation report for a given morphology. This script was originally shared here: ≈2'''
 
 import os
-from typing import Dict, Any, List, Callable, Optional, Tuple #, Union
+from typing import Dict, Any, List, Callable, Optional, Tuple
 
 import neurom as nm
 from IPython.utils import io
@@ -67,7 +67,7 @@ class Check:
 
     def run(self, neuron, swc_path, brain_region_map=None, volume_path=None):
         # TODO try catch and return CheckResult(false) if exception
-        with io.capture_output() as captured:
+        with io.capture_output():
             with morphio.ostream_redirect(stdout=True, stderr=True):
                 try:
                     return self.callable_(neuron, swc_path, brain_region_map, volume_path)
@@ -75,7 +75,7 @@ class Check:
                     return CheckResult(status=False, info=e)
 
     @staticmethod
-    def basic_tsv(neuron_path, k_1, k_2, x):
+    def basic_tsv(x):
         if x.status is not None:
             if not x.status and isinstance(x.info, Exception):
                 return str(x.info).replace("\n", "")
@@ -88,7 +88,7 @@ class Check:
         return str(x.status)
 
     @staticmethod
-    def basic_json(neuron_path, k_1, k_2, x):
+    def basic_json(x):
 
         if not isinstance(x, CheckResult):
             return x
@@ -102,7 +102,7 @@ class Check:
         return x.info if not isinstance(x.info, Exception) else str(x.info)
 
     @staticmethod
-    def basic_numeric(neuron_path, k_1, k_2, x):
+    def basic_numeric(x):
         if isinstance(x, CheckResult):
             if not x.status:
                 return str(x.info)
@@ -457,7 +457,7 @@ validation_report_checks = {
 def _load_morph(swc_path: str):
     morphio.set_raise_warnings(False)
 
-    with io.capture_output() as captured:
+    with io.capture_output():
         with morphio.ostream_redirect(stdout=True, stderr=True):
             return load_morphology(swc_path, process_subtrees=True)
 

@@ -6,7 +6,7 @@ from typing import Tuple, Dict, List, Optional, Union
 from src.helpers import _as_list
 from src.logger import logger
 from src.neuron_morphology.arguments import define_arguments
-from src.neuron_morphology.validation.load_test_data import get_random_test_data #, get_neurom_test_data
+from src.neuron_morphology.validation.load_test_data import get_random_test_data
 from src.neuron_morphology.validation.validator import (
     get_validation_report_as_tsv_line,
     get_validation_report_as_json,
@@ -25,7 +25,7 @@ QUALITY_SCHEMA = "https://neuroshapes.org/dash/qualitymeasurementannotation"
 
 def save_quality_measurement_annotation_report(
         swc_path: str,
-        report_dir_path: str,
+        report_dir_p: str,
         individual_reports: bool,
         name: Optional[str] = None,
         added: Optional[Dict] = None,
@@ -34,9 +34,9 @@ def save_quality_measurement_annotation_report(
         volume_path=None
 ) -> Tuple[List[str], Dict]:
 
-    os.makedirs(report_dir_path, exist_ok=True)
-    json_path = os.path.join(report_dir_path, "json")
-    tsv_path = os.path.join(report_dir_path, "tsv")
+    os.makedirs(report_dir_p, exist_ok=True)
+    json_path = os.path.join(report_dir_p, "json")
+    tsv_path = os.path.join(report_dir_p, "tsv")
     os.makedirs(json_path, exist_ok=True)
     os.makedirs(tsv_path, exist_ok=True)
 
@@ -80,19 +80,19 @@ def _get_headers_and_more(added: Union[List[Dict], Dict]):
 
 def save_batch_quality_measurement_annotation_report(
         swc_paths: List[str],
-        report_dir_path: str,
-        report_name: str,
+        report_dir_p: str,
+        report_n: str,
         individual_reports: bool,
-        morphologies: Optional[List[Morphology]] = None,
+        morphs: Optional[List[Morphology]] = None,
         added_list: Optional[List[Dict]] = None,
         brain_region_map=None,
         volume_path=None
 ) -> Tuple[Dict[str, Dict], Dict[str, Exception]]:
-    os.makedirs(report_dir_path, exist_ok=True)
+    os.makedirs(report_dir_p, exist_ok=True)
 
-    if morphologies is None:
-        morphologies = [None] * len(swc_paths)
-    elif len(morphologies) != len(swc_paths):
+    if morphs is None:
+        morphs = [None] * len(swc_paths)
+    elif len(morphs) != len(swc_paths):
         raise Exception("Provided morphology list should be the same length as swc paths")
 
     if added_list is None:
@@ -108,11 +108,11 @@ def save_batch_quality_measurement_annotation_report(
     batch_quality_measurement_annotation_tsv = "# " + tsv_header + "\n"
 
     n_paths = len(swc_paths)
-    for i_path, (swc_path, morphology, added) in enumerate(zip(swc_paths, morphologies, added_list)):
+    for i_path, (swc_path, morphology, added) in enumerate(zip(swc_paths, morphs, added_list)):
         logger.info(f"Processing swc path {i_path +1} of {n_paths}")
         # try:
         report_as_tsv_line, report_as_json = save_quality_measurement_annotation_report(
-            swc_path=swc_path, report_dir_path=report_dir_path, morphology=morphology,
+            swc_path=swc_path, report_dir_p=report_dir_p, morphology=morphology,
             added=added, individual_reports=individual_reports,
             brain_region_map=brain_region_map, volume_path=volume_path
         )
@@ -123,7 +123,7 @@ def save_batch_quality_measurement_annotation_report(
         batch_quality_measurement_annotation_tsv += '\t'.join(report_as_tsv_line) + "\n"
         reports[swc_path] = report_as_json
 
-    with open(os.path.join(report_dir_path, report_name), "w") as f:
+    with open(os.path.join(report_dir_p, report_n), "w") as f:
         f.write(batch_quality_measurement_annotation_tsv)
 
     return reports, errors
@@ -152,12 +152,12 @@ if __name__ == "__main__":
     if os.path.exists(report_dir_path):
         shutil.rmtree(report_dir_path)
 
-    reports, errors = save_batch_quality_measurement_annotation_report(
+    reports_dict, _ = save_batch_quality_measurement_annotation_report(
         swc_paths=paths,
-        morphologies=morphologies,
-        report_dir_path=report_dir_path,
-        report_name=report_name,
+        morphs=morphologies,
+        report_dir_p=report_dir_path,
+        report_n=report_name,
         individual_reports=True
     )
 
-    print(json.dumps(reports, indent=4))
+    print(json.dumps(reports_dict, indent=4))

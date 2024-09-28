@@ -175,6 +175,7 @@ def create_brain_region_comparison(
 
     default_region = "declared"
     neigh_col_label = "neighbours"
+
     def get_coord_col_names(coord_label):
         col_names = [f'observed_region_{coord_label}']
         for ref in [default_region, 'original brain', ALLEN_ANNOT_LABEL]:
@@ -186,7 +187,6 @@ def create_brain_region_comparison(
         col_names.append(get_relation_col_name(f"{coord_label}_{neigh_col_label}", default_region))
 
         return col_names
-
 
     # This is the order with which keys will be inserted in the final dict, which should be
     column_order = [
@@ -273,7 +273,6 @@ def create_brain_region_comparison(
             observed_res = cacheresolve(observed_label, forge)
             observed_id = observed_res.id
 
-
             def check_agreement(obs_id, ref_id):
                 # Match observed region with declared region
                 regions_match = False
@@ -320,7 +319,6 @@ def create_brain_region_comparison(
                     rel_string = f'first common ancestor: {first_common_ancestor}'
 
                 return agr, rel_string
-
 
             for seu_label, ref in seu_regions_ref.items():
                 logger.info(f"{coord_type} - {seu_label}")

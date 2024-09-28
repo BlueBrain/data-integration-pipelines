@@ -243,8 +243,7 @@ def _compute_section_leaf_regions(
             metrics_i[key] = list(
                 {"brainRegion": {
                     "@id": f"http://api.brain-map.org/api/v2/data/Structure/{str(reg_id)}"},
-                    "count": count
-                }
+                    "count": count}
                 for reg_id, count in metrics_i[key].items()
             )
 

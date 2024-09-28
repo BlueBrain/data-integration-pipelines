@@ -1,11 +1,10 @@
 import nrrd
 import numpy as np
-from typing import List, Tuple
 
 from morphio._morphio import SectionType
 from neurom import NeuriteType, iter_sections, iter_segments, iter_neurites
 from neurom.check import CheckResult
-from neurom.core import Morphology, Section
+from neurom.core import Morphology
 from neurom.core.dataformat import COLS
 
 from src.neuron_morphology.feature_annotations.morph_metrics_dke import increment_metric, compute_world_to_vox_mat
