@@ -75,7 +75,7 @@ class Check:
                     return CheckResult(status=False, info=e)
 
     @staticmethod
-    def basic_tsv(x):
+    def basic_tsv(neuron_path, k_1, k_2, x):
         if x.status is not None:
             if not x.status and isinstance(x.info, Exception):
                 return str(x.info).replace("\n", "")
@@ -88,7 +88,7 @@ class Check:
         return str(x.status)
 
     @staticmethod
-    def basic_json(x):
+    def basic_json(neuron_path, k_1, k_2, x):
 
         if not isinstance(x, CheckResult):
             return x
@@ -102,7 +102,7 @@ class Check:
         return x.info if not isinstance(x.info, Exception) else str(x.info)
 
     @staticmethod
-    def basic_numeric(x):
+    def basic_numeric(neuron_path, k_1, k_2, x):
         if isinstance(x, CheckResult):
             if not x.status:
                 return str(x.info)
