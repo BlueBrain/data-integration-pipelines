@@ -20,30 +20,31 @@ setup(
     long_description_content_type="text/markdown",
     keywords="framework knowledge graph forge data processing mapper mapping",
     packages=find_packages(),
-    python_requires=">=3.7",
+    python_requires=">=3.10",  # due to thumbnail-generation-api
     include_package_data=True,
     setup_requires=['setuptools_scm'],
     install_requires=[
-        "pandas",
+        "pandas==2.2.3",
         "nexusforge@git+https://github.com/BlueBrain/nexus-forge",
+
         "morphio==v3.3.9",
         # "morph-tool==v2.10.2",
         # "morphology-workflows==0.10.1",
         "voxcell==3.1.9",
-        "python-keycloak>=0.24.0",
-        # "pynwb==2.0.0",
-        "pyjwt",
         "neurom==v4.0.2",
         "pynrrd==1.0.0",
         # "numpy<1.24",
-        # f"../pyswcparser",
+
         "XlsxWriter==3.1.9",
         "importlib_metadata",
         "IPython",
-        "openpyxl",
+        "openpyxl"
     ],
     extras_require={
         "dev": ["pytest", "pytest-cov", "pytest-mock", "flake8"],
+        "trace": [
+            "thumbnail-generation-api@git+https://github.com/BlueBrain/thumbnail-generation-api"
+        ]
     },
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",

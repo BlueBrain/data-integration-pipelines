@@ -1,4 +1,4 @@
-image: python:3.8
+image: python:3.10
 
 variables:
   REALLY_UPDATE:
@@ -48,6 +48,57 @@ stages:
 # linting:
 #  stage: lint
 #  script: flake8 src/schemas
+
+find_traces:
+  before_script:
+    - pip install .[trace]
+
+  timeout: 6h 00m
+  rules:
+    - when: manual
+
+  parallel:
+    matrix:
+      - BUCKET: public/sscx
+      - BUCKET: public/thalamus
+      - BUCKET: public/hippocampus
+      - BUCKET: bbp/lnmce
+  variables:
+    OUTPUT_DIR: "./output/$CI_COMMIT_TIMESTAMP"
+    CURATED: "both"
+  script:
+    - echo CURATED ${CURATED}
+    - python src/trace/find_valid_data.py  --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --curated $CURATED --bucket $BUCKET
+  artifacts:
+    paths:
+      - "$OUTPUT_DIR"
+
+
+update_trace_curated:
+  before_script:
+    - pip install .[trace]
+
+  timeout: 6h 00m
+  rules:
+    - when: manual
+
+  parallel:
+    matrix:
+      - BUCKET: public/sscx
+      - BUCKET: public/thalamus
+      - BUCKET: public/hippocampus
+      - BUCKET: bbp/lnmce
+
+  variables:
+    OUTPUT_DIR: "./output/$CI_COMMIT_TIMESTAMP"
+    REALLY_UPDATE: "no"
+  script:
+    - echo REALLY_UPDATE ${REALLY_UPDATE}
+    - python src/trace/add_curation_annotation.py  --username $SA_USERNAME --password $SA_PASSWORD --output_dir $OUTPUT_DIR --really_update $REALLY_UPDATE --bucket $BUCKET
+  artifacts:
+    paths:
+      - "$OUTPUT_DIR"
+
 
 check_morphologies_schema:
   rules:
