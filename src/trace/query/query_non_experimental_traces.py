@@ -7,7 +7,7 @@ from src.logger import logger
 from src.get_projects import _get_all_projects
 
 from src.trace.query.query import query_traces
-from src.trace.get_command_line_args import trace_command_line_args
+from src.trace.arguments import trace_command_line_args
 from src.trace.types_and_schemas import TRACE_TYPE
 
 if __name__ == "__main__":

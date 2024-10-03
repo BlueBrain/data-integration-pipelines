@@ -10,7 +10,7 @@ from urllib.parse import quote_plus
 import requests
 
 from src.helpers import DEFAULT_SPARQL_VIEW, authenticate_from_parser_arguments
-from src.trace.get_command_line_args import trace_command_line_args
+from src.trace.arguments import trace_command_line_args
 
 
 def stimulus_type_ontology(deployment_str: str, token: str) -> Tuple[Dict, Dict]:

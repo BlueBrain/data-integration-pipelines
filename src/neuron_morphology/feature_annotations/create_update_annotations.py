@@ -22,7 +22,9 @@ import pandas as pd
 import re
 import traceback
 
-from src.neuron_morphology.query_data import get_neuron_morphologies, get_ext_path
+from src.neuron_morphology.query_data import get_neuron_morphologies
+from src.helpers import get_ext_path
+
 
 ANNOTATION_SCHEMA = "https://neuroshapes.org/dash/annotation"
 

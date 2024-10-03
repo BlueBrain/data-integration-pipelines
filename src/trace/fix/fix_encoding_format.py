@@ -23,7 +23,7 @@ from src.forge_extension import _retrieve_file_metadata, _exists
 
 from src.trace.query.query import query_traces
 
-from src.trace.get_command_line_args import trace_command_line_args
+from src.trace.arguments import trace_command_line_args
 
 
 def fix_encoding_format(id_: str, forge: KnowledgeGraphForge) -> Resource:

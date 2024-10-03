@@ -1,0 +1,16 @@
+{
+    type: [
+        Dataset
+    ]
+    brainLocation: {
+        type: BrainLocation
+        brainRegion: x.brainRegion
+    }
+    distribution: x.distribution
+    contribution: x.contribution
+    name: x.name
+    description: x.description
+    image: x.image
+    stimuli: x.stimuli
+    objectsOfStudy: x.objectOfStudy
+}
