@@ -31,7 +31,7 @@ def generate_nwb_products(forge: KnowledgeGraphForge, nwb_path: str,
         in nexus.
     Returns: {'distribution', 'image', 'stimulus', 'rab_path}
     """
-    
+
     dir_path = os.path.dirname(nwb_path)
     trace_name = nwb_path.split('/')[-1].split('.nwb')[0]
     rab_path = f"{dir_path}/{trace_name}.rab"
@@ -40,7 +40,6 @@ def generate_nwb_products(forge: KnowledgeGraphForge, nwb_path: str,
     trace_distribution = forge.attach(nwb_path, content_type='application/nwb')
     png_paths = [str(x) for x in Path(dir_path).iterdir() if str(x).endswith('png')]
     image_obj = defaultdict(list)
-    is_singleCell = []
     stimuli = []
     stimulus_obj = []
     for path in png_paths[:]:
@@ -57,14 +56,14 @@ def generate_nwb_products(forge: KnowledgeGraphForge, nwb_path: str,
         repetition = int(fragments[-1].split(".")[0])
         stimulus_identifier = f"http://bbp.epfl.ch/neurosciencegraph/ontologies/stimulustypes/{fragments[1]}"
         image_obj[fragments[0]].append(
-        forge.from_json({
-            "id": identifier,
-            "about": about,
-            "repetition": repetition,
-            "stimulusType": {
-                "id": stimulus_identifier
-            }
-        })
+            forge.from_json({
+                "id": identifier,
+                "about": about,
+                "repetition": repetition,
+                "stimulusType": {
+                    "id": stimulus_identifier
+                }
+            })
         )
         obj = image_obj[fragments[0]]
         stimuli = []
@@ -73,13 +72,13 @@ def generate_nwb_products(forge: KnowledgeGraphForge, nwb_path: str,
 
     for stim_id in set(stimuli):
         stimulus_obj.append(
-        forge.from_json({
-                "type": "Stimulus",
-                "stimulusType": {
-                  "id": stim_id,
-                  "label": stimulus_type_id_to_label[stim_id]
-                }
-               }))
+            forge.from_json({
+                    "type": "Stimulus",
+                    "stimulusType": {
+                      "id": stim_id,
+                      "label": stimulus_type_id_to_label[stim_id]
+                    }
+                   }))
     return {'distribution': trace_distribution,
             'image': image_obj[fragments[0]],
             'stimuli': stimulus_obj,
@@ -93,8 +92,7 @@ def create_trace_resource(forge: KnowledgeGraphForge, nwb_path: str, metadata: D
     single_cell_stimulus_type_id_to_label, stimulus_type_id_to_label = stimuli_dicts
     mapping_trace = DictionaryMapping.load(os.path.join(ASSETS_DIRECTORY, 'GeneralTraceMapping.hjson'))
 
-    
-    assert'brainRegion' in metadata, "Missing brain region information in the metadata"
+    assert 'brainRegion' in metadata, "Missing brain region information in the metadata"
     assert 'contribution' in metadata, "Missing contribution information in the metadata"
     assert 'description' in metadata, "Missing description of the resource in the metadata"
     assert 'objectOfStudy' in metadata, "Missing the object of study of the resource in the metadata"
@@ -112,7 +110,7 @@ def create_trace_resource(forge: KnowledgeGraphForge, nwb_path: str, metadata: D
     trace = forge.map(metadata, mapping_trace, DictionaryMapper)
     # add types to trace
     is_single_cell = all([True for stimulus in metadata['stimuli']
-                      if stimulus.stimulusType.get_identifier() in single_cell_stimulus_type_id_to_label])
+                         if stimulus.stimulusType.get_identifier() in single_cell_stimulus_type_id_to_label])
 
     trace.type.append(trace_type)
     if is_single_cell:
@@ -131,39 +129,39 @@ def register_trace_resources(forge: KnowledgeGraphForge, nwb_path: str, metadata
 
     forge.validate(trace_resource, type_="Dataset", execute_actions_before=True)
     if not trace_resource._last_action.succeeded:
-        logger.error(f"Failed to validate the trace resource. Error: {trace_resource._last_action.message}")        
+        logger.error(f"Failed to validate the trace resource. Error: {trace_resource._last_action.message}")
         return (trace_resource, None)
     forge.register(trace_resource, schema_id=DATASET_SCHEMA)
 
     if not trace_resource._last_action.succeeded:
-        logger.error(f"Failed to register the trace resource. Error: {trace_resource._last_action.message}")        
+        logger.error(f"Failed to register the trace resource. Error: {trace_resource._last_action.message}")
         return (trace_resource, None)
 
     web_data_container = create_twdc_from_trace(trace_resource=trace_resource,
                                                 forge=forge, dir_path=dir_path)
-    
+
     # register the TraceWebDataContainer
     forge.register(web_data_container, schema_id=TRACE_WEB_DATA_CONTAINER_SCHEMA)
 
     if not web_data_container._last_action.succeeded:
-        logger.error(f"Failed to register the web data container resource. Error: {web_data_container._last_action.message}")        
+        logger.error(f"Failed to register the web data container resource. Error: {web_data_container._last_action.message}")
         return (trace_resource, web_data_container)
-    
+
     # update trace resource with hasPart pointing to the twdc
     trace_resource.hasPart = forge.from_json({'id': web_data_container.get_identifier(),
                                               'type': 'TraceWebDataContainer'})
 
     if trace_type == "ExperimentalTrace":
-       forge.update(trace_resource, schema_id=EXPERIMENTAL_TRACE_SCHEMA)
+        forge.update(trace_resource, schema_id=EXPERIMENTAL_TRACE_SCHEMA)
     elif trace_type == "SimulationTrace":
-       forge.update(trace_resource, schema_id=SIMULATION_TRACE_SCHEMA)
+        forge.update(trace_resource, schema_id=SIMULATION_TRACE_SCHEMA)
     else:
         forge.update(trace_resource, schema_id=TRACE_SCHEMA)
 
     if not trace_resource._last_action.succeeded:
-        logger.error(f"Failed to update the trace resource. Error: {trace_resource._last_action.message}")        
+        logger.error(f"Failed to update the trace resource. Error: {trace_resource._last_action.message}")
         return (trace_resource, web_data_container)
-    
+
 
 if __name__ == "__main__":
     org, project = ('dke', 'kgforge')
@@ -188,20 +186,20 @@ if __name__ == "__main__":
     metadata['contribution'] = {
         "type": "Contribution",
         "agent": {"id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/romani",
-                                "type": [
-                                  "Person",
-                                  "Agent"
-                                ], 
-                                "email": "armando.romani@epfl.ch",
-                                "familyName": "Romani",
-                                "givenName": "Armando",
-                                "name": "Armando Romani"
-                                }}
+                  "type": [
+                    "Person",
+                    "Agent"
+                  ],
+                  "email": "armando.romani@epfl.ch",
+                  "familyName": "Romani",
+                  "givenName": "Armando",
+                  "name": "Armando Romani"}
+    }
     metadata["subject"] = {
-    "type": "Subject",
-    "species": {
-      "id": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
-      "label": "Mus musculus"
+        "type": "Subject",
+        "species": {
+          "id": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+          "label": "Mus musculus"
         }
     }
     # create_existing_agent_contribution(forge=forge_instance, name="Romani")
@@ -209,5 +207,3 @@ if __name__ == "__main__":
     trace_resources = register_trace_resources(forge=forge_instance, nwb_path='./output/tmp/Rt_RC_cAD_noscltb_7.nwb',
                                                metadata=metadata, trace_type='ExperimentalTrace',
                                                stimuli_dicts=stimuli_dicts)
-
-    

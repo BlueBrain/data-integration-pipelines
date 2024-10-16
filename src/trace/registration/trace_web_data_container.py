@@ -35,11 +35,10 @@ def create_twdc_from_trace(trace_resource: Resource, forge: KnowledgeGraphForge,
     else:
         trace_type = 'Trace'
     twdc.isPartOf = forge.from_json({'id': trace_resource.get_identifier(),
-                                     'type': trace_type
-                                    })
+                                     'type': trace_type})
     distribution = forge.attach(rab_path, content_type='application/rab')
     twdc.distribution = distribution
-    
+
     return twdc
 
 
