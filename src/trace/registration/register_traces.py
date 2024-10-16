@@ -14,7 +14,11 @@ from src.logger import logger
 from src.helpers import allocate_with_default_views, Deployment, ASSETS_DIRECTORY
 from src.trace.visualization.lnmc_nwb_visualization import generate
 from src.trace.types_and_schemas import (
-    TRACE_WEB_DATA_CONTAINER_SCHEMA, EXPERIMENTAL_TRACE_SCHEMA, SIMULATION_TRACE_SCHEMA,
+    TRACE_WEB_DATA_CONTAINER_SCHEMA,
+    TRACE_SCHEMA,
+    DATASET_SCHEMA,
+    EXPERIMENTAL_TRACE_SCHEMA,
+    SIMULATION_TRACE_SCHEMA,
     SINGLE_CELL_TRACE_TYPE)
 from src.trace.stimulus_type_ontology_querying import stimulus_type_ontology
 from src.trace.registration.trace_web_data_container import create_twdc_from_trace
@@ -77,7 +81,7 @@ def generate_nwb_products(forge: KnowledgeGraphForge, nwb_path: str,
                 }
                }))
     return {'distribution': trace_distribution,
-            'image': image_obj,
+            'image': image_obj[fragments[0]],
             'stimuli': stimulus_obj,
             'rab_path': rab_path
             }
@@ -94,6 +98,7 @@ def create_trace_resource(forge: KnowledgeGraphForge, nwb_path: str, metadata: D
     assert 'contribution' in metadata, "Missing contribution information in the metadata"
     assert 'description' in metadata, "Missing description of the resource in the metadata"
     assert 'objectOfStudy' in metadata, "Missing the object of study of the resource in the metadata"
+    assert 'subject' in metadata, "Missing the subject information in the metadata"
 
     metadata['name'] = nwb_path.split('/')[-1].split('.nwb')[0]
 
@@ -105,7 +110,6 @@ def create_trace_resource(forge: KnowledgeGraphForge, nwb_path: str, metadata: D
             metadata[k] = v
 
     trace = forge.map(metadata, mapping_trace, DictionaryMapper)
-    print()
     # add types to trace
     is_single_cell = all([True for stimulus in metadata['stimuli']
                       if stimulus.stimulusType.get_identifier() in single_cell_stimulus_type_id_to_label])
@@ -125,8 +129,11 @@ def register_trace_resources(forge: KnowledgeGraphForge, nwb_path: str, metadata
     trace_resource = create_trace_resource(forge, nwb_path, metadata, trace_type,
                                            stimuli_dicts)
 
-    # register first the trace resource as a dataset to get it's id
-    forge.register(trace_resource, schema_id='datashapes:dataset')
+    forge.validate(trace_resource, type_="Dataset", execute_actions_before=True)
+    if not trace_resource._last_action.succeeded:
+        logger.error(f"Failed to validate the trace resource. Error: {trace_resource._last_action.message}")        
+        return (trace_resource, None)
+    forge.register(trace_resource, schema_id=DATASET_SCHEMA)
 
     if not trace_resource._last_action.succeeded:
         logger.error(f"Failed to register the trace resource. Error: {trace_resource._last_action.message}")        
@@ -151,7 +158,7 @@ def register_trace_resources(forge: KnowledgeGraphForge, nwb_path: str, metadata
     elif trace_type == "SimulationTrace":
        forge.update(trace_resource, schema_id=SIMULATION_TRACE_SCHEMA)
     else:
-        forge.update(trace_resource, schema_id="datashapes:trace")
+        forge.update(trace_resource, schema_id=TRACE_SCHEMA)
 
     if not trace_resource._last_action.succeeded:
         logger.error(f"Failed to update the trace resource. Error: {trace_resource._last_action.message}")        
@@ -160,17 +167,17 @@ def register_trace_resources(forge: KnowledgeGraphForge, nwb_path: str, metadata
 
 if __name__ == "__main__":
     org, project = ('dke', 'kgforge')
-    deployment = Deployment["PRODUCTION"]
-    token = ""
+    deployment = Deployment["STAGING"]
 
+    token = ""
     forge_instance = allocate_with_default_views(org, project, deployment=deployment, token=token)
-    
+
     stimuli_dicts = stimulus_type_ontology(
         deployment_str=deployment.value, token=token
     )
 
     metadata = {}
-    
+
     metadata['brainRegion'] = create_brain_region(forge=forge_instance, region_label="Reticular nucleus of the thalamus")
     metadata['description'] = "example of trace resource"
     metadata['objectOfStudy'] = {
@@ -178,8 +185,27 @@ if __name__ == "__main__":
         "type": "ObjectOfStudy",
         "label": "Single Cell"
     }
-    metadata['contribution'] = create_existing_agent_contribution(forge=forge_instance, name="Romani")
-    
+    metadata['contribution'] = {
+        "type": "Contribution",
+        "agent": {"id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/romani",
+                                "type": [
+                                  "Person",
+                                  "Agent"
+                                ], 
+                                "email": "armando.romani@epfl.ch",
+                                "familyName": "Romani",
+                                "givenName": "Armando",
+                                "name": "Armando Romani"
+                                }}
+    metadata["subject"] = {
+    "type": "Subject",
+    "species": {
+      "id": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+      "label": "Mus musculus"
+        }
+    }
+    # create_existing_agent_contribution(forge=forge_instance, name="Romani")
+
     trace_resources = register_trace_resources(forge=forge_instance, nwb_path='./output/tmp/Rt_RC_cAD_noscltb_7.nwb',
                                                metadata=metadata, trace_type='ExperimentalTrace',
                                                stimuli_dicts=stimuli_dicts)

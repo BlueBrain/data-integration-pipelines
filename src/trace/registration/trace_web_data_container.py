@@ -24,7 +24,9 @@ def create_twdc_from_trace(trace_resource: Resource, forge: KnowledgeGraphForge,
     delattr(twdc, 'distribution')
     if hasattr(twdc, 'image'):
         delattr(twdc, 'image')
-    trace_resource._store_metadata = None
+    if hasattr(twdc, 'stimuli'):
+        delattr(twdc, 'stimuli')
+    twdc._store_metadata = None
     twdc.type = ['Dataset', 'TraceWebDataContainer']
     if 'ExperimentalTrace' in trace_resource.type:
         trace_type = 'ExperimentalTrace'

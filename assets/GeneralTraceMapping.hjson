@@ -13,4 +13,5 @@
     image: x.image
     stimuli: x.stimuli
     objectsOfStudy: x.objectOfStudy
+    subject: x.subject
 }
