@@ -38,7 +38,8 @@ setup(
         "XlsxWriter==3.1.9",
         "importlib_metadata",
         "IPython",
-        "openpyxl"
+        "openpyxl",
+        "pyjwt"
     ],
     extras_require={
         "dev": ["pytest", "pytest-cov", "pytest-mock", "flake8"],

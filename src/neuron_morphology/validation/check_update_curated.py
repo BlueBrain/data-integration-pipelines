@@ -75,8 +75,8 @@ def _add_replace_delete_annotation(resource, curated_annotation, is_curated=True
 
     new_annotation = []
     
-    if hasattr(resource.annotation):
-        annotation = resource.annotation if isinstance(annotation, list) else [resource.annotation]
+    if hasattr(resource, 'annotation'):
+        annotation = resource.annotation if isinstance(resource.annotation, list) else [resource.annotation]
         found = False
         for item in annotation:
             if item.hasBody.get_identifier() == UNASSESSED_ANNOTATION_ID:
