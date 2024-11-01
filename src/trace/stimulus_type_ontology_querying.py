@@ -9,7 +9,7 @@ from typing import Tuple, Dict
 from urllib.parse import quote_plus
 import requests
 
-from src.helpers import Deployment, authenticate, DEFAULT_SPARQL_VIEW
+from src.helpers import DEFAULT_SPARQL_VIEW, authenticate_from_parser_arguments
 from src.trace.get_command_line_args import trace_command_line_args
 
 
@@ -53,9 +53,7 @@ if __name__ == "__main__":
 
     received_args, leftovers = parser.parse_known_args()
 
-    auth_token = authenticate(username=received_args.username, password=received_args.password)
-
-    deployment = Deployment[received_args.deployment]
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
 
     b = stimulus_type_ontology(deployment_str=deployment.value, token=auth_token)
 

@@ -3,8 +3,7 @@ from typing import Dict, Tuple
 
 from kgforge.core import KnowledgeGraphForge, Resource
 
-from src.helpers import allocate
-
+from src.helpers import allocate_by_deployment, Deployment
 
 # See summary of all e-models: https://docs.google.com/spreadsheets/d/1d0C1FToTc30TMubteFUHMbEph8qNBph5YxruOaahfl0/edit?gid=0#gid=0
 
@@ -182,7 +181,7 @@ def get_e_models_and_categorisation(forge: KnowledgeGraphForge) -> Dict[str, Tup
 if __name__ == "__main__":
     org, project = "bbp", "mmb-point-neuron-framework-model"
     token = getpass.getpass()
-    forge_instance = allocate(org, project, is_prod=True, token=token)
+    forge_instance = allocate_by_deployment(org, project, deployment=Deployment.PRODUCTION, token=token)
 
     res = get_e_models_and_categorisation(forge_instance)
     # res = curated_e_models(forge_instance)

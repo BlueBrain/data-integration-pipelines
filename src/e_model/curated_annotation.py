@@ -3,8 +3,7 @@ import getpass
 from kgforge.core import Resource
 
 from src.e_model.querying import curated_e_models
-from src.helpers import allocate, _as_list
-
+from src.helpers import allocate_by_deployment, _as_list, Deployment
 
 CURATED_ANNOTATION = {
     "@type": [
@@ -52,7 +51,7 @@ def _add_annotation(resource: Resource, annotation: Resource) -> Resource:
 if __name__ == "__main__":
 
     token = getpass.getpass()
-    forge_bucket = allocate("bbp", "mmb-point-neuron-framework-model", is_prod=True, token=token)
+    forge_bucket = allocate_by_deployment("bbp", "mmb-point-neuron-framework-model", deployment=Deployment.PRODUCTION, token=token)
     ann = forge_bucket.from_json(CURATED_ANNOTATION)
     resources = curated_e_models(forge_bucket)
     updated_resources = [_add_annotation(r, ann) for r in resources]

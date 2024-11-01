@@ -16,7 +16,7 @@ from kgforge.core import KnowledgeGraphForge
 from api.utils.trace_img import get_conversion, select_element, select_protocol, select_response, get_unit, get_rate
 from api.models.enums import MetaType
 
-from src.helpers import allocate_with_default_views, Deployment, authenticate
+from src.helpers import allocate_with_default_views, authenticate_from_parser_arguments
 from src.logger import logger
 from src.trace.get_command_line_args import trace_command_line_args
 from src.trace.query.query import query_traces
@@ -109,9 +109,7 @@ if __name__ == "__main__":
 
     received_args, leftovers = parser.parse_known_args()
 
-    auth_token = authenticate(username=received_args.username, password=received_args.password)
-
-    deployment = Deployment[received_args.deployment]
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
 
     org, project = received_args.bucket.split("/")
 

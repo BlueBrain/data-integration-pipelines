@@ -1,9 +1,10 @@
+import getpass
 from urllib.parse import quote_plus
 
 import requests
 
-from src.helpers import get_token, Deployment
-from src.get_projects import get_all_projects
+from src.helpers import Deployment
+from src.get_projects import _get_all_projects
 from src.view_aggregate.common import DeltaUtils
 
 
@@ -78,11 +79,12 @@ def create_update_es_view(endpoint: str, org: str, project: str, token: str, cen
 
 
 if __name__ == "__main__":
-    token = get_token()
+    token = getpass.getpass()
+    deployment = Deployment.PRODUCTION
 
-    for org, project in get_all_projects(token):
-        response = create_update_es_view(org=org, project=project, endpoint=Deployment.PRODUCTION.value, central_field="contentUrl", token=token)
+    for org, project in _get_all_projects(token, deployment=deployment):
+        response = create_update_es_view(org=org, project=project, endpoint=deployment.value, central_field="contentUrl", token=token)
 
-    response = create_update_es_view(org="bbp", project="allresources", endpoint=Deployment.PRODUCTION.value, central_field="url", token=token)
+    response = create_update_es_view(org="bbp", project="allresources", endpoint=deployment.value, central_field="url", token=token)
 
 

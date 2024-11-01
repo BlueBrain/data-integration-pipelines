@@ -1,14 +1,14 @@
 import os
 import json
-from src.helpers import _as_list, allocate, _download_from
+from src.helpers import _as_list, allocate_by_deployment, _download_from, Deployment
 from src.logger import logger
 
 
-def _get_atlas_dir_ready(atlas_dir, atlas_id, is_prod, token, atlas_tag):
+def _get_atlas_dir_ready(atlas_dir: str, atlas_id: str, deployment: Deployment, token: str, atlas_tag):
 
     os.makedirs(atlas_dir, exist_ok=True)
 
-    forge_atlas = allocate("bbp", "atlas", is_prod=is_prod, token=token)
+    forge_atlas = allocate_by_deployment("bbp", "atlas", deployment=deployment, token=token)
 
     atlas_resource = forge_atlas.retrieve(atlas_id, version=atlas_tag)
 

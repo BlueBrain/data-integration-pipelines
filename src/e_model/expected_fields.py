@@ -6,8 +6,9 @@ from typing import Dict, Tuple, Optional, Any, List
 import pandas
 from kgforge.core import KnowledgeGraphForge, Resource
 
+from src.arguments import define_arguments
 from src.e_model.querying import get_e_models_and_categorisation
-from src.helpers import _as_list, authenticate, Deployment, allocate_by_deployment
+from src.helpers import _as_list, allocate_by_deployment, authenticate_from_parser_arguments
 from src.logger import logger
 import requests
 
@@ -202,36 +203,14 @@ def to_excel(dst_path: str, dataframe: pandas.DataFrame):
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        "--username", help="Service account username", type=str, required=True
-    )
-    parser.add_argument(
-        "--password", help="Service account password", type=str, required=True
-    )
-    parser.add_argument(
-        "--output_dir", help="Output Directory", type=str, required=True
-    )
-    parser.add_argument(
-        "--is_aws", help="AWS Deployment (yes) or Kubernetes Deployment (no)", type=str, required=True, choices=["yes", "no"]
-    )
-
+    parser = define_arguments(argparse.ArgumentParser())
     received_args, leftovers = parser.parse_known_args()
 
-    is_aws = received_args.is_aws == "yes"
-    deployment = Deployment.AWS if is_aws else Deployment.PRODUCTION
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
 
-    token = authenticate(
-        username=received_args.username,
-        password=received_args.password,
-        is_aws=is_aws,
-        is_service=True
-    )
+    org, project = received_args.bucket.split("/")
 
-    org, project = "bbp", "mmb-point-neuron-framework-model"
-
-    forge_instance = allocate_by_deployment(org, project, deployment=deployment, token=token)
+    forge_instance = allocate_by_deployment(org, project, deployment=deployment, token=auth_token)
 
     download_dir = received_args.output_dir
 

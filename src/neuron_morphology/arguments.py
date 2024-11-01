@@ -1,11 +1,10 @@
 import argparse
 from typing import Union
-from _pytest.config.argparsing import Parser
 
 from src.arguments import define_arguments
 
 
-def define_morphology_arguments(parser: Union[argparse.ArgumentParser, Parser]):
+def define_morphology_arguments(parser: argparse.ArgumentParser):
     """
     Defines the arguments of the Python script
 
@@ -13,24 +12,23 @@ def define_morphology_arguments(parser: Union[argparse.ArgumentParser, Parser]):
     :rtype: ArgumentParser
     """
     parser = define_arguments(parser)
-    add_arg = parser.addoption if isinstance(parser, Parser) else parser.add_argument
 
-    add_arg(
+    parser.add_argument(
         "--curated", help="Whether to only check curated data are all",
         type=str, choices=["yes", "no", "both"], default="yes"
     )
 
-    add_arg(
+    parser.add_argument(
         "--really_update", help="Whether to really update data being modified by the pipeline in production",
         type=str, choices=["yes", "no"], default="no"
     )
 
-    add_arg(
+    parser.add_argument(
         "--push_to_staging", help="Whether to push to staging, if really-update is True",
         type=str, choices=["yes", "no"], default="yes"
     )
 
-    add_arg(
+    parser.add_argument(
         "--morphology_tag", help="Tag of the morphology Resources to require",
         type=str
     )

@@ -13,7 +13,7 @@ import pandas as pd
 import math
 
 from src.get_atlas import _get_atlas_dir_ready
-from src.helpers import ASSETS_DIRECTORY, allocate, _as_list, _download_from, _format_boolean, authenticate
+from src.helpers import ASSETS_DIRECTORY, allocate_by_deployment, _as_list, _download_from, _format_boolean, Deployment, authenticate_from_parser_arguments
 from src.logger import logger
 from src.neuron_morphology.arguments import define_morphology_arguments
 from src.neuron_morphology.query_data import get_neuron_morphologies
@@ -159,12 +159,15 @@ def create_brain_region_comparison(
         search_results: List[Resource],
         morphology_dir: str,
         forge: KnowledgeGraphForge,
+        forge_morphology: KnowledgeGraphForge,
         brain_region_map: RegionMap,
         voxel_data: VoxelData,
         ext_metadata: Optional[pd.DataFrame],
         sparse: bool = True,
-        float_coordinates_check=False
+        float_coordinates_check=False,
+        log=False
 ) -> Tuple[List[Dict], str]:
+    logger.disabled = not log
 
     descend_or_ancest_forge = lambda a, b: (
             is_descendant_of_forge(a, b, forge)
@@ -175,6 +178,7 @@ def create_brain_region_comparison(
 
     default_region = "declared"
     neigh_col_label = "neighbours"
+
     def get_coord_col_names(coord_label):
         col_names = [f'observed_region_{coord_label}']
         for ref in [default_region, 'original brain', ALLEN_ANNOT_LABEL]:
@@ -187,8 +191,8 @@ def create_brain_region_comparison(
 
         return col_names
 
-
     # This is the order with which keys will be inserted in the final dict, which should be
+
     column_order = [
         'morphology_id', 'morphology_name', REGION_NAME_COLUMN, REGION_AREA_COLUMN,
         REGION_ACRONYM_COLUMN, SEU_METADATA_COLUMNS[0], SEU_METADATA_COLUMNS[1], SEU_METADATA_COLUMNS[3].replace("Allen CCFv3", ALLEN_ANNOT_LABEL)]
@@ -203,6 +207,7 @@ def create_brain_region_comparison(
     seu_regions_ref = {REGION_ACRONYM_COLUMN: default_region,
                        SEU_METADATA_COLUMNS[1]: "original brain",
                        SEU_METADATA_COLUMNS[3].replace("Allen CCFv3", ALLEN_ANNOT_LABEL): ALLEN_ANNOT_LABEL}
+
     #def_sort_column = get_agreement_col_name(AGREEMENT_CRITERIA, default_coordinates, default_region)
     def_sort_column = 'morphology_name'
 
@@ -224,7 +229,7 @@ def create_brain_region_comparison(
         row['morphology_name'] = morphology_name
 
         swc_path = _download_from(
-            forge, link=morph, label=f"morphology {n}",
+            forge_morphology, link=morph, label=f"morphology {n}",
             format_of_interest='application/swc', download_dir=morphology_dir, rename=None
         )
 
@@ -244,7 +249,12 @@ def create_brain_region_comparison(
         if ext_metadata is not None:
             add_external_info(row, ext_metadata.loc[ext_metadata["Cell Name (Cell ID)"] == morphology_name])
 
-        swc_coordinates = get_soma_center(swc_path)
+        try:
+            swc_coordinates = get_soma_center(swc_path)
+        except Exception as e:
+            logger.error(f"Error raised when loading swc with morphio: {e}")
+            swc_coordinates = None
+
         metadata_coordinates_orig = get_morphology_coordinates(morph, forge)
         metadata_coordinates = [float(coord) for coord in metadata_coordinates_orig]
 
@@ -272,7 +282,6 @@ def create_brain_region_comparison(
                 return
             observed_res = cacheresolve(observed_label, forge)
             observed_id = observed_res.id
-
 
             def check_agreement(obs_id, ref_id):
                 # Match observed region with declared region
@@ -320,7 +329,6 @@ def create_brain_region_comparison(
                     rel_string = f'first common ancestor: {first_common_ancestor}'
 
                 return agr, rel_string
-
 
             for seu_label, ref in seu_regions_ref.items():
                 logger.info(f"{coord_type} - {seu_label}")
@@ -386,15 +394,17 @@ def create_brain_region_comparison(
 
         rows.append(row)
 
+    logger.disabled = False
+
     return rows, def_sort_column
 
 
-def get_atlas(working_dir: str, is_prod: bool, token: str, tag: str = None, add_annot: str = None) -> Tuple[RegionMap, VoxelData, Optional[VoxelData]]:
+def get_atlas(working_dir: str, deployment: Deployment, token: str, tag: str = None, add_annot: str = None) -> Tuple[RegionMap, VoxelData, Optional[VoxelData]]:
     logger.info(f"Downloading atlas at tag {tag}")
 
     atlas_dir = os.path.join(working_dir, "atlas")
     atlas_id = "https://bbp.epfl.ch/neurosciencegraph/data/4906ab85-694f-469d-962f-c0174e901885"
-    _get_atlas_dir_ready(atlas_dir, atlas_id, is_prod, token, tag)
+    _get_atlas_dir_ready(atlas_dir, atlas_id, deployment, token, tag)
 
     logger.info("Loading atlas")
     atlas = Atlas.open(atlas_dir)
@@ -405,6 +415,7 @@ def get_atlas(working_dir: str, is_prod: bool, token: str, tag: str = None, add_
     add_voxel_data: VoxelData = atlas.load_data(add_annot) if add_annot else None
     return brain_region_map, voxel_data, add_voxel_data
 
+
 if __name__ == "__main__":
 
     parser = define_morphology_arguments(argparse.ArgumentParser())
@@ -412,11 +423,12 @@ if __name__ == "__main__":
     received_args, leftovers = parser.parse_known_args()
     org, project = received_args.bucket.split("/")
     output_dir = received_args.output_dir
-    nexus_token = authenticate(username=received_args.username, password=received_args.password)
-    is_prod_env = True
+
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
+
     query_limit = received_args.limit
 
-    forge_bucket = allocate(org, project, is_prod=True, token=nexus_token)
+    forge_bucket = allocate_by_deployment(org, project, deployment=deployment, token=auth_token)
 
     working_directory = os.path.join(os.getcwd(), output_dir)
     os.makedirs(working_directory, exist_ok=True)
@@ -425,7 +437,7 @@ if __name__ == "__main__":
 
     br_map, voxel_d, add_voxel_d = get_atlas(
         working_dir=working_directory,
-        is_prod=is_prod_env, token=nexus_token,
+        deployment=deployment, token=auth_token,
         tag=ATLAS_TAG, add_annot=list(ADDITIONAL_ANNOTATION_VOLUME.values())[0]
     )
 
@@ -436,9 +448,10 @@ if __name__ == "__main__":
     for version in ADDITIONAL_ANNOTATION_VOLUME:
         result_version[version] = add_voxel_d
 
-    forge_datamodels = allocate("neurosciencegraph", "datamodels", is_prod=True, token=nexus_token)
+    forge_datamodels = allocate_by_deployment("neurosciencegraph", "datamodels", deployment=deployment, token=auth_token)
 
     resources = get_neuron_morphologies(forge=forge_bucket, curated=received_args.curated, limit=query_limit)
+
     #resources = [
     #    forge_bucket.retrieve("https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/ed3bfb7b-bf43-4e92-abed-e2ca1170c654"),
     #    forge_bucket.retrieve("https://bbp.epfl.ch/data/bbp-external/seu/0f9021f0-83b2-4ff7-a11c-c7b91fd6d9be"),
@@ -457,6 +470,7 @@ if __name__ == "__main__":
         logger.info(f"Performing comparison in atlas {version}")
         comparison, sort_column = create_brain_region_comparison(
             search_results=resources, morphology_dir=morphologies_dir, forge=forge_datamodels,
+            forge_morphology=forge_bucket,
             brain_region_map=br_map, voxel_data=annotation, ext_metadata=external_metadata,
             float_coordinates_check=False
         )

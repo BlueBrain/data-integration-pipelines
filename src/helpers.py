@@ -1,10 +1,11 @@
+import argparse
 import base64
 from enum import Enum
 import getpass
 import os
 import json
 import requests
-from typing import Union, Dict
+from typing import Union, Dict, Tuple
 
 from kgforge.core.commons import files
 from kgforge.specializations.stores import bluebrain_nexus
@@ -39,10 +40,9 @@ class Deployment(Enum):
     # SANDBOX = "https://sandbox.bluebrainnexus.io/v1"
 
 
-def delta_get(relative_url: str, token: str, is_prod: bool, debug: bool = False):
-    deployment = Deployment.PRODUCTION if is_prod else Deployment.STAGING
-    return _delta_get(relative_url, token, deployment, debug)
-
+# def delta_get(relative_url: str, token: str, is_prod: bool, debug: bool = False):
+#     deployment = Deployment.PRODUCTION if is_prod else Deployment.STAGING
+#     return _delta_get(relative_url, token, deployment, debug)
 
 def _make_header(token: str) -> Dict:
     return {
@@ -138,17 +138,6 @@ def allocate_by_deployment(
     return KnowledgeGraphForge(**args)
 
 
-def allocate(
-        org, project, is_prod, token, es_view=None, sparql_view=None
-):
-    deployment = Deployment.STAGING if not is_prod else Deployment.PRODUCTION
-
-    return allocate_by_deployment(
-        org, project, deployment=deployment, token=token,
-        es_view=es_view, sparql_view=sparql_view
-    )
-
-
 def open_file(filename):
     e = open(filename)
     f = e.read()
@@ -156,25 +145,25 @@ def open_file(filename):
     return f
 
 
-def get_token(is_prod=True, prompt=False, token_file_path=None):
-    """
-    Helper to input an authentication token
-    If prompt, the user is prompted to paste the token in a textbox
-    If prompt is False, the user can specify a file path where the token will be located
-    If prompt is False and no file path is provided, some default file path to an internal library
-    file will be loaded (for development mode only)
-    """
-    if prompt:
-        prompt = "Staging Token" if not is_prod else "Production Token"
-        return getpass.getpass(prompt=prompt)
-
-    if token_file_path is not None:
-        file_path = token_file_path
-    else:
-        file_path = "../tokens/token_prod.txt" if is_prod else "../tokens/token_staging.txt"
-        file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), file_path)
-
-    return open_file(file_path)
+# def get_token(is_prod=True, prompt=False, token_file_path=None):
+#     """
+#     Helper to input an authentication token
+#     If prompt, the user is prompted to paste the token in a textbox
+#     If prompt is False, the user can specify a file path where the token will be located
+#     If prompt is False and no file path is provided, some default file path to an internal library
+#     file will be loaded (for development mode only)
+#     """
+#     if prompt:
+#         prompt = "Staging Token" if not is_prod else "Production Token"
+#         return getpass.getpass(prompt=prompt)
+#
+#     if token_file_path is not None:
+#         file_path = token_file_path
+#     else:
+#         file_path = "../tokens/token_prod.txt" if is_prod else "../tokens/token_staging.txt"
+#         file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), file_path)
+#
+#     return open_file(file_path)
 
 
 def get_path(path):
@@ -240,16 +229,33 @@ def _format_boolean(bool_value: bool, sparse: bool):
     return str(bool_value) if not sparse else ("" if bool_value else str(bool_value))
 
 
-def authenticate(username, password, is_service: bool = True, is_aws: bool = False):
+def authenticate_from_parser_arguments(received_args) -> Tuple[Deployment, str]:
+    deployment = Deployment[received_args.deployment]
+    auth_token = authenticate(
+        username=received_args.username,
+        password=received_args.password,
+        deployment=deployment,
+        is_service_account=received_args.is_service_account == "yes"
+    )
+    return deployment, auth_token
+
+
+def authenticate(username, password, is_service_account: bool, deployment: Deployment):
+
+    is_aws = deployment == Deployment.AWS
 
     realm, server_url = ("SBO", "https://openbluebrain.com/auth") \
         if is_aws else ("BBP", "https://bbpauth.epfl.ch/auth")
 
     res = _auth(
         username, password,
-        realm=realm, server_url=server_url,
-        is_service=is_service
+        realm=realm,
+        server_url=server_url,
+        is_service=is_service_account
     )
+
+    res.raise_for_status()
+
     return res.json()["access_token"]
 
 
@@ -280,13 +286,3 @@ def _auth(username, password, realm, server_url, is_service=True) -> requests.Re
         },
         data=body
     )
-
-
-def initialize_objects(username, password, org, project, is_prod=True):
-
-    token = authenticate(username, password)
-
-    forge_bucket = allocate(org, project, is_prod=is_prod, token=token)
-    forge = allocate("bbp", "atlas", is_prod=is_prod, token=token)
-    return token, forge_bucket, forge
-

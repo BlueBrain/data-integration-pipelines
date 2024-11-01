@@ -10,7 +10,7 @@ from kgforge.core import Resource, KnowledgeGraphForge
 
 # from src.get_projects import _get_all_projects
 from src.logger import logger
-from src.helpers import _as_list, allocate_with_default_views, Deployment, authenticate
+from src.helpers import _as_list, allocate_with_default_views, authenticate_from_parser_arguments
 from src.trace.query.query import query_traces, batch, query_trace_web_data_container
 
 from src.trace.get_command_line_args import trace_command_line_args
@@ -105,9 +105,7 @@ if __name__ == "__main__":
 
     received_args, leftovers = parser.parse_known_args()
 
-    token = authenticate(username=received_args.username, password=received_args.password)
-
-    deployment = Deployment[received_args.deployment]
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
 
     # projects_to_query = _get_all_projects(token=token, deployment=deployment)
 
@@ -133,7 +131,7 @@ if __name__ == "__main__":
 
     for org, project in projects_to_query:
         forge_instance = allocate_with_default_views(
-            org, project, deployment=deployment, token=token
+            org, project, deployment=deployment, token=auth_token
         )
 
         add_schema_to_traces(forge_instance)

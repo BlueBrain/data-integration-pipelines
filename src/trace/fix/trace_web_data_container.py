@@ -30,7 +30,7 @@ from kgforge.core import Resource, KnowledgeGraphForge
 
 from src.logger import logger
 
-from src.helpers import _as_list, authenticate, Deployment, allocate_with_default_views
+from src.helpers import _as_list, allocate_with_default_views, authenticate_from_parser_arguments
 
 from src.trace.query.query import query_traces, batch, query_trace_web_data_container
 from src.trace.get_command_line_args import trace_command_line_args
@@ -162,9 +162,8 @@ if __name__ == "__main__":
     parser = trace_command_line_args(with_really_update=True)
 
     received_args, leftovers = parser.parse_known_args()
-    token = authenticate(username=received_args.username, password=received_args.password)
 
-    deployment = Deployment[received_args.deployment]
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
 
     really_update = received_args.really_update == "yes"
 
@@ -180,7 +179,7 @@ if __name__ == "__main__":
     ]
 
     for org, project in projects_to_query:
-        forge = allocate_with_default_views(org, project, deployment=deployment, token=token)
+        forge = allocate_with_default_views(org, project, deployment=deployment, token=auth_token)
 
         assign_trace_has_part_field(forge, really_update=really_update)
         # set_is_part_of_to_right_type(forge, really_update=really_update)

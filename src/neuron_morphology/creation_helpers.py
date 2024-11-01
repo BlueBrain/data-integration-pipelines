@@ -5,21 +5,25 @@ import platform
 import jwt
 import time
 
+from src.helpers import Deployment
 
-def get_contribution(token, production=True) -> Dict:
-    decoded = jwt.decode(token, "secret", audience="https://slack.com",
-                         options={"verify_signature": False})
 
-    contribution_id_base = (
-        "https://staging.nise.bbp.epfl.ch/nexus/v1/realms/bbp/users/{}"
-        if not production else "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/{}"
+def get_contribution(token, deployment: Deployment) -> Dict:
+    decoded = jwt.decode(
+        token, "secret", audience="https://slack.com",
+        options={"verify_signature": False}
     )
 
+    base = deployment.value if deployment != Deployment.AWS else Deployment.PRODUCTION.value
+
+    agent_id = f"{base}/realms/bbp/users/{decoded['preferred_username']}"
+
     # TODO contribution from service account?
+
     return {
         "type": "Contribution",
         "agent": {
-            "id": contribution_id_base.format(decoded['preferred_username']),
+            "id": agent_id,
             "type": ["Agent", "Person"],
             # "givenName": decoded["given_name"],
             # "familyName": decoded["family_name"],

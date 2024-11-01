@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import glob
 import json
 from kgforge.core import KnowledgeGraphForge, Resource
-from src.helpers import allocate, ASSETS_DIRECTORY, authenticate, _as_list
+from src.helpers import allocate_by_deployment, ASSETS_DIRECTORY, _as_list, authenticate_from_parser_arguments
 from morph_tool.converter import convert
 import numpy as np
 import os
@@ -314,6 +314,8 @@ if __name__ == "__main__":
     working_directory = os.path.join(os.getcwd(), received_args.output_dir)
     os.makedirs(working_directory, exist_ok=True)
 
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
+
     original_zip_file = os.path.join(ASSETS_DIRECTORY, "2nd_delivery_SEU_01162024.zip")
 
     local_test = False
@@ -332,10 +334,8 @@ if __name__ == "__main__":
     print(f'Working on {len(name_to_file)} morphologies')
     metadata = load_excel_file(dst_root_folder)
 
-    is_prod = True
-    token = authenticate(username=received_args.username, password=received_args.password)
-    forge_instance = allocate("bbp-external", "seu", is_prod=is_prod, token=token)
-    contribution = get_contribution(token=token, production=is_prod)
+    forge_instance = allocate_by_deployment("bbp-external", "seu", token=auth_token, deployment=deployment)
+    contribution = get_contribution(token=auth_token, deployment=deployment)
     generation = get_generation()
 
     datacatalog_name, datacatalog_description = "", ""  # TODO

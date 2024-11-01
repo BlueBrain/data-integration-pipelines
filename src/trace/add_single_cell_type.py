@@ -11,7 +11,7 @@ from multiprocessing import Pool
 from typing import Dict, Tuple, Optional, List
 from kgforge.core import Resource, KnowledgeGraphForge
 
-from src.helpers import _as_list, Deployment, allocate_with_default_views, authenticate
+from src.helpers import _as_list, allocate_with_default_views, authenticate_from_parser_arguments
 
 from src.logger import logger
 
@@ -95,9 +95,7 @@ if __name__ == "__main__":
 
     received_args, leftovers = parser.parse_known_args()
 
-    token = authenticate(username=received_args.username, password=received_args.password)
-
-    deployment = Deployment[received_args.deployment]
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
 
     write_directory = received_args.output_dir
     os.makedirs(write_directory, exist_ok=True)
@@ -106,7 +104,7 @@ if __name__ == "__main__":
     os.makedirs(download_directory, exist_ok=True)
 
     single_cell_stimulus_type_id_to_label, stimulus_type_id_to_label = stimulus_type_ontology(
-        deployment.value, token
+        deployment_str=deployment.value, token=auth_token
     )
 
     errors = {}
@@ -120,7 +118,7 @@ if __name__ == "__main__":
 
     for org, project in projects_to_query:
 
-        forge_instance = allocate_with_default_views(org, project, deployment=deployment, token=token)
+        forge_instance = allocate_with_default_views(org, project, deployment=deployment, token=auth_token)
 
         trace_ids_all = query_traces(forge_instance)
 

@@ -1,7 +1,7 @@
 """
 Queries for all Trace-s in a bucket that are not ExperimentalTrace-s
 """
-from src.helpers import Deployment, allocate_with_default_views, authenticate
+from src.helpers import allocate_with_default_views, authenticate_from_parser_arguments
 
 from src.logger import logger
 from src.get_projects import _get_all_projects
@@ -16,15 +16,13 @@ if __name__ == "__main__":
 
     received_args, leftovers = parser.parse_known_args()
 
-    token = authenticate(username=received_args.username, password=received_args.password)
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
 
-    deployment = Deployment[received_args.deployment]
-
-    projects_to_query = _get_all_projects(token, deployment=deployment)
+    projects_to_query = _get_all_projects(token=auth_token, deployment=deployment)
 
     for org, project in projects_to_query:
 
-        forge_instance = allocate_with_default_views(org, project, deployment=deployment, token=token)
+        forge_instance = allocate_with_default_views(org, project, deployment=deployment, token=auth_token)
 
         trace_ids = query_traces(forge_instance, type_=TRACE_TYPE, extra_q="""
             FILTER NOT EXISTS {?id a ExperimentalTrace }

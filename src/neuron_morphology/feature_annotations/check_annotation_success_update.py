@@ -1,4 +1,4 @@
-from src.helpers import open_file, allocate
+from src.helpers import open_file, allocate_by_deployment, Deployment
 
 token_file_path = "./src/tokens/token_prod.txt"
 token = open_file(token_file_path)
@@ -17,7 +17,7 @@ checklist = [
 
 for org, project, date_to_check in checklist:
 
-    forge = allocate(org, project, True, token)
+    forge = allocate_by_deployment(org, project, token=token, deployment=Deployment.PRODUCTION)
     query_nm = """
         SELECT ?id ?ua ?nm_id
         WHERE {

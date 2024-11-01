@@ -10,7 +10,7 @@ import os
 from typing import List
 
 from src.logger import logger
-from src.helpers import _as_list, Deployment, allocate_with_default_views, authenticate
+from src.helpers import _as_list, Deployment, allocate_with_default_views, authenticate_from_parser_arguments
 
 from src.trace.query.query import query_traces
 from src.trace.get_command_line_args import trace_command_line_args
@@ -56,19 +56,17 @@ if __name__ == "__main__":
 
     received_args, leftovers = parser.parse_known_args()
 
-    auth_token = authenticate(username=received_args.username, password=received_args.password)
-
     write_directory = received_args.output_dir
     os.makedirs(write_directory, exist_ok=True)
 
     curated_str, e_type_str = received_args.curated, received_args.e_type
 
-    deployment_v = Deployment[received_args.deployment]
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
 
     org, proj = received_args.bucket.split("/")
 
     trace_ids_res = query_by_curation_and_e_type(
-        organisation=org, project=proj, deployment=deployment_v,
+        organisation=org, project=proj, deployment=deployment,
         token=auth_token, curated=curated_str, e_type=e_type_str
     )
 

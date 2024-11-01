@@ -14,11 +14,10 @@ from kgforge.core import Resource, KnowledgeGraphForge
 from contextlib import redirect_stdout
 import io
 
-from src.get_projects import get_all_projects
 
 from src.logger import logger
 
-from src.helpers import _as_list, authenticate, Deployment, allocate_with_default_views
+from src.helpers import _as_list, allocate_with_default_views, authenticate_from_parser_arguments
 
 from src.forge_extension import _retrieve_file_metadata, _exists
 
@@ -77,8 +76,7 @@ if __name__ == "__main__":
     parser = trace_command_line_args(with_really_update=True)
     received_args, leftovers = parser.parse_known_args()
 
-    token = authenticate(username=received_args.username, password=received_args.password)
-    deployment = Deployment[received_args.deployment]
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
 
     projects_to_query = [
         ("bbp", "ionchannel"),
@@ -91,7 +89,7 @@ if __name__ == "__main__":
 
     for org, project in projects_to_query:
 
-        forge_instance = allocate_with_default_views(org, project, deployment=deployment, token=token)
+        forge_instance = allocate_with_default_views(org, project, deployment=deployment, token=auth_token)
 
         trace_ids = query_traces(forge_instance, raise_if_empty=True)
 

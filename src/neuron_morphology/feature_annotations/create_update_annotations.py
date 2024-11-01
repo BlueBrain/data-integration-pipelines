@@ -8,7 +8,7 @@ import json
 
 from kgforge.core import Resource, KnowledgeGraphForge
 
-from src.helpers import allocate, authenticate, DEFAULT_ES_VIEW, DEFAULT_SPARQL_VIEW
+from src.helpers import allocate_by_deployment, DEFAULT_ES_VIEW, DEFAULT_SPARQL_VIEW, Deployment, authenticate_from_parser_arguments
 from src.logger import logger
 from src.neuron_morphology.arguments import define_morphology_arguments
 
@@ -248,8 +248,8 @@ if __name__ == '__main__':
     received_args, leftovers = parser.parse_known_args()
     org, project = received_args.bucket.split("/")
     output_dir = received_args.output_dir
-    token = authenticate(username=received_args.username, password=received_args.password)
-    is_prod = True
+
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
 
     limit = received_args.limit
     really_update = received_args.really_update == "yes"
@@ -266,23 +266,23 @@ if __name__ == '__main__':
     os.makedirs(dst_dir, exist_ok=True)
     os.makedirs(atlas_dir, exist_ok=True)
 
-    forge_data = allocate(org, project, is_prod, token)
-    forge_atlas = allocate("bbp", "atlas", is_prod, token)
+    forge_data = allocate_by_deployment(org, project, token=auth_token, deployment=deployment)
+    forge_atlas = allocate_by_deployment("bbp", "atlas", token=auth_token, deployment=deployment)
 
     morphologies = get_neuron_morphologies(curated=received_args.curated, forge=forge_data, limit=limit)
 
     generation = get_generation()
 
     if push_to_staging:
-        forge_push = allocate(
-            "dke", "kgforge", is_prod=False, token=token,
+        forge_push = allocate_by_deployment(
+            "dke", "kgforge", deployment=Deployment.STAGING, token=auth_token,
             es_view=DEFAULT_ES_VIEW,
             sparql_view=DEFAULT_SPARQL_VIEW
         )
-        contribution = get_contribution(token=token, production=False)
+        contribution = get_contribution(token=auth_token, deployment=Deployment.STAGING)
     else:
         forge_push = forge_data
-        contribution = get_contribution(token=token, production=is_prod)
+        contribution = get_contribution(token=auth_token, deployment=deployment)
 
     annotations_to_update, annotations_to_create, features_dict, annotations_dict, log_dict = create_update_annotations(
         forge_data=forge_data,

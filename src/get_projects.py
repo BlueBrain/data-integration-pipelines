@@ -1,20 +1,21 @@
+import getpass
 import json
 import re
 from typing import List, Tuple
 
-from src.helpers import Deployment, get_token, _delta_get
+from src.helpers import Deployment, _delta_get
 
 ORG_OF_INTEREST = ["bbp", "bbp-external", "public"]
 
 
-def get_obp_projects(token: str, is_prod: bool = True) -> List[Tuple[str, str]]:
-    deployment = Deployment.PRODUCTION if is_prod else Deployment.STAGING
-    return _get_obp_projects(token, deployment)
-
-
-def get_all_projects(token: str, is_prod: bool = True, organisation_of_interest=ORG_OF_INTEREST) -> List[Tuple[str, str]]:
-    deployment = Deployment.PRODUCTION if is_prod else Deployment.STAGING
-    return _get_all_projects(token, deployment, organisation_of_interest)
+# def get_obp_projects(token: str, is_prod: bool = True) -> List[Tuple[str, str]]:
+#     deployment = Deployment.PRODUCTION if is_prod else Deployment.STAGING
+#     return _get_obp_projects(token, deployment)
+#
+#
+# def get_all_projects(token: str, is_prod: bool = True, organisation_of_interest=ORG_OF_INTEREST) -> List[Tuple[str, str]]:
+#     deployment = Deployment.PRODUCTION if is_prod else Deployment.STAGING
+#     return _get_all_projects(token, deployment, organisation_of_interest)
 
 
 def _get_obp_projects(token: str, deployment: Deployment = Deployment.PRODUCTION) -> List[Tuple[str, str]]:
@@ -59,4 +60,7 @@ def _get_all_projects(
 
 
 if __name__ == "__main__":
-    print(json.dumps(get_obp_projects(get_token()), indent=4))
+    deployment = Deployment.PRODUCTION
+    token = getpass.getpass()
+    res = _get_obp_projects(token=token, deployment=deployment)
+    print(json.dumps(res, indent=4))

@@ -6,7 +6,7 @@ import cachetools
 import os
 import pandas as pd
 
-from src.helpers import allocate, get_token, _as_list, _download_from, _format_boolean, authenticate
+from src.helpers import allocate_by_deployment, _as_list, _download_from, _format_boolean, authenticate_from_parser_arguments
 from src.logger import logger
 from src.neuron_morphology.arguments import define_morphology_arguments
 from src.neuron_morphology.query_data import get_neuron_morphologies
@@ -114,19 +114,19 @@ if __name__ == "__main__":
     received_args, leftovers = parser.parse_known_args()
     org, project = received_args.bucket.split("/")
     output_dir = received_args.output_dir
-    token = authenticate(username=received_args.username, password=received_args.password)
-    is_prod = True
+
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
+
+    forge_bucket = allocate_by_deployment(org, project, deployment=deployment, token=auth_token)
+    forge_atlas = allocate_by_deployment("bbp", "atlas", deployment=deployment, token=auth_token)
 
     working_directory = os.path.join(os.getcwd(), output_dir)
     os.makedirs(working_directory, exist_ok=True)
 
     logger.info(f"Working directory {working_directory}")
 
-    forge_bucket = allocate(org, project, is_prod=is_prod, token=token)
-    forge = allocate("bbp", "atlas", is_prod=is_prod, token=token)
-
     resources = get_neuron_morphologies(forge=forge_bucket, curated=received_args.curated)
 
-    rows = check(resources, forge)
+    rows = check(resources, forge_atlas)
     df = pd.DataFrame(rows)
     df.to_csv(os.path.join(working_directory, 'check_links.csv'))

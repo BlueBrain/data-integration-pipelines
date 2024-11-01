@@ -5,10 +5,10 @@ from typing import Dict, Any, List, Callable, Optional, Tuple #, Union
 
 import neurom as nm
 from IPython.utils import io
+from morphio._morphio import Option, Morphology
 from neurom import load_morphology
 from neurom.check import morphology_checks, CheckResult
 from src.neuron_morphology.validation import custom_validation
-from neurom.core.morphology import Morphology
 import morphio
 # from morphology_workflows import curation # TODO re-enable once morphology_workflows is compatible with neurom v4
 
@@ -445,20 +445,16 @@ validation_report_checks = {
 }
 
 
-def _load_morph(swc_path: str):
-    morphio.set_raise_warnings(False)
-
-    with io.capture_output() as captured:
-        with morphio.ostream_redirect(stdout=True, stderr=True):
-            return load_morphology(swc_path, process_subtrees=True)
-
-
 def _load_morph_morphio(swc_path: str, raise_: bool):
     morphio.set_raise_warnings(raise_)
 
     try:
-        return morphio.Morphology(swc_path)
-    except morphio._morphio.MorphioError as e:
+        if not raise_:
+            return Morphology(swc_path, options=Option.allow_unifurcated_section_change)
+
+        return Morphology(swc_path)
+
+    except (morphio._morphio.MorphioError, morphio._morphio.RawDataError) as e:
         return e
 
 
@@ -498,7 +494,14 @@ def _validation_report(neuron: Morphology, swc_path: str) -> Dict[str, Dict[str,
 def get_report(neuron_path: str, morphology: Optional[Morphology] = None, report: Optional[Dict] = None):
     if report is None:
         if morphology is None:
-            morphology = _load_morph(neuron_path)
+
+            morphio.set_raise_warnings(False)
+
+            with io.capture_output(), morphio.ostream_redirect(stdout=True, stderr=True):
+                morphology = load_morphology(
+                    _load_morph_morphio(neuron_path, raise_=False), process_subtrees=True
+                )
+
         report = _validation_report(morphology, neuron_path)
 
     return report

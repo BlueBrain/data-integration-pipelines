@@ -6,7 +6,7 @@ import pandas as pd
 from typing import List, Dict
 
 from kgforge.core import KnowledgeGraphForge, Resource
-from src.helpers import allocate, authenticate, DEFAULT_ES_VIEW, initialize_objects
+from src.helpers import DEFAULT_ES_VIEW, allocate_by_deployment, authenticate_from_parser_arguments
 from src.logger import logger
 from src.arguments import define_arguments
 from src.schemas.query_data import (
@@ -27,12 +27,15 @@ if __name__ == "__main__":
     org, project = bucket.split("/")
     output_dir = received_args.output_dir
 
-    token, forge_bucket, forge =  initialize_objects(received_args.username, received_args.password, org, project, is_prod=True)
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
+
+    forge_bucket = allocate_by_deployment(org, project, deployment=deployment, token=auth_token)
+    forge_atlas = allocate_by_deployment("bbp", "atlas", deployment=deployment, token=auth_token)
 
     errors = []
 
-    mapping_source = forge.retrieve("https://bbp.epfl.ch/nexus/v1/resources/neurosciencegraph/datamodels/_/schema_to_type_mapping", cross_bucket=True)
-    schema_to_type_mapping = forge.as_json(mapping_source.value)
+    mapping_source = forge_atlas.retrieve("https://bbp.epfl.ch/nexus/v1/resources/neurosciencegraph/datamodels/_/schema_to_type_mapping", cross_bucket=True)
+    schema_to_type_mapping = forge_atlas.as_json(mapping_source.value)
 
     type_ = "https://neuroshapes.org/Annotation"
 
@@ -58,7 +61,7 @@ if __name__ == "__main__":
     resources, error = get_resources_by_type_es(forge_bucket, type_, limit=10000)
     print(len(resources))
     print(error)
-    rows, failed = check_schema(resources, forge, schema_to_type_mapping_value=schema_to_type_mapping,
+    rows, failed = check_schema(resources, forge_atlas, schema_to_type_mapping_value=schema_to_type_mapping,
                                 use_forge=True)
     # print(resources[0])
 
@@ -66,9 +69,12 @@ if __name__ == "__main__":
     #     resources = get_resources_by_type_es(forge, type_, limit=10000)
     # except Exception as exc:
     #     if 'The provided token is invalid for user' in str(exc):
-    #         token, forge_bucket, forge = initialize_objects(received_args, is_prod)
+    #       deployment, auth_token = authenticate_from_parser_arguments(received_args)
+    #       forge_bucket = allocate_by_deployment(org, project, deployment=deployment, token=auth_token)
+    #       forge_atlas = allocate_by_deployment("bbp", "atlas", deployment=deployment, token=auth_token)
+
     #         try: 
-    #             resources = get_resources_by_type_es(forge, type_, limit=10000)
+    #             resources = get_resources_by_type_es(forge_atlas, type_, limit=10000)
     #         except Exception as exc:
     #             error = str(exc)
     #     else:

@@ -1,11 +1,13 @@
+import getpass
+
 import requests
 
 from typing import Dict, Tuple, List, Optional
 from urllib.parse import quote_plus as url_encode, quote_plus
 import json
 
-from src.helpers import get_token, Deployment
-from src.get_projects import get_all_projects
+from src.helpers import Deployment
+from src.get_projects import _get_all_projects
 from src.view_aggregate.common import DeltaUtils
 
 
@@ -222,11 +224,12 @@ def do(
 
 
 if __name__ == "__main__":
-    token = get_token(is_prod=True)
-    endpoint = Deployment.PRODUCTION.value
+    token = getpass.getpass()
+    deployment = Deployment.PRODUCTION
+    endpoint = deployment.value
     dest_org, dest_proj = "bbp", "atlas"
 
-    org_proj_list = get_all_projects(token)
+    org_proj_list = _get_all_projects(token, deployment=deployment)
 
     not_aggregate_list = [("bbp", "allresources"), ("bbp", "resources")]
 

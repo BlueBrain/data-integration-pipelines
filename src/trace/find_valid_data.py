@@ -19,7 +19,7 @@ import io
 
 from src.logger import logger
 
-from src.helpers import _as_list, authenticate, Deployment, allocate_with_default_views
+from src.helpers import _as_list, Deployment, allocate_with_default_views, authenticate_from_parser_arguments
 
 from src.trace.query.query import query_traces
 from src.forge_extension import _retrieve_file_metadata, _exists
@@ -450,19 +450,17 @@ if __name__ == "__main__":
 
     received_args, leftovers = parser.parse_known_args()
 
-    token = authenticate(username=received_args.username, password=received_args.password)
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
 
     curated = received_args.curated
     org, project = received_args.bucket.split("/")
-
-    deployment = Deployment[received_args.deployment]
 
     output_dir = received_args.output_dir
     os.makedirs(output_dir, exist_ok=True)
 
     asyncio.run(
         here_we_go(
-            output_dir=output_dir, deployment=deployment, token=token,
+            output_dir=output_dir, deployment=deployment, token=auth_token,
             curated=curated, org=org, project=project
         )
     )

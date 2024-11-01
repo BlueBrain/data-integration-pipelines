@@ -1,14 +1,16 @@
 import argparse
+import getpass
+
 import requests
 import json
 from typing import Dict, List, Tuple
 
 from urllib.parse import quote_plus as url_encode
 
-from src.helpers import authenticate, Deployment, get_token, DEFAULT_SPARQL_VIEW, DEFAULT_ES_VIEW
+from src.helpers import Deployment, DEFAULT_SPARQL_VIEW, DEFAULT_ES_VIEW
 from src.logger import logger
 
-from src.get_projects import get_obp_projects
+from src.get_projects import _get_obp_projects
 from src.view_aggregate.common import DeltaUtils
 
 
@@ -86,10 +88,11 @@ def update_aggregated_view(
 
 
 if __name__ == "__main__":
-    token = get_token(is_prod=True)
-    org, project = "bbp", "atlas"
+    token = getpass.getpass()
 
-    projects_to_aggregate = get_obp_projects(token=token, is_prod=True)
+    org, project = "bbp", "atlas"
+    deployment = Deployment.PRODUCTION
+    projects_to_aggregate = _get_obp_projects(token=token, deployment=deployment)
 
     views_to_update = [
         ("https://bbp.epfl.ch/neurosciencegraph/data/views/aggreg-es/sbo", False),
@@ -99,7 +102,7 @@ if __name__ == "__main__":
     for aggregated_view_id, is_sparql in views_to_update:
 
         res = update_aggregated_org_project_list(
-            endpoint=Deployment.PRODUCTION.value,
+            endpoint=deployment.value,
             org=org,
             project=project,
             token=token,

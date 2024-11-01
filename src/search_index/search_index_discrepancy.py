@@ -7,7 +7,7 @@ from urllib.parse import quote_plus
 import requests
 
 from src.logger import logger
-from src.helpers import Deployment, authenticate, DEFAULT_SPARQL_VIEW
+from src.helpers import Deployment, DEFAULT_SPARQL_VIEW, authenticate_from_parser_arguments
 from src.get_projects import _get_obp_projects
 
 from enum import Enum
@@ -269,15 +269,10 @@ if __name__ == "__main__":
 
     type_v = OBPType[received_args.data_type]
 
-    t = authenticate(
-        username=received_args.username,
-        password=received_args.password,
-        is_aws=True,
-        is_service=True
-    )
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
 
     compare_for_all_projects(
-        token=t,
-        deployment=Deployment.AWS,
+        token=auth_token,
+        deployment=deployment,
         type_value=type_v
     )

@@ -19,7 +19,7 @@ import os
 from kgforge.core import KnowledgeGraphForge, Resource
 
 from src.helpers import (
-    _as_list, Deployment, allocate_with_default_views, authenticate
+    _as_list, allocate_with_default_views, authenticate_from_parser_arguments
 )
 from src.logger import logger
 from src.trace.query.query import query_traces
@@ -134,12 +134,10 @@ if __name__ == "__main__":
 
     received_args, leftovers = parser.parse_known_args()
 
-    token = authenticate(username=received_args.username, password=received_args.password)
-
-    deployment = Deployment[received_args.deployment]
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
 
     single_cell_stimulus_type_id_to_label, stim_type_id_to_label = stimulus_type_ontology(
-        deployment_str=deployment.value, token=token
+        deployment_str=deployment.value, token=auth_token
     )
 
     write_directory = received_args.output_dir
@@ -150,7 +148,7 @@ if __name__ == "__main__":
 
     for org, project in projects_to_query:
 
-        forge_instance = allocate_with_default_views(org, project, deployment=deployment, token=token)
+        forge_instance = allocate_with_default_views(org, project, deployment=deployment, token=auth_token)
 
         trace_ids = query_traces(forge_instance, raise_if_empty=True)
 

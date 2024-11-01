@@ -8,7 +8,7 @@ import xlsxwriter
 
 from typing import Callable, Dict, Set, Tuple, List
 
-from src.helpers import allocate, delta_get
+from src.helpers import allocate_by_deployment, _delta_get, Deployment
 from src.schemas.schema_validation import UNCONSTRAINED_SCHEMA
 
 
@@ -24,11 +24,11 @@ class SchemaGetter:
     def get_schema_from_type_nd(self, type_str):
         return self.type_schema.get(type_str, None)
 
-    def __init__(self, token, is_prod):
+    def __init__(self, token: str, deployment: Deployment):
 
-        self.forge_atlas: KnowledgeGraphForge = allocate("bbp", "atlas", is_prod, token)
+        self.forge_atlas: KnowledgeGraphForge = allocate_by_deployment("bbp", "atlas", deployment=deployment, token=token)
 
-        forge_datamodels = allocate("neurosciencegraph", "datamodels", is_prod, token)
+        forge_datamodels = allocate_by_deployment("neurosciencegraph", "datamodels", deployment=deployment, token=token)
 
         get_schemas_q = """
 
@@ -46,8 +46,9 @@ class SchemaGetter:
 
 class TypeGetter:
 
-    def __init__(self, token):
+    def __init__(self, token: str, deployment: Deployment):
         self.token = token
+        self.deployment = deployment
 
     @staticmethod
     def _filter_types(types: Dict) -> Tuple[Dict, Set]:
@@ -62,7 +63,7 @@ class TypeGetter:
 
     def get_types_delta(self, org: str, project: str):
         relative_url = f'/resources/{org}/{project}/_/?aggregations=true&deprecated=false'
-        response = delta_get(relative_url, self.token, is_prod=True)
+        response = _delta_get(relative_url, token=self.token, deployment=self.deployment)
         try:
             response.raise_for_status()
         except Exception as e:
@@ -76,7 +77,7 @@ class TypeGetter:
 
     def get_types_sparql(self, org, project):
 
-        forge = allocate(org, project, True, self.token)
+        forge = allocate_by_deployment(org, project, deployment=self.deployment, token=self.token)
         q = """
             SELECT  ?type (COUNT(?id) AS ?count)
             (GROUP_CONCAT(DISTINCT ?cs; SEPARATOR=",") AS ?schemas) WHERE {
@@ -93,7 +94,7 @@ class TypeGetter:
         return self._filter_types(types)
 
     def get_unconstrained_types(self, org, project):
-        forge = allocate(org, project, True, self.token)
+        forge = allocate_by_deployment(org, project, deployment=self.deployment, token=self.token)
         q = f"""
             SELECT  ?type (COUNT(?id) AS ?count)
              WHERE {{

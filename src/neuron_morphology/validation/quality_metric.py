@@ -103,20 +103,21 @@ def save_batch_quality_measurement_annotation_report(
     tsv_header = "\t".join(columns)
     batch_quality_measurement_annotation_tsv = "# " + tsv_header + "\n"
 
-    n_paths = len(swc_paths)
+    # n_paths = len(swc_paths)
+
     for i_path, (swc_path, morphology, added) in enumerate(zip(swc_paths, morphologies, added_list)):
-        logger.info(f"Processing swc path {i_path +1} of {n_paths}")
-        # try:
-        report_as_tsv_line, report_as_json = save_quality_measurement_annotation_report(
-            swc_path=swc_path, report_dir_path=report_dir_path, morphology=morphology, added=added,
-            individual_reports=individual_reports
-        )
-        # except Exception as e:
-        #     logger.error(f"Error creating validation report for path {swc_path}: {str(e)}")
-        #     errors[swc_path] = e
-        # else:
-        batch_quality_measurement_annotation_tsv += '\t'.join(report_as_tsv_line) + "\n"
-        reports[swc_path] = report_as_json
+        # logger.info(f"Processing swc path {i_path +1} of {n_paths}")
+        try:
+            report_as_tsv_line, report_as_json = save_quality_measurement_annotation_report(
+                swc_path=swc_path, report_dir_path=report_dir_path, morphology=morphology, added=added,
+                individual_reports=individual_reports
+            )
+        except Exception as e:
+            logger.error(f"Error creating validation report for path {swc_path}: {str(e)}")
+            errors[swc_path] = e
+        else:
+            batch_quality_measurement_annotation_tsv += '\t'.join(report_as_tsv_line) + "\n"
+            reports[swc_path] = report_as_json
 
     with open(os.path.join(report_dir_path, report_name), "w") as f:
         f.write(batch_quality_measurement_annotation_tsv)
@@ -130,7 +131,6 @@ if __name__ == "__main__":
     received_args, leftovers = parser.parse_known_args()
 
     org, project = received_args.bucket.split("/")
-    is_prod = True
 
     working_directory = os.path.join(os.getcwd(), received_args.output_dir)
     os.makedirs(working_directory, exist_ok=True)

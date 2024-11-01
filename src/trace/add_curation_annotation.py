@@ -13,7 +13,7 @@ import os
 from kgforge.core import KnowledgeGraphForge, Resource
 
 from src.curation_annotations import make_curated, make_unassessed
-from src.helpers import _as_list, Deployment, allocate_with_default_views, authenticate
+from src.helpers import _as_list, allocate_with_default_views, authenticate_from_parser_arguments
 
 from src.logger import logger
 
@@ -82,9 +82,7 @@ if __name__ == "__main__":
 
     org, project = received_args.bucket.split("/")
 
-    token = authenticate(username=received_args.username, password=received_args.password)
-
-    deployment = Deployment[received_args.deployment]
+    deployment, auth_token = authenticate_from_parser_arguments(received_args)
 
     write_directory = received_args.output_dir
     os.makedirs(write_directory, exist_ok=True)
@@ -92,11 +90,11 @@ if __name__ == "__main__":
     logger.info(f"Curated annotations will be updated: {received_args.really_update}")
 
     forge_neurosciencegraph_datamodels = allocate_with_default_views(
-        "neurosciencegraph", "datamodels", deployment=deployment, token=token,
+        "neurosciencegraph", "datamodels", deployment=deployment, token=auth_token,
     )
 
     single_cell_stimulus_type_id_to_label, stim_type_id_to_label = stimulus_type_ontology(
-        deployment_str=deployment.value, token=token
+        deployment_str=deployment.value, token=auth_token
     )
 
     forge_instance = allocate_with_default_views(org, project, deployment=deployment, token=token)

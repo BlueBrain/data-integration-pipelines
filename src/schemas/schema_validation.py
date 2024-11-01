@@ -1,5 +1,5 @@
 
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 from kgforge.core import KnowledgeGraphForge, Resource
 from src.helpers import run_trial_request
@@ -7,13 +7,15 @@ from src.helpers import run_trial_request
 UNCONSTRAINED_SCHEMA = "https://bluebrain.github.io/nexus/schemas/unconstrained.json"
 
 
-def _check_schema(forge: KnowledgeGraphForge,
-                  resource: Resource,
-                  schema_id: str,
-                  type_: str,
-                  row: dict,
-                  failed: List,
-                  use_forge: bool)-> None:
+def _check_schema(
+    forge: KnowledgeGraphForge,
+    resource: Resource,
+    schema_id: str,
+    type_: str,
+    row: dict,
+    failed: List,
+    use_forge: bool
+) -> Tuple[Dict, list]:
     if use_forge:
         return _validate_schema_forge(resource, forge, type_, row, failed)
     else:
@@ -47,7 +49,7 @@ def check_schema(resources: List[Resource], forge: KnowledgeGraphForge, schema_t
     return rows, failed
 
 
-def _validate_schema_forge(resource: Resource, forge: KnowledgeGraphForge, type_: str, row: Dict, failed: list):
+def _validate_schema_forge(resource: Resource, forge: KnowledgeGraphForge, type_: str, row: Dict, failed: list) -> Tuple[Dict, list]:
     try:
         forge.validate(resource, type_=type_, inference=None)
         conforms = resource._validated
@@ -65,19 +67,29 @@ def _validate_schema_forge(resource: Resource, forge: KnowledgeGraphForge, type_
 
 def _validate_schema_delta(resource: Resource, forge: KnowledgeGraphForge, schema: str, row: Dict, failed: list):
 
-    query_body = {"schema": schema,
-                  "resource": forge.as_jsonld(resource)}
+    query_body = {
+        "schema": schema,
+        "resource": forge.as_jsonld(resource)
+    }
 
     try:
-        endpoint = forge._store.endpoint
-        bucket = forge._store.bucket
-        token = forge._store.token
-        response_json, _ = run_trial_request(query_body, endpoint, bucket, token)
+        response_json, _ = run_trial_request(
+            body=query_body,
+            endpoint=forge._store.endpoint,
+            bucket=forge._store.bucket,
+            token=forge._store.token
+        )
+
         if 'result' in response_json:
             conforms = True
+            report = None
         elif 'error' in response_json:
             conforms = False
             report = response_json['error']['details']['result']
+        else:
+            conforms = "?"
+            report = "?"
+
     except Exception as exc:
         failed.append({**row, "exception": str(exc)})
         row["Exception"] = str(exc)
@@ -86,4 +98,5 @@ def _validate_schema_delta(resource: Resource, forge: KnowledgeGraphForge, schem
 
         if not conforms:
             failed.append({**row, "report": report})
+
     return row, failed
