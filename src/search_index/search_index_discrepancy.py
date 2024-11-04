@@ -6,6 +6,7 @@ from typing import List, Optional, Tuple, Dict
 from urllib.parse import quote_plus
 import requests
 
+from src.arguments import define_arguments
 from src.logger import logger
 from src.helpers import Deployment, DEFAULT_SPARQL_VIEW, authenticate_from_parser_arguments
 from src.get_projects import _get_obp_projects
@@ -35,9 +36,7 @@ TYPE_TO_CURATED = {
 
 TYPE_TO_EXTRA_FILTER = {
 
-    OBPType.EXPERIMENTAL_TRACE:  """
-        ?id <http://schema.org/distribution>/<http://schema.org/encodingFormat> "application/nwb" . 
-    """,
+    OBPType.EXPERIMENTAL_TRACE:  None,
     OBPType.RECONSTRUCTED_NEURON_MORPHOLOGY: None,
     OBPType.EXPERIMENTAL_SYNAPSE_PER_CONNECTION: None,
     OBPType.EXPERIMENTAL_BOUTON_DENSITY: None,
@@ -253,14 +252,8 @@ def compare_for_all_projects(token: str, deployment: Deployment, type_value: OBP
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
+    parser = define_arguments(argparse.ArgumentParser())
 
-    parser.add_argument(
-        "--username", help="Service account username", type=str, required=True
-    )
-    parser.add_argument(
-        "--password", help="Service account password", type=str, required=True
-    )
     parser.add_argument(
         "--data_type", type=str, required=True, choices=OBPType._member_names_
     )
