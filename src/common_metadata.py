@@ -6,11 +6,8 @@ from kgforge.core import Resource, KnowledgeGraphForge
 def create_brain_region(forge: KnowledgeGraphForge, region_label: str) -> Optional[Dict]:
     """Create BrainLocation field from a brain region label"""
     region = forge.resolve(region_label, scope='ontology', target='BrainRegion', strategy='EXACT_CASE_INSENSITIVE_MATCH')
-    brain_region = {}
     if region:
-        brain_region['id'] = region.id
-        brain_region['label'] = region.label
-        return brain_region
+        return {'id': region.id, 'label': region.label}
     else:
         raise ValueError(f"Brain location {region_label} was not found in the ontology, try with a different name")
 
@@ -84,7 +81,7 @@ def create_date(date, begin=True) -> Dict:
     }
 
 
-def create_subject(forge: KnowledgeGraphForge, subject_dict: Dict) -> Optional[Dict]:
+def create_subject_dictionary(forge: KnowledgeGraphForge, subject_dict: Dict) -> Optional[Dict]:
     """The minimum requirement is the species label"""
     species_info = forge.resolve(subject_dict['species'], scope="ontology", target="Species", strategy='EXACT_CASE_INSENSITIVE_MATCH')
     if not species_info:
@@ -99,18 +96,17 @@ def create_subject(forge: KnowledgeGraphForge, subject_dict: Dict) -> Optional[D
     else:
         strain = None
     if 'sex' in subject_dict and subject_dict['sex']:
-        if subject_dict['sex'].lower() == 'male':
-            sex = {
-                 "@id": "http://purl.obolibrary.org/obo/PATO_0000384",
-                 "label": "male"
-            }
-        elif subject_dict['sex'].lower() == 'female':
-            sex = {
-                 "@id": "http://purl.obolibrary.org/obo/PATO_0000383",
-                 "label": "female"
-            }
+        sex_label = subject_dict['sex'].lower()
+        if sex_label == 'male':
+            sex_id = "http://purl.obolibrary.org/obo/PATO_0000384"
+        elif sex_label == 'female':
+            sex_id = "http://purl.obolibrary.org/obo/PATO_0000383"
         else:
             raise ValueError(f"Sex label provided {subject_dict['sex']} is incorrect, it should be male or female")
+        sex = {
+                "id": sex_id,
+                "label": sex_label
+        }
     else:
         sex = None
     if 'age' in subject_dict and subject_dict['age']:

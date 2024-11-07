@@ -303,3 +303,7 @@ def get_ext_path(resource: Resource, ext_download_folder: str,
         forge.download(resource, follow='distribution.contentUrl', content_type=f'application/{ext}', path=ext_download_folder)
 
     return file_path
+
+
+def get_filename_and_ext_from_filepath(filepath) -> Tuple[str, str]:
+    return os.path.splitext(os.path.basename(filepath))

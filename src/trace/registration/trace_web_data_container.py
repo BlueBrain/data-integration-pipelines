@@ -1,13 +1,13 @@
 import os
 import copy
 
-from src.helpers import get_ext_path, allocate_with_default_views, Deployment
+from src.helpers import get_ext_path, allocate_with_default_views, Deployment, get_filename_and_ext_from_filepath
 from src.trace.visualization.lnmc_nwb_visualization import nwb2rab, get_nwb_object
 from kgforge.core import Resource, KnowledgeGraphForge
 
 
 def create_twdc_from_trace(trace_resource: Resource, forge: KnowledgeGraphForge,
-                           dir_path="./output"):
+                           dir_path="./output") -> Resource:
 
     # download the .nwb distribution
     files_path = f"{dir_path}/tmp"
@@ -15,7 +15,7 @@ def create_twdc_from_trace(trace_resource: Resource, forge: KnowledgeGraphForge,
     nwb_path = get_ext_path(trace_resource, ext_download_folder=files_path,
                             forge=forge, ext='nwb')
     nwb = get_nwb_object(nwb_path)
-    filename = nwb_path.split("/")[-1].split(".")[0]
+    filename, _ = get_filename_and_ext_from_filepath(nwb_path)
     rab_path = os.path.join(files_path, f"{filename}.rab")
     nwb2rab(nwb, rab_path)
 

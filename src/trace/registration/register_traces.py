@@ -11,7 +11,7 @@ from kgforge.specializations.mappings import DictionaryMapping
 from kgforge.specializations.mappers import DictionaryMapper
 
 from src.logger import logger
-from src.helpers import allocate_with_default_views, Deployment, ASSETS_DIRECTORY
+from src.helpers import allocate_with_default_views, Deployment, ASSETS_DIRECTORY, get_filename_and_ext_from_filepath
 from src.trace.visualization.lnmc_nwb_visualization import generate
 from src.trace.types_and_schemas import (
     TRACE_WEB_DATA_CONTAINER_SCHEMA,
@@ -25,6 +25,7 @@ from src.trace.registration.trace_web_data_container import create_twdc_from_tra
 from src.common_metadata import create_existing_agent_contribution, create_brain_region
 
 
+
 def generate_nwb_products(forge: KnowledgeGraphForge, nwb_path: str,
                           stimulus_type_id_to_label: Dict[str, str]) -> Dict:
     """ Generate the .rab and .png files, as well as the image file resources
@@ -33,7 +34,7 @@ def generate_nwb_products(forge: KnowledgeGraphForge, nwb_path: str,
     """
 
     dir_path = os.path.dirname(nwb_path)
-    trace_name = nwb_path.split('/')[-1].split('.nwb')[0]
+    trace_name, _ = get_filename_and_ext_from_filepath(dir_path)
     rab_path = f"{dir_path}/{trace_name}.rab"
     generate(nwb_path, rab_path, dir_path)
 
