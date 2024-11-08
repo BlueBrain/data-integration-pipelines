@@ -1,18 +1,16 @@
 '''A backend that return a validation report for a given morphology. This script was originally shared here: ≈2'''
 
 import os
-from typing import Dict, Any, List, Callable, Optional, Tuple #, Union
+from typing import Dict, Any, List, Callable, Optional, Tuple, Union  # , Union
 
 import neurom as nm
 from IPython.utils import io
-from morphio._morphio import Option, Morphology
-from neurom import load_morphology
+from morphio import Morphology
 from neurom.check import morphology_checks, CheckResult
-from src.neuron_morphology.validation import custom_validation
-import morphio
-# from morphology_workflows import curation # TODO re-enable once morphology_workflows is compatible with neurom v4
 
-morphio.set_maximum_warnings(-1)
+from src.neuron_morphology.morphology_loading import load_morphology_with_morphio, load_morphology_with_neurom
+from src.neuron_morphology.validation import custom_validation
+# from morphology_workflows import curation # TODO re-enable once morphology_workflows is compatible with neurom v4
 
 
 class Check:
@@ -68,11 +66,10 @@ class Check:
     def run(self, neuron, swc_path):
         # TODO try catch and return CheckResult(false) if exception
         with io.capture_output() as captured:
-            with morphio.ostream_redirect(stdout=True, stderr=True):
-                try:
-                    return self.callable_(neuron, swc_path)
-                except Exception as e:
-                    return CheckResult(status=False, info=e)
+            try:
+                return self.callable_(neuron, swc_path)
+            except Exception as e:
+                return CheckResult(status=False, info=e)
 
     @staticmethod
     def basic_tsv(neuron_path, k_1, k_2, x):
@@ -120,8 +117,8 @@ validation_report_checks = {
             pref_label="Can be loaded with morphio",
             label="Can be loaded with Morphio Metric",
             callable_=lambda neuron, swc_path: CheckResult(
-                status=not isinstance(_load_morph_morphio(swc_path, raise_=True), Exception),
-                info=_load_morph_morphio(swc_path, raise_=True)
+                status=not isinstance(load_morphology_with_morphio(swc_path, raise_=True), Exception),
+                info=load_morphology_with_morphio(swc_path, raise_=True)
             ),
             value_in_json=lambda a, b, c, d: Check.json_wrapper(a, b, c, d, lambda neuron_path, k_1, k_2, x: None),
             example_failure=[],
@@ -152,7 +149,7 @@ validation_report_checks = {
             label="Neurite Has Different Diameters Metric",
             pref_label="Neurite Has Different Diameters",
             callable_=lambda neuron, swc_path: CheckResult(
-                status=len(set(_load_morph_morphio(swc_path, raise_=False).diameters)) >= 2
+                status=len(set(load_morphology_with_morphio(swc_path, raise_=False).diameters)) >= 2
             ),
             value_in_json=lambda neuron_path, k_1, k_2, x: x.status,
             example_failure=[],
@@ -445,19 +442,6 @@ validation_report_checks = {
 }
 
 
-def _load_morph_morphio(swc_path: str, raise_: bool):
-    morphio.set_raise_warnings(raise_)
-
-    try:
-        if not raise_:
-            return Morphology(swc_path, options=Option.allow_unifurcated_section_change)
-
-        return Morphology(swc_path)
-
-    except (morphio._morphio.MorphioError, morphio._morphio.RawDataError) as e:
-        return e
-
-
 def _validation_report(neuron: Morphology, swc_path: str) -> Dict[str, Dict[str, Any]]:
     '''Return the payload that will be sent back to the user'''
 
@@ -494,13 +478,7 @@ def _validation_report(neuron: Morphology, swc_path: str) -> Dict[str, Dict[str,
 def get_report(neuron_path: str, morphology: Optional[Morphology] = None, report: Optional[Dict] = None):
     if report is None:
         if morphology is None:
-
-            morphio.set_raise_warnings(False)
-
-            with io.capture_output(), morphio.ostream_redirect(stdout=True, stderr=True):
-                morphology = load_morphology(
-                    _load_morph_morphio(neuron_path, raise_=False), process_subtrees=True
-                )
+            morphology = load_morphology_with_neurom(neuron_path)
 
         report = _validation_report(morphology, neuron_path)
 

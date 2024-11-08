@@ -1,0 +1,287 @@
+{
+  "somaNumberOfPoints": 4,
+  "neuriteFeature": [
+    {
+      "type": "nsg:BasalDendrite",
+      "name": "basal dendrite features",
+      "traversedBrainRegion": [
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/366"
+          },
+          "count": 4916
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/549"
+          },
+          "count": 351
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/1096"
+          },
+          "count": 12
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/1104"
+          },
+          "count": 252
+        }
+      ],
+      "projectionBrainRegion": [
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/366"
+          },
+          "count": 56
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/549"
+          },
+          "count": 14
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/1096"
+          },
+          "count": 2
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/1104"
+          },
+          "count": 9
+        }
+      ],
+      "cumulatedLength": {
+        "value": 8969.660775484492,
+        "unitCode": "μm"
+      },
+      "longestBranchLength": {
+        "value": 0,
+        "unitCode": "μm"
+      },
+      "longestBranchNumberOfNodes": 0,
+      "numberOfProjections": 0
+    },
+    {
+      "type": "nsg:Axon",
+      "name": "axon features",
+      "traversedBrainRegion": [
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/366"
+          },
+          "count": 264
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/549"
+          },
+          "count": 15
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/629"
+          },
+          "count": 292
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/685"
+          },
+          "count": 187
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/262"
+          },
+          "count": 1613
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/803"
+          },
+          "count": 59
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/6"
+          },
+          "count": 167
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/1022"
+          },
+          "count": 198
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/672"
+          },
+          "count": 1081
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/698"
+          },
+          "count": 169
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/440"
+          },
+          "count": 276
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/630"
+          },
+          "count": 2182
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/412"
+          },
+          "count": 5426
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/288"
+          },
+          "count": 9391
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/1125"
+          },
+          "count": 1281
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/969"
+          },
+          "count": 1293
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/448"
+          },
+          "count": 1012
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/961"
+          },
+          "count": 283
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/159"
+          },
+          "count": 78
+        }
+      ],
+      "projectionBrainRegion": [
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/366"
+          },
+          "count": 1
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/262"
+          },
+          "count": 25
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/630"
+          },
+          "count": 11
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/412"
+          },
+          "count": 52
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/1125"
+          },
+          "count": 10
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/288"
+          },
+          "count": 80
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/448"
+          },
+          "count": 12
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/969"
+          },
+          "count": 27
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/698"
+          },
+          "count": 2
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/961"
+          },
+          "count": 2
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/159"
+          },
+          "count": 1
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/440"
+          },
+          "count": 1
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/672"
+          },
+          "count": 1
+        },
+        {
+          "brainRegion": {
+            "@id": "http://api.brain-map.org/api/v2/data/Structure/803"
+          },
+          "count": 1
+        }
+      ],
+      "cumulatedLength": {
+        "value": 46647.53443703847,
+        "unitCode": "μm"
+      },
+      "longestBranchLength": {
+        "value": 0,
+        "unitCode": "μm"
+      },
+      "longestBranchNumberOfNodes": 0,
+      "numberOfProjections": 0
+    }
+  ]
+}

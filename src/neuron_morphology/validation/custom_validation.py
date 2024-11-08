@@ -1,7 +1,7 @@
 import numpy as np
 from typing import List, Tuple
 
-from morphio._morphio import SectionType
+from morphio import SectionType
 from neurom import NeuriteType, iter_sections, iter_segments, iter_neurites
 from neurom.check import CheckResult
 from neurom.core import Morphology, Section
