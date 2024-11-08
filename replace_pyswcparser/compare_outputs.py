@@ -10,13 +10,13 @@ if __name__ == "__main__":
     morph_name = "17302_00023.swc"
     label, _ = os.path.splitext(morph_name)
 
-    data_dir = get_path("./data/atlas")
+    data_dir = get_path("./data")
     dst_dir = get_path("./replace_pyswcparser")
 
-    volume_path = os.path.join(data_dir, "annotation_25_ccf2017.nrrd")
-    brain_region_onto_path = os.path.join(data_dir, "1.json")
+    volume_path = os.path.join(data_dir, "atlas/annotation_25_ccf2017.nrrd")
+    brain_region_onto_path = os.path.join(data_dir, "atlas/1.json")
 
-    morph_path = os.path.join(dst_dir, morph_name)
+    morph_path = os.path.join(data_dir, f"swcs/{morph_name}")
 
     v_data, v_metadata = nrrd.read(volume_path)
 

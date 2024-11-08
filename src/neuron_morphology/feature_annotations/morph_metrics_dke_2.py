@@ -28,6 +28,7 @@ from kgforge.core import KnowledgeGraphForge
 from nptyping.ndarray import NDArray
 from nrrd import NRRDHeader
 
+from src.arguments import default_output_dir
 from src.helpers import write_obj, get_path
 
 from neurom import NeuriteType
@@ -370,24 +371,26 @@ def get_parcellation_volume_and_ontology(
 
 
 if __name__ == "__main__":
-    with cProfile.Profile() as pr:
-        data_dir = get_path("./data/atlas")
-        dst_dir = get_path("./examples/attempts")
 
-        volume_path = os.path.join(data_dir, "annotation_25_ccf2017.nrrd")
-        brain_region_onto_path = os.path.join(data_dir, "1.json")
+    morphology_filename = "17302_00023.swc"
+    label, _ = os.path.splitext(morphology_filename)
 
-        morph_path = os.path.join("swcs", "17302_00023.swc")
+    data_dir = get_path("./data")
+    dst_dir = default_output_dir()
+    os.makedirs(dst_dir, exist_ok=True)
 
-        v_data, v_metadata = nrrd.read(volume_path)
+    volume_path = os.path.join(data_dir, "atlas/annotation_25_ccf2017.nrrd")
+    brain_region_onto_path = os.path.join(data_dir, "atlas/1.json")
+    morph_path = os.path.join(data_dir, f"swcs/{morphology_filename}")
 
-        br_index = index_brain_region_labels(brain_region_onto_path)
+    v_data, v_metadata = nrrd.read(volume_path)
 
-        annotations, warnings = compute_metrics_dke(
-            volume_data=v_data, world_to_vox_mat=compute_world_to_vox_mat(v_metadata),
-            morphology_path=morph_path, brain_region_index=br_index,
-            as_annotation_body=False
-        )
-        write_obj(os.path.join(dst_dir, "17302_00023_metrics_dke.json"), annotations)
+    br_index = index_brain_region_labels(brain_region_onto_path)
 
-        pstats.Stats(pr).sort_stats(pstats.SortKey.CUMULATIVE).print_stats(10)
+    annotations, warnings = compute_metrics_dke(
+        volume_data=v_data, world_to_vox_mat=compute_world_to_vox_mat(v_metadata),
+        morphology_path=morph_path, brain_region_index=br_index,
+        as_annotation_body=False
+    )
+    write_obj(os.path.join(dst_dir, "17302_00023_metrics_dke.json"), annotations)
+

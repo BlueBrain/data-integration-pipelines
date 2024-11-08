@@ -1,8 +1,12 @@
 import argparse
 from datetime import datetime
-from typing import Union
 
-from src.helpers import Deployment
+from src.helpers import Deployment, get_path
+
+
+def default_output_dir():
+    timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    return get_path(f'./output/{timestamp}')
 
 
 def define_arguments(parser: argparse.ArgumentParser, with_bucket=True):
@@ -12,8 +16,6 @@ def define_arguments(parser: argparse.ArgumentParser, with_bucket=True):
     :return: the argument parser
     :rtype: ArgumentParser
     """
-
-    timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
     if with_bucket:
         parser.add_argument(
@@ -30,7 +32,7 @@ def define_arguments(parser: argparse.ArgumentParser, with_bucket=True):
 
     parser.add_argument(
         "--output_dir", help="The path to dump log and data files.",
-        default=f'./output/{timestamp}', type=str
+        default=default_output_dir(), type=str
     )
     parser.add_argument(
         "--limit", help="Query limit for resources, defaults to 10000",
