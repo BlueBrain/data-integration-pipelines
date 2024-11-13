@@ -2,8 +2,8 @@ import os
 import nrrd
 
 from src.helpers import get_path, write_obj
-from src.neuron_morphology.feature_annotations.morph_metrics_dke_2 import index_brain_region_labels, compute_world_to_vox_mat, compute_metrics_dke
-from src.neuron_morphology.feature_annotations.morph_metrics_dke import compute_metrics_dke as compute_metrics_dke_old
+from src.neuron_morphology.feature_annotations.morph_metrics_dke import index_brain_region_labels, compute_world_to_vox_mat, compute_metrics_dke
+from replace_pyswcparser.morph_metrics_old import compute_metrics_dke as compute_metrics_dke_old
 
 if __name__ == "__main__":
 

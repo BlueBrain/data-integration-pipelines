@@ -1,5 +1,5 @@
-from src.pyswcparser.SWC_NODE_TYPES import *
-from src.pyswcparser.Dotdict import Dotdict
+from replace_pyswcparser.pyswcparser.SWC_NODE_TYPES import *
+from replace_pyswcparser.pyswcparser.Dotdict import Dotdict
 
 class Morphology:
   def __init__(self, sections_by_ids):

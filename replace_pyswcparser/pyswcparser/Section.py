@@ -1,5 +1,5 @@
 import math
-from src.pyswcparser.SWC_NODE_TYPES import *
+from replace_pyswcparser.pyswcparser.SWC_NODE_TYPES import *
 
 class Section:
   def __init__(self):

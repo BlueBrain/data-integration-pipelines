@@ -1,4 +1,4 @@
-from src.pyswcparser.Dotdict import Dotdict
+from replace_pyswcparser.pyswcparser.Dotdict import Dotdict
 
 SWC_NODE_TYPES_BY_NAME = Dotdict({
   "UNDEFINED": 0,

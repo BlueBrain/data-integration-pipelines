@@ -1,6 +1,6 @@
 import json
 import math
-from src.pyswcparser.SWC_NODE_TYPES import *
+from replace_pyswcparser.pyswcparser.SWC_NODE_TYPES import *
 
 class Node:
   def __init__(self, id, type, position, radius):

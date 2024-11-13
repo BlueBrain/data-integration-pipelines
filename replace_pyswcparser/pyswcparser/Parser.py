@@ -1,9 +1,9 @@
 import sys
 import re
 import uuid
-from src.pyswcparser.Node import Node
-from src.pyswcparser.Section import Section
-from src.pyswcparser.Morphology import Morphology
+from replace_pyswcparser.pyswcparser.Node import Node
+from replace_pyswcparser.pyswcparser.Section import Section
+from replace_pyswcparser.pyswcparser.Morphology import Morphology
 
 
 

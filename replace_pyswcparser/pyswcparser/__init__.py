@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from src.pyswcparser.SWC_NODE_TYPES import *
-from src.pyswcparser.Node import Node
-from src.pyswcparser.Parser import parse
+from replace_pyswcparser.pyswcparser.SWC_NODE_TYPES import *
+from replace_pyswcparser.pyswcparser.Node import Node
+from replace_pyswcparser.pyswcparser.Parser import parse
 
 
 
