@@ -1,4 +1,7 @@
+import json
 import os
+from collections import defaultdict
+
 import nrrd
 
 from src.helpers import get_path, write_obj
@@ -38,4 +41,37 @@ if __name__ == "__main__":
 
     write_obj(os.path.join(dst_dir, f"{label}_metrics_dke.json"), annotations)
     write_obj(os.path.join(dst_dir, f"{label}_metrics_dke_old.json"), annotations_old)
+
+
+    def compare(v1, v2, key):
+
+        sort_fc = lambda fc: sorted(fc, key=lambda el: el["brainRegion"]["@id"])
+
+        v1 = sort_fc(v1[key])
+        v2 = sort_fc(v2[key])
+
+        if v1 != v2:
+            print(f"Warning - Difference for {type_}'s {key}")
+
+        if len(v1) != len(v2):
+            print(f"Difference in count of brain regions being traversed")
+
+        for i, (v1_i, v2_i) in enumerate(zip(v1, v2)):
+            if v1_i["brainRegion"]["@id"] == v2_i["brainRegion"]["@id"]:
+                if v1_i["count"] != v2_i["count"]:
+                    print("Mismatch of counts for", v1_i["brainRegion"]["@id"], v1_i["count"], v2_i["count"])
+
+            # print(json.dumps(v1, indent=4))
+            # print(json.dumps(v2, indent=4))
+
+    pairing = defaultdict(lambda: [None, None])
+
+    for a, b in zip(annotations_old["neuriteFeature"], annotations["neuriteFeature"]):
+        pairing[a["type"]][0] = a
+        pairing[b["type"]][1] = b
+
+    for type_, pair in pairing.items():
+        old, new = pair
+        compare(old, new, "traversedBrainRegion")
+        compare(old, new, "projectionBrainRegion")
 
