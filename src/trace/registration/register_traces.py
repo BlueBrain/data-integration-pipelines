@@ -34,7 +34,7 @@ def generate_nwb_products(forge: KnowledgeGraphForge, nwb_path: str,
     """
 
     dir_path = os.path.dirname(nwb_path)
-    trace_name, _ = get_filename_and_ext_from_filepath(dir_path)
+    trace_name, _ = get_filename_and_ext_from_filepath(nwb_path)
     rab_path = f"{dir_path}/{trace_name}.rab"
     generate(nwb_path, rab_path, dir_path)
 
@@ -91,7 +91,8 @@ def create_trace_resource(forge: KnowledgeGraphForge, nwb_path: str, metadata: D
                           stimuli_dicts: Tuple[Dict]):
 
     single_cell_stimulus_type_id_to_label, stimulus_type_id_to_label = stimuli_dicts
-    mapping_trace = DictionaryMapping.load(os.path.join(ASSETS_DIRECTORY, 'GeneralTraceMapping.hjson'))
+    #mapping_trace = DictionaryMapping.load(os.path.join(ASSETS_DIRECTORY, 'GeneralTraceMapping.hjson'))
+    mapping_trace = DictionaryMapping.load('/Users/cgonzale/Documents/code/data-integration-pipelines/assets/GeneralTraceMapping.hjson')
 
     assert 'brainRegion' in metadata, "Missing brain region information in the metadata"
     assert 'contribution' in metadata, "Missing contribution information in the metadata"
@@ -161,7 +162,7 @@ def register_trace_resources(forge: KnowledgeGraphForge, nwb_path: str, metadata
 
     if not trace_resource._last_action.succeeded:
         logger.error(f"Failed to update the trace resource. Error: {trace_resource._last_action.message}")
-        return (trace_resource, web_data_container)
+    return (trace_resource, web_data_container)
 
 
 if __name__ == "__main__":
