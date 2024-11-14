@@ -44,7 +44,7 @@ def generate_nwb_products(forge: KnowledgeGraphForge, nwb_path: str,
     stimuli = []
     stimulus_obj = []
     for path in png_paths[:]:
-        name = path.split('/')[-1].split('.png')[0]
+        name, _ = get_filename_and_ext_from_filepath(path) 
         fragments = name.split("__")
         if fragments[2] == "response":
             about = "nsg:ResponseTrace"
@@ -100,7 +100,7 @@ def create_trace_resource(forge: KnowledgeGraphForge, nwb_path: str, metadata: D
     assert 'objectOfStudy' in metadata, "Missing the object of study of the resource in the metadata"
     assert 'subject' in metadata, "Missing the subject information in the metadata"
 
-    metadata['name'] = nwb_path.split('/')[-1].split('.nwb')[0]
+    metadata['name'], _ = get_filename_and_ext_from_filepath(nwb_path)
 
     nwb_products = generate_nwb_products(forge=forge, nwb_path=nwb_path,
                                          stimulus_type_id_to_label=stimulus_type_id_to_label)

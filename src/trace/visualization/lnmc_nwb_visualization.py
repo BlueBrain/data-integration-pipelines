@@ -6,10 +6,12 @@ import randomaccessbuffer as rab
 import matplotlib.pyplot as plt
 
 from hdmf.common.hierarchicaltable import to_hierarchical_dataframe, flatten_column_index
+from src.helpers import get_filename_and_ext_from_filepath
 
 
 def nwb2png(nwb_path, nwb, png_dir):
-    filename = nwb_path.split("/")[-1].split(".")[0]
+
+    filename, _ = get_filename_and_ext_from_filepath(nwb_path)
 
     trials_df = to_hierarchical_dataframe(nwb.icephys_repetitions).reset_index()
     trials_df = flatten_column_index(trials_df, max_levels=2)
