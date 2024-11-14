@@ -91,8 +91,7 @@ def create_trace_resource(forge: KnowledgeGraphForge, nwb_path: str, metadata: D
                           stimuli_dicts: Tuple[Dict]):
 
     single_cell_stimulus_type_id_to_label, stimulus_type_id_to_label = stimuli_dicts
-    #mapping_trace = DictionaryMapping.load(os.path.join(ASSETS_DIRECTORY, 'GeneralTraceMapping.hjson'))
-    mapping_trace = DictionaryMapping.load('/Users/cgonzale/Documents/code/data-integration-pipelines/assets/GeneralTraceMapping.hjson')
+    mapping_trace = DictionaryMapping.load(os.path.join(ASSETS_DIRECTORY, 'GeneralTraceMapping.hjson'))
 
     assert 'brainRegion' in metadata, "Missing brain region information in the metadata"
     assert 'contribution' in metadata, "Missing contribution information in the metadata"
