@@ -15,6 +15,7 @@ with the command 'pip install .' or 'pip install -e .'
 from collections import defaultdict
 from typing import List, Dict, Tuple, Any, Union
 
+import numpy
 import numpy as np
 import json
 import os
@@ -27,15 +28,16 @@ from kgforge.core import KnowledgeGraphForge
 from nptyping.ndarray import NDArray
 from nrrd import NRRDHeader
 
-
+from src.arguments import default_output_dir
 from src.helpers import write_obj, get_path
-from src.pyswcparser.Morphology import Morphology
-from src.pyswcparser.Parser import parse
-from src.pyswcparser.Node import Node
-from src.pyswcparser.SWC_NODE_TYPES import SWC_NODE_TYPES_BY_NAME
 
+from neurom import NeuriteType
+from neurom.core.morphology import Morphology as NeuromMorphology, Section
+
+from src.logger import logger
 from src.neuron_morphology.feature_annotations.data_classes.AnnotationBody import AnnotationBody
-
+from src.neuron_morphology.morphology_loading import load_morphology_with_neurom
+from src.neuron_morphology.section_type_labels import neurite_type_to_ontology_term, neurite_type_to_name
 
 ATLAS_RELEASE_ID = "https://bbp.epfl.ch/neurosciencegraph/data/4906ab85-694f-469d-962f-c0174e901885"
 
@@ -54,8 +56,7 @@ def compute_metrics_dke(
     is set to True.
     """
 
-    with open(morphology_path, "r") as f:
-        morph = parse(f.read())
+    morph: NeuromMorphology = load_morphology_with_neurom(morphology_path)
 
     with io.capture_output() as captured:
         general_metrics = {
@@ -80,23 +81,13 @@ def compute_metrics_dke(
     return general_metrics, captured.stderr
 
 
-# In the final schemas, the types "nsg:xxx" are going to be used
-swc_node_types_to_nsg = {
-    SWC_NODE_TYPES_BY_NAME.UNDEFINED: "nsg:UndefinedNeurite",
-    # just for compliance with SWC spec, not going to be used here
-    SWC_NODE_TYPES_BY_NAME.SOMA: "nsg:Soma",
-    SWC_NODE_TYPES_BY_NAME.AXON: "nsg:Axon",
-    SWC_NODE_TYPES_BY_NAME.BASAL_DENDRITE: "nsg:BasalDendrite",
-    SWC_NODE_TYPES_BY_NAME.APICAL_DENDRITE: "nsg:ApicalDendrite",
-    SWC_NODE_TYPES_BY_NAME.CUSTOM: "nsg:CustomNeurite",
-    # just for compliance with SWC spec, not going to be used here
-}
+def initialize_object_per_section_type(section_type: NeuriteType) -> Dict[str, Any]:
+    ontology_term_for_type = neurite_type_to_ontology_term(section_type)
+    name_for_type = f"{neurite_type_to_name(section_type)} features"
 
-
-def init_thing(s_type: str, s_type_name: str) -> Dict[str, Any]:
     return {
-        "type": swc_node_types_to_nsg[s_type],
-        "name": f"{s_type_name} features",
+        "type": ontology_term_for_type,
+        "name": name_for_type,
         # Name is required due to the collection schema which is
         # imported by the neuron morphology schema
         "traversedBrainRegion": defaultdict(int),
@@ -129,11 +120,10 @@ def p_inside_volume(volume_data: NDArray, p_voxel_v4: np.ndarray):
         volume_data.shape[2] > int(p_voxel_v4[2])
 
 
-def node_to_world_voxel_position(
-        node: Node, world_to_voxel_mat: np.matrix
+def point_to_world_voxel_position(
+        p: numpy.ndarray, world_to_voxel_mat: np.matrix
 ) -> Tuple[np.ndarray, np.ndarray]:
     # the position as a list [x, y, z]
-    p = node.get_position()
     # the position as a homogeneous-coordinate compliant vector, in Numpy format
     p_world = np.array([p[0], p[1], p[2], 1])
     # converted into voxel space with each element rounded to make sure we address
@@ -163,7 +153,7 @@ def compute_world_to_vox_mat(volume_metadata: NRRDHeader):
 
 
 def compute_section_leaf_regions(
-        morph: Morphology,
+        morph: NeuromMorphology,
         volume_data: NDArray,
         volume_metadata: NRRDHeader,
         brain_region_index: Dict[str, str]
@@ -173,7 +163,7 @@ def compute_section_leaf_regions(
 
 
 def _compute_section_leaf_regions(
-        morphology: Morphology,
+        morphology: NeuromMorphology,
         brain_region_index: Dict[str, str],
         world_to_voxel_mat: np.matrix,
         volume_data: NDArray
@@ -181,38 +171,35 @@ def _compute_section_leaf_regions(
     def get_volume_data(p_voxel):
         return int(volume_data[int(p_voxel[0]), int(p_voxel[1]), int(p_voxel[2])])
 
-    unique_node_control = set()
-
     # we compute the contribution of each section to the final metrics
-    sections = morphology.get_sections()
-
-    section_types = dict((section.get_type(), section.get_type_name()) for section in sections)
+    sections: List[Section] = morphology.sections
 
     # a structure to gather neurite information
-    morph_metrics_per_neurite_types = dict(
-        (s_type, init_thing(s_type, s_type_name))
-        for s_type, s_type_name in section_types.items()
+    morph_metrics_per_neurite_types: Dict[NeuriteType, Dict] = dict(
+        (section_type, initialize_object_per_section_type(section_type))
+        for section_type in set(s.type for s in sections)
     )
 
-    for section in sections:
-        s_type = section.get_type()
-        s_size = section.get_size()
-        s_nodes = section.get_nodes()
-        s_is_projection = len(section.get_children()) == 0
+    unique_node_control = set()
 
-        metrics = morph_metrics_per_neurite_types[s_type]
+    for section in sections:
+
+        section_points: numpy.ndarray = section._morphio_section.points
+        # each element in also a ndarray of len 3 -> coordinates of points
+
+        metrics = morph_metrics_per_neurite_types[section.type]
 
         # adding the size of the current section
-        metrics["cumulatedLength"]["value"] = metrics["cumulatedLength"]["value"] + s_size
+        metrics["cumulatedLength"]["value"] = metrics["cumulatedLength"]["value"] + section.length
 
         # Lookup every point of this section in the annotation volume
-        for node in s_nodes:
-            if node in unique_node_control:
+        for node in section_points:
+            if tuple(node) in unique_node_control:
                 continue
 
-            unique_node_control.add(node)
+            unique_node_control.add(tuple(node))
 
-            p_world_v4, p_voxel_v4 = node_to_world_voxel_position(node, world_to_voxel_mat)
+            p_world_v4, p_voxel_v4 = point_to_world_voxel_position(node, world_to_voxel_mat)
 
             if p_inside_volume(volume_data, p_voxel_v4):
 
@@ -221,12 +208,14 @@ def _compute_section_leaf_regions(
                 if volume_value in brain_region_index:
                     metrics["traversedBrainRegion"][volume_value] += 1
                 else:
-                    print(warning_unknown_brain_region(volume_value, p_world_v4, p_voxel_v4))
+                    logger.warning(warning_unknown_brain_region(volume_value, p_world_v4, p_voxel_v4))
             else:
-                print(warning_outside_bounds(p_voxel_v4, volume_data))
+                logger.warning(warning_outside_bounds(p_voxel_v4, volume_data))
+
+        s_is_projection = len(section.children) == 0
 
         if s_is_projection:
-            p_world_v4, p_voxel_v4 = node_to_world_voxel_position(s_nodes[-1], world_to_voxel_mat)
+            p_world_v4, p_voxel_v4 = point_to_world_voxel_position(section_points[-1], world_to_voxel_mat)
 
             if p_inside_volume(volume_data, p_voxel_v4):
                 volume_value = get_volume_data(p_voxel_v4)
@@ -234,9 +223,9 @@ def _compute_section_leaf_regions(
                 if volume_value in brain_region_index:
                     metrics["projectionBrainRegion"][volume_value] += 1
                 else:
-                    print(warning_unknown_brain_region(volume_value, p_world_v4, p_voxel_v4))
+                    logger.warning(warning_unknown_brain_region(volume_value, p_world_v4, p_voxel_v4))
             else:
-                print(warning_outside_bounds(p_voxel_v4, volume_data))
+                logger.warning(warning_outside_bounds(p_voxel_v4, volume_data))
 
     def reformat(metrics_i):
 
@@ -258,7 +247,7 @@ def _compute_section_leaf_regions(
     neurite_feature = [
         reformat(metrics)
         for neurite_type, metrics in morph_metrics_per_neurite_types.items()
-        if neurite_type != SWC_NODE_TYPES_BY_NAME.SOMA
+        if neurite_type != NeuriteType.soma
     ]
 
     # Disabled so far because unused and time-consuming
@@ -303,18 +292,8 @@ def output_section_leaf_regions_as_annotation_body(
     return dict(_to_annotation_body(nf) for nf in section_leaf_regions)
 
 
-def compute_soma_number_of_points(morphology: Morphology) -> int:
-    # Computing the number of points for the soma
-    # For this, we need to check inside all the 'soma sections' and add soma nodes to a Set.
-    # (A single node can be part of multiple sections, so a Set guarantees uniqueness)
-
-    unique_soma_nodes = set()
-    soma_sections = morphology.get_sections_by_type(SWC_NODE_TYPES_BY_NAME.SOMA)
-    for section in soma_sections:
-        for node in section.get_nodes():
-            unique_soma_nodes.add(node)
-
-    return len(unique_soma_nodes)
+def compute_soma_number_of_points(morphology: NeuromMorphology) -> int:
+    return len(morphology.soma.points)
 
 
 def output_soma_number_of_point_as_annotation_body(nb: int) -> AnnotationBody:
@@ -355,7 +334,6 @@ def get_parcellation_volume_and_ontology(
         download_directory: str,
         forge_atlas: KnowledgeGraphForge
 ) -> Tuple[Dict[str, str], NDArray, np.matrix]:
-
     atlas_release = forge_atlas.retrieve(ATLAS_RELEASE_ID)
 
     if atlas_release is None:
@@ -393,24 +371,26 @@ def get_parcellation_volume_and_ontology(
 
 
 if __name__ == "__main__":
-    with cProfile.Profile() as pr:
 
-        data_dir = get_path("./examples/data/src")
-        dst_dir = get_path("./examples/attempts")
+    morphology_filename = "17302_00023.swc"
+    label, _ = os.path.splitext(morphology_filename)
 
-        volume_path = os.path.join(data_dir, "ccfv3_annotation_25.nrrd")
-        brain_region_onto_path = os.path.join(data_dir, "1.json")
-        morph_path = os.path.join(data_dir, "17302_00023.swc")
+    data_dir = get_path("./data")
+    dst_dir = default_output_dir()
+    os.makedirs(dst_dir, exist_ok=True)
 
-        v_data, v_metadata = nrrd.read(volume_path)
+    volume_path = os.path.join(data_dir, "atlas/annotation_25_ccf2017.nrrd")
+    brain_region_onto_path = os.path.join(data_dir, "atlas/1.json")
+    morph_path = os.path.join(data_dir, f"swcs/{morphology_filename}")
 
-        br_index = index_brain_region_labels(brain_region_onto_path)
+    v_data, v_metadata = nrrd.read(volume_path)
 
-        annotations, warnings = compute_metrics_dke(
-            volume_data=v_data, world_to_vox_mat=compute_world_to_vox_mat(v_metadata),
-            morphology_path=morph_path, brain_region_index=br_index,
-            as_annotation_body=False
-        )
-        write_obj(os.path.join(dst_dir, "17302_00023_metrics_dke.json"), annotations)
+    br_index = index_brain_region_labels(brain_region_onto_path)
 
-        pstats.Stats(pr).sort_stats(pstats.SortKey.CUMULATIVE).print_stats(10)
+    annotations, warnings = compute_metrics_dke(
+        volume_data=v_data, world_to_vox_mat=compute_world_to_vox_mat(v_metadata),
+        morphology_path=morph_path, brain_region_index=br_index,
+        as_annotation_body=False
+    )
+    write_obj(os.path.join(dst_dir, "17302_00023_metrics_dke.json"), annotations)
+

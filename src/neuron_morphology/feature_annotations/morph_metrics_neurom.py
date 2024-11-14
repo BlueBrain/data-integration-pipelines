@@ -6,12 +6,12 @@ from typing import Dict, List, Tuple
 
 from neurom.features import NameSpace
 
+from src.arguments import default_output_dir
 from src.neuron_morphology.feature_annotations.data_classes.Annotation import Annotation
 from src.neuron_morphology.feature_annotations.data_classes.AnnotationBody import AnnotationBody
 from src.helpers import write_obj, get_path
-from morphio import ostream_redirect
-from IPython.utils import io
 
+from src.neuron_morphology.morphology_loading import load_morphology_with_neurom
 
 dictionary_map = {
     NameSpace.NEURITE: nm.features._NEURITE_FEATURES,
@@ -273,11 +273,9 @@ def compute_metrics_neurom_raw(morphology_filepath: str) -> Tuple[Dict, str]:
     """
     Compute metrics of a neuron morphology. Returns the raw output of neurom
     """
-    with io.capture_output() as captured:
-        with ostream_redirect(stdout=True, stderr=True):
-            morph = nm.load_morphology(morphology_filepath, process_subtrees=True)
-            stats = morph_stats.extract_stats(morph, METRIC_CONFIG)
 
+    morph, captured = load_morphology_with_neurom(morphology_filepath, return_capture=True)
+    stats = morph_stats.extract_stats(morph, METRIC_CONFIG)
     return stats, captured.stderr
 
 
@@ -308,11 +306,15 @@ if __name__ == "__main__":
     # units_left = [e for e in units if all(i not in e for i in word_to_unit.keys())]
     # print(units_left)
 
-    data_dir = get_path("./examples/data/src")
-    dst_dir = get_path("./examples/attempts")
+    morphology_filename = "17302_00023.swc"
+    label, _ = os.path.splitext(morphology_filename)
 
-    by_compartment, _ = compute_metrics_neurom(os.path.join(data_dir, "17302_00023.swc"))
-
+    data_dir = get_path("./data")
+    dst_dir = default_output_dir()
     os.makedirs(dst_dir, exist_ok=True)
 
-    write_obj(os.path.join(dst_dir, "17302_00023_metric_neurom_compartment.json"), by_compartment)
+    morph_path = os.path.join(data_dir, f"swcs/{morphology_filename}")
+
+    by_compartment, _ = compute_metrics_neurom(morph_path)
+
+    write_obj(os.path.join(dst_dir, f"{label}_metric_neurom_compartment.json"), by_compartment)

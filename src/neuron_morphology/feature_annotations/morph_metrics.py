@@ -1,20 +1,3 @@
-"""
-This scripts opens a neuron morphology file (SWC) as well as a brain annotation file (NRRD)
-to look up the brain regions being traversed by the morphology.
-The result is saved in a JSON file at the very end of the main() function.
-If we were to make this script run along with Nexus Forge to automatically extract data and
-push them to Nexus, it is possible to fetch the annotation volume because it is linked to the
-'atlasRelease' of each morphology.
-Then, if we were to process multiple morphologies using the same volume, it would be optimal
-to load the NRRD file only once and reuse its data and metadata for each morph
-(the NRRD opening takes a few seconds and the morph metrics takes a few ms)
-
-The library 'pyswcparser' is in this same repo, in the folder 'other_tools'. It should be installed
-with the command 'pip install .' or 'pip install -e .'
-
-
-"""
-
 import os
 from typing import Dict, List, Tuple
 import numpy as np
@@ -23,6 +6,7 @@ from kgforge.core import KnowledgeGraphForge
 from nrrd import NRRDHeader, read
 from nptyping.ndarray import NDArray
 
+from src.arguments import default_output_dir
 from src.neuron_morphology.feature_annotations.data_classes.Annotation import Annotation
 from src.neuron_morphology.feature_annotations.morph_metrics_dke import (
     compute_metrics_dke,
@@ -113,12 +97,16 @@ def compute_metrics_default_atlas(
 
 if __name__ == "__main__":
 
-    data_dir = get_path("./examples/data/src")
-    dst_dir = get_path("./examples/attempts")
+    morphology_filename = "17302_00023.swc"
+    label, _ = os.path.splitext(morphology_filename)
 
-    volume_path = os.path.join(data_dir, "ccfv3_annotation_25.nrrd")
-    brain_region_onto_path = os.path.join(data_dir, "1.json")
-    morph_path = os.path.join(data_dir, "17302_00023.swc")
+    data_dir = get_path("./data")
+    dst_dir = default_output_dir()
+    os.makedirs(dst_dir, exist_ok=True)
+
+    volume_path = os.path.join(data_dir, "atlas/annotation_25_ccf2017.nrrd")
+    brain_region_onto_path = os.path.join(data_dir, "atlas/1.json")
+    morph_path = os.path.join(data_dir, f"swcs/{morphology_filename}")
 
     v_data, v_metadata = read(volume_path)
     br_index = index_brain_region_labels(brain_region_onto_path)
@@ -129,4 +117,4 @@ if __name__ == "__main__":
     )
 
     os.makedirs(dst_dir, exist_ok=True)
-    write_obj(os.path.join(dst_dir, "17302_00023_metrics_all.json"), annotations)
+    write_obj(os.path.join(dst_dir, f"{label}_metrics_all.json"), annotations)
