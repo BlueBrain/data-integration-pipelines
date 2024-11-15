@@ -24,7 +24,7 @@ from src.helpers import _as_list, Deployment, allocate_with_default_views, authe
 from src.trace.query.query import query_traces
 from src.forge_extension import _retrieve_file_metadata, _exists
 from src.trace.get_command_line_args import trace_command_line_args
-from src.trace.thumbnail import data_from_content_url
+# from src.trace.thumbnail import data_from_content_url
 # from src.get_projects import get_all_projects
 
 from src.trace.types_and_schemas import (
@@ -205,7 +205,23 @@ def e_type_getter(resource: Resource) -> Optional[str]:
     return v.hasBody.label
 
 
-def single_resource(resource: Union[str, Resource], forge: KnowledgeGraphForge, forge_datamodels: KnowledgeGraphForge, bool_only: bool = False) -> Dict[str, Union[str, bool]]:
+def trace_quality_check(
+        resource: Union[str, Resource], forge: KnowledgeGraphForge, forge_datamodels: KnowledgeGraphForge,
+        bool_only: bool = False
+) -> Dict[str, Union[str, bool]]:
+    """
+
+    :param resource: the trace Resource to run the quality checks against
+    :type resource: Resource
+    :param forge: an instance of forge tied to the bucket where the resource belongs
+    :type forge: KnowledgeGraphForge
+    :param forge_datamodels: an instance of forge tied to neurosciencegraph/datamodels to check the stimulus type ontology
+    :type forge_datamodels: KnowledgeGraphForge
+    :param bool_only: Whether to only return checks that are bool-valued or not (exclude or include textual information)
+    :type bool_only: KnowledgeGraphForge
+    :return: the quality checks
+    :rtype: Dict[str, Union[str, bool]]
+    """
 
     if isinstance(resource, str):
         resource = forge.retrieve(resource)
@@ -223,8 +239,8 @@ def single_resource(resource: Union[str, Resource], forge: KnowledgeGraphForge, 
     distribution_nwb_bool, nwb_encoding_format_bool, distribution_is_self_bool, nwb_content_url = \
         distribution_extension_from_name(resource, "nwb") if has_distribution_bool else (False, False)
 
-    thumbnail_can_be_generated = (data_from_content_url(content_url=nwb_content_url, token=forge._store.token) is not None) \
-        if (has_distribution_bool and nwb_content_url is not None) else False
+    # thumbnail_can_be_generated = (data_from_content_url(content_url=nwb_content_url, token=forge._store.token) is not None) \
+    #     if (has_distribution_bool and nwb_content_url is not None) else False
 
     has_image_property_bool = has_image_property(resource)
 
@@ -323,7 +339,7 @@ def single_resource(resource: Union[str, Resource], forge: KnowledgeGraphForge, 
         # "Trace Distribution has nwb encoding format": nwb_encoding_format_bool,
 
         "Trace Distribution is self/self-like": distribution_is_self_bool,
-        "Trace Thumbnail can be generated": thumbnail_can_be_generated,
+        # "Trace Thumbnail can be generated": thumbnail_can_be_generated,
         "Trace Has Image property": has_image_property_bool,
         "Trace Image Can be Retrieved": has_image_in_same_bucket,
         "Trace Image all have stimulus type": image_all_have_stimuli_type,
@@ -365,7 +381,7 @@ def single_resource_catch(
 ) -> Tuple[Optional[Dict], Optional[str]]:
 
     try:
-        return single_resource(resource=id_, forge=forge, forge_datamodels=forge_datamodels), None
+        return trace_quality_check(resource=id_, forge=forge, forge_datamodels=forge_datamodels), None
     except Exception as e:
         return None, f"Error for resource {id_}: {e}"
 

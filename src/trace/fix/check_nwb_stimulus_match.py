@@ -21,7 +21,7 @@ from src.forge_extension import download_file
 from src.trace.fix.check_image_stimulus_match import check_image_stimulus
 
 from src.trace.query.query import query_traces
-from src.trace.find_valid_data import (
+from src.trace.validation import (
     distribution_extension_from_name, has_distribution, retrieve_wrapper
 )
 from src.trace.get_command_line_args import trace_command_line_args

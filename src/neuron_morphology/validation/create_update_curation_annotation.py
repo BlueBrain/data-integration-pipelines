@@ -6,6 +6,7 @@ from kgforge.core import KnowledgeGraphForge, Resource
 import os
 import pandas as pd
 
+from src.curation_annotations import create_update_curated_annotation, CurationStatus
 from src.helpers import allocate_by_deployment, authenticate_from_parser_arguments
 from src.logger import logger
 from src.neuron_morphology.arguments import define_morphology_arguments
@@ -27,31 +28,6 @@ WHERE {{
 }}
 """
 
-CURATED_ANNOTATION = {
-    "@type": [
-      "QualityAnnotation",
-      "Annotation"
-    ],
-    "hasBody": {
-      "@id": "https://neuroshapes.org/Curated",
-      "@type": [
-        "AnnotationBody",
-        "DataMaturity"
-      ],
-      "label": "Curated"
-    },
-    "motivatedBy": {
-      "@id": "https://neuroshapes.org/qualityAssessment",
-      "@type": "Motivation"
-    },
-    "name": "Data maturity annotation",
-    "note": "NeuronMorphology dataset contains complete minimal metadata and it can be loaded using Morphio without warnings."
-}
-
-
-UNASSESSED_ANNOTATION_ID = "https://neuroshapes.org/Unassessed"
-CURATED_ANNOTATION_ID = "https://neuroshapes.org/Curated"
-
 
 def check_minds(resource):
     if not hasattr(resource, 'contribution'):
@@ -65,41 +41,11 @@ def check_minds(resource):
     return True
 
 
-def _add_replace_delete_annotation(resource, curated_annotation, is_curated=True):
-    "add, replace or delete curated annotation"
-
-    minds = check_minds(resource)
-    if not minds:
-        raise ValueError("Resource doesn't have complete with MINDS")
-
-    new_annotation = []
-    
-    if hasattr(resource, 'annotation'):
-        annotation = resource.annotation if isinstance(resource.annotation, list) else [resource.annotation]
-        found = False
-        for item in annotation:
-            if item.hasBody.get_identifier() == UNASSESSED_ANNOTATION_ID:
-                continue
-            if item.hasBody.get_identifier() == CURATED_ANNOTATION_ID:
-                found = True
-                if is_curated:
-                    new_annotation.append(item)
-            else:
-                new_annotation.append(item)
-        if not found:
-            new_annotation.append(curated_annotation)
-    else:
-        if is_curated:
-            new_annotation.append(curated_annotation)
-    resource.annotation = new_annotation
-
-
 def check_update_curated(resources: List[Resource], forge: KnowledgeGraphForge):
     "Loop over curated morphologies and verify if the metric CanBeLoaded is True if not change the annotation"
 
     rows = []
     failed = []
-    curated_annotation = forge.from_json(CURATED_ANNOTATION)
 
     for resource in resources:
         row = {
@@ -114,9 +60,21 @@ def check_update_curated(resources: List[Resource], forge: KnowledgeGraphForge):
             elif len(result) > 1:
                 logger.warning(f"More than one annotation was found for {resource.name}: {resource.get_identifier()}")
             result = result[0]
-            is_curated = str(result.canBeLoaded) == 'True'
-            _add_replace_delete_annotation(resource, curated_annotation, is_curated)
+
+            if str(result.canBeLoaded) == 'True':
+                new_curated_status = CurationStatus.CURATED
+                note = "NeuronMorphology dataset contains complete minimal metadata and it can be loaded using Morphio without warnings."
+            else:
+                new_curated_status = CurationStatus.UNASSESSED
+                note = str(result.canBeLoaded)
+
+            minds = check_minds(resource)
+            if not minds:
+                raise ValueError("Resource doesn't have complete with MINDS")
+
+            resource, previous_curation_status = create_update_curated_annotation(resource, forge, new_curated_status, note)
             forge.update(resource)
+
             if not resource._last_action.succeeded:
                 raise ValueError(f"Error updating: {resource._last_action.message}")
         except Exception as e:
