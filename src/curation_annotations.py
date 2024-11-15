@@ -13,8 +13,14 @@ from src.helpers import _as_list
 
 class CurationStatus(Enum):
     CURATED = "Curated"
+
     UNASSESSED = "Unassessed"
+    # This actually means that the resource is marked as incomplete,
+    # not that assessment hasn't been performed yet... Confusing terminology
+
     NOTHING = "Nothing"
+    # This means that the resource hasn't been marked as curated or incomplete yet.
+    # The actual meaning of "Un-assessed".
 
 
 ontology_id = {
