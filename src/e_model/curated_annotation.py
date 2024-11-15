@@ -1,60 +1,28 @@
 import getpass
+from typing import Tuple, List
 
 from kgforge.core import Resource
 
+from src.curation_annotations import CurationStatus, create_update_curated_annotation
 from src.e_model.querying import curated_e_models
-from src.helpers import allocate_by_deployment, _as_list, Deployment
-
-CURATED_ANNOTATION = {
-    "@type": [
-        "QualityAnnotation",
-        "Annotation"
-    ],
-    "hasBody": {
-        "@id": "https://neuroshapes.org/Curated",
-        "@type": [
-            "AnnotationBody",
-            "DataMaturity"
-        ],
-        "label": "Curated"
-    },
-    "motivatedBy": {
-        "@id": "https://neuroshapes.org/qualityAssessment",
-        "@type": "Motivation"
-    },
-    "name": "Data maturity annotation",
-}
-
-
-def _add_annotation(resource: Resource, annotation: Resource) -> Resource:
-
-    if "annotation" in resource.__dict__:
-
-        resource.annotation = _as_list(resource.annotation)
-
-        exists = next(
-            (
-                i for i in _as_list(resource.annotation)
-                if i.hasBody.get_identifier() == CURATED_ANNOTATION["hasBody"]["@id"]
-            ),
-            None
-        )
-
-        if exists is None:
-            resource.annotation.append(ann)
-    else:
-        resource.annotation = [annotation]
-
-    return resource
-
+from src.helpers import allocate_by_deployment, Deployment
 
 if __name__ == "__main__":
 
     token = getpass.getpass()
-    forge_bucket = allocate_by_deployment("bbp", "mmb-point-neuron-framework-model", deployment=Deployment.PRODUCTION, token=token)
-    ann = forge_bucket.from_json(CURATED_ANNOTATION)
+    forge_bucket = allocate_by_deployment(
+        "bbp", "mmb-point-neuron-framework-model", deployment=Deployment.PRODUCTION, token=token
+    )
+
     resources = curated_e_models(forge_bucket)
-    updated_resources = [_add_annotation(r, ann) for r in resources]
-    updated_resources = [i for i in updated_resources if not i._synchronized]
-    # forge_bucket.update(resources)
+
+    # TODO explicitly mark the others as un-assessed?
+    # TODO note to confluence pages?
+
+    updated_resources: List[Tuple[Resource, CurationStatus]] = [
+        create_update_curated_annotation(resource, forge_bucket, CurationStatus.CURATED, None)
+        for resource in resources
+    ]
+
+    # forge_bucket.update([r for r, _ in updated_resources if not r._synchronized])
 
