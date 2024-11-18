@@ -286,3 +286,24 @@ def _auth(username, password, realm, server_url, is_service=True) -> requests.Re
         },
         data=body
     )
+
+
+def get_ext_path(resource: Resource, ext_download_folder: str,
+                 forge: KnowledgeGraphForge, ext: str,
+                 i_res: int = None, n_resources: int = None) -> str:
+    if i_res is not None and n_resources is not None:
+        logger.info(f"Getting {ext} file for Resource {i_res +1} of {n_resources}")
+    distributions = resource.distribution if isinstance(resource.distribution, list) else [resource.distribution]
+    distribution_name = next(d.name for d in distributions if d.encodingFormat.split('/')[-1] == ext)
+
+    file_path = os.path.join(ext_download_folder, distribution_name)
+
+    if not os.path.isfile(file_path):  # If already present, no need to download
+        logger.info(f"Downloading {ext} file for resource {resource.get_identifier()}")
+        forge.download(resource, follow='distribution.contentUrl', content_type=f'application/{ext}', path=ext_download_folder)
+
+    return file_path
+
+
+def get_filename_and_ext_from_filepath(filepath) -> Tuple[str, str]:
+    return os.path.splitext(os.path.basename(filepath))

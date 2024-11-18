@@ -15,7 +15,7 @@ from morph_tool.converter import convert
 import pandas as pd
 import os
 
-from src.neuron_morphology.query_data import get_ext_path
+from src.helpers import get_ext_path
 
 SWC_EXPECTED_COLUMNS_READ = {'type', 'x', 'y', 'z', 'radius', 'parent'}
 synonyms = {'r': 'radius'}

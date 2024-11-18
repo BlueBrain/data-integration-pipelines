@@ -44,6 +44,8 @@ setup(
             # "morphology-workflows==0.10.1",
         ],
         "trace": [
+            "randomaccessbuffer@git+https://github.com/BlueBrain/web-data-container",
+            "pynwb==2.0.0",
             "thumbnail-generation-api@git+https://github.com/BlueBrain/thumbnail-generation-api"
         ]
     },

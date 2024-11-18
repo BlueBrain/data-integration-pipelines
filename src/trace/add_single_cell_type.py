@@ -21,10 +21,10 @@ from src.trace.find_valid_data import (
     has_distribution, distribution_extension_from_name, retrieve_wrapper
 )
 from src.forge_extension import download_file
-from src.trace.get_command_line_args import trace_command_line_args
+from src.trace.arguments import trace_command_line_args
 from src.trace.stimulus_type_ontology_querying import stimulus_type_ontology
+from src.trace.types_and_schemas import SINGLE_CELL_TRACE_TYPE as NEW_TYPE
 
-NEW_TYPE = "SingleCellExperimentalTrace"
 
 
 # Not used

@@ -23,7 +23,7 @@ from src.helpers import _as_list, Deployment, allocate_with_default_views, authe
 
 from src.trace.query.query import query_traces
 from src.forge_extension import _retrieve_file_metadata, _exists
-from src.trace.get_command_line_args import trace_command_line_args
+from src.trace.arguments import trace_command_line_args
 from src.trace.thumbnail import data_from_content_url
 # from src.get_projects import get_all_projects
 

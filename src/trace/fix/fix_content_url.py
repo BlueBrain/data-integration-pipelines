@@ -16,7 +16,7 @@ from src.helpers import _as_list, allocate_with_default_views, authenticate_from
 from src.forge_extension import _retrieve_file_metadata
 
 from src.trace.query.query import query_traces
-from src.trace.get_command_line_args import trace_command_line_args
+from src.trace.arguments import trace_command_line_args
 
 
 def make_get_file_endpoint(content_url: Any, resource: Resource, forge: KnowledgeGraphForge) -> Optional[str]:

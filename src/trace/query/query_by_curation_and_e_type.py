@@ -13,7 +13,7 @@ from src.logger import logger
 from src.helpers import _as_list, Deployment, allocate_with_default_views, authenticate_from_parser_arguments
 
 from src.trace.query.query import query_traces
-from src.trace.get_command_line_args import trace_command_line_args
+from src.trace.arguments import trace_command_line_args
 
 
 def query_by_curation_and_e_type(

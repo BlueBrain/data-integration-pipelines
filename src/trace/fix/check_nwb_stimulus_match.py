@@ -24,7 +24,7 @@ from src.trace.query.query import query_traces
 from src.trace.find_valid_data import (
     distribution_extension_from_name, has_distribution, retrieve_wrapper
 )
-from src.trace.get_command_line_args import trace_command_line_args
+from src.trace.arguments import trace_command_line_args
 from src.trace.stimulus_type_ontology_querying import stimulus_type_ontology
 
 

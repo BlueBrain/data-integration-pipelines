@@ -13,10 +13,11 @@ from src.helpers import (
     ASSETS_DIRECTORY, _format_boolean,
     allocate_by_deployment,
     allocate_with_default_views, Deployment,
-    authenticate_from_parser_arguments
+    authenticate_from_parser_arguments,
+    get_ext_path
 )
 from src.neuron_morphology.arguments import define_morphology_arguments
-from src.neuron_morphology.query_data import get_neuron_morphologies, get_ext_path
+from src.neuron_morphology.query_data import get_neuron_morphologies
 from src.neuron_morphology.validation.quality_metric import (
     SOLO_TYPE, BATCH_TYPE, save_batch_quality_measurement_annotation_report, QUALITY_SCHEMA, BATCH_QUALITY_SCHEMA
 )
