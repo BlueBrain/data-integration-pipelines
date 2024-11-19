@@ -9,7 +9,7 @@ cd data-integration-pipelines
 pip install .
 ```
 
-### Available pipelines
+## Available pipelines
 #### Neuron Morphology pipelines 
 Can be ran on the buckets of Nexus holding Neuron Morphology-s featured in OBP. Those buckets are the following
 - bbp-external/seu 
@@ -58,3 +58,9 @@ Trace Registration
    - generation of .rab file
    - registration of TraceWebDataContainer object, linking to the main Trace resource through the **.isPartOf** path
    - update of Trace object to add the TraceWebDataContainer object id as **hasPart**
+
+# Funding and Acknowledgement
+
+The development of this software was supported by funding to the Blue Brain Project, a research center of the École polytechnique fédérale de Lausanne (EPFL), from the Swiss government’s ETH Board of the Swiss Federal Institutes of Technology.
+
+Copyright (c) 2024 Blue Brain Project/EPFL
