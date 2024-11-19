@@ -52,9 +52,9 @@ Steps 2, 3, and can be done in parallel, as long as the morphology files don't c
 
 # Steps in trace integration
 
-2. Trace Registration
-    - generation of stimuli images
-    - registration of Trace object
-    - generation of .rab file
-    - registration of TraceWebDataContainer object, linking to the main Trace resource through the **.isPartOf** path
-    - update of Trace object to add the TraceWebDataContainer object id as **hasPart**
+Trace Registration
+   - generation of stimuli images
+   - registration of Trace object
+   - generation of .rab file
+   - registration of TraceWebDataContainer object, linking to the main Trace resource through the **.isPartOf** path
+   - update of Trace object to add the TraceWebDataContainer object id as **hasPart**
