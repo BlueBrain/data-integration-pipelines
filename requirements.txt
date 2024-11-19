@@ -1,0 +1,8 @@
+pandas
+nexusforge
+pynrrd==1.0.0
+XlsxWriter==3.1.9
+importlib_metadata
+IPython
+openpyxl
+pyjwt

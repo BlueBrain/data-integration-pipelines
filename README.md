@@ -1,24 +1,14 @@
 # data-integration-pipelines
-
-See https://bbpteam.epfl.ch/project/spaces/display/BBKG/Morphology+Curation+Pipeline
-
-
-## Running pipelines: 
-- Go to 
-https://bbpgitlab.epfl.ch/dke/apps/data-integration-pipelines/-/pipelines
-- Set **Run for branch name or tag** to main
-- Set a variable of key REALLY_UPDATE and value *yes* or *no*
-- Set a variable of key LIMIT and value a neuron morphology query limit (input 10000 for no limit)
-- Set a variable of key STAGING and value "yes" or "no"
-- Set a variable of key CURATED and value "yes" or "both"
-- Click the blue **Run Pipeline** button
+A collection of pipelines to register and curate experimentally obtained morphologies (nsg:ReconstructedNeuronMorphologies) and electrophysiology recordings (bmo:ExperimentalTraces)
 
 
-A pipeline will be created under the latest commit in main here https://bbpgitlab.epfl.ch/dke/apps/data-integration-pipelines/-/pipelines.
-Clicking on the round button in the stages column will unfold a list of all jobs, including the ones that were started.
-Clicking on a job will show its progress and log.
-If successful, on the right-side column, there will be a section for artifacts, which are the outputs of the pipeline. 
-You can download them or browse them
+## Install
+```
+git clone https://github.com/BlueBrain/data-integration-pipelines.git
+cd data-integration-pipelines
+pip install .
+```
+
 ### Available pipelines
 #### Neuron Morphology pipelines 
 Can be ran on the buckets of Nexus holding Neuron Morphology-s featured in OBP. Those buckets are the following
@@ -40,3 +30,31 @@ The pipelines available:
 current schema. Similar to check_morphologies_schema pipeline, it doesn't check if the schema is appropriate.
 - **check_changed_schemas**: collects all resources in a bucket constrained by a list of schemas, and checks if they conform with their
 current schema. Similar to check_morphologies_schema pipeline, it doesn't check if the schema is appropriate.
+
+# Steps in morphology full integration
+
+1. Morphology registration
+    - metadata mapping
+1. Morphology curation
+    - metadata curation
+        - to pass schema validation
+    - dataset file transformation
+        - swc, h5, asc
+        - Make sure there is one distribution of each type only, and 0 or 1 '.obj'
+    - dataset checks
+        - morphochecks
+        - quality metrics' annotations
+1. Morphology features' annotations registration
+1. Morphology embeddings generation
+1. Rules' update
+
+Steps 2, 3, and can be done in parallel, as long as the morphology files don't cause extra issues.
+
+# Steps in trace integration
+
+2. Trace Registration
+    - generation of stimuli images
+    - registration of Trace object
+    - generation of .rab file
+    - registration of TraceWebDataContainer object, linking to the main Trace resource through the **.isPartOf** path
+    - update of Trace object to add the TraceWebDataContainer object id as **hasPart**
