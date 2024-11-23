@@ -17,8 +17,6 @@ from src.logger import logger
 
 PROD_CONFIG_URL = "https://raw.githubusercontent.com/BlueBrain/nexus-forge/master/examples/notebooks/use-cases/prod-forge-nexus.yml"
 
-ASSETS_DIRECTORY = os.path.join(os.getcwd(), "./assets")
-
 ORG_OF_INTEREST = ["bbp", "bbp-external", "public"]
 
 DELTA_METADATA_KEYS = [
@@ -286,3 +284,6 @@ def _auth(username, password, realm, server_url, is_service=True) -> requests.Re
         },
         data=body
     )
+
+ASSETS_DIRECTORY = get_path("./assets")
+

@@ -144,6 +144,16 @@ validation_report_checks = {
         # )
     },
     'neurites': {
+        'has_min_2_points_for_root_nodes': Check(
+            id_="TODO",
+            label="Root sections have at least 2 points",
+            pref_label="Root sections have at least 2 points",
+            callable_=lambda neuron, swc_path: custom_validation.root_sections_have_at_least_two_points(neuron),
+            value_in_json=lambda neuron_path, k_1, k_2, x: x.status,
+            example_failure=[],
+            value_in_tsv=(Check.basic_tsv, True)
+        ),
+
         'has_different_diameters': Check(
             id_="https://bbp.epfl.ch/ontologies/core/bmo/NeuriteHasDifferentDiametersMetric",
             label="Neurite Has Different Diameters Metric",

@@ -38,6 +38,11 @@ def has_no_heterogeneous_neurites(neuron: Morphology) -> CheckResult:
     return CheckResult(len(heterogeneous_neurites) == 0, heterogeneous_neurites)
 
 
+def root_sections_have_at_least_two_points(neuron: Morphology) -> CheckResult:
+    neurites_root_node_point_length = [len(neurite.root_node.points) for neurite in neuron.neurites]
+    return CheckResult(all(i >= 2 for i in neurites_root_node_point_length), neurites_root_node_point_length)
+
+
 def has_no_radical_diameter_changes(neuron: Morphology, max_change=10) -> CheckResult:
     '''Check if the neuron is radical diameter changes
     Arguments:

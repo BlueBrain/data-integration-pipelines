@@ -3,6 +3,7 @@ import json
 import shutil
 from typing import Tuple, Dict, List, Optional, Union
 
+from src.arguments import default_output_dir
 from src.helpers import _as_list
 from src.logger import logger
 from src.neuron_morphology.arguments import define_arguments
@@ -56,7 +57,7 @@ def save_quality_measurement_annotation_report(
         with open(json_path, "w") as f:
             json.dump(json_report, f, indent=4)
 
-        columns = _get_headers_and_more(added)
+        columns = _get_headers_and_more([added])
         tsv_header = "\t".join(columns)
         tsv_content = "# " + tsv_header + "\n" + '\t'.join(quality_measurement_annotation_line) + "\n"
         tsv_path = os.path.join(tsv_path, f'{name}.tsv')
@@ -71,7 +72,7 @@ def save_quality_measurement_annotation_report(
 def _get_headers_and_more(added: Union[List[Dict], Dict]):
     added_list = _as_list(added)
     columns = get_tsv_header_columns()
-    if added_list is not None and len(added_list) > 0:
+    if added_list[0] is not None and len(added_list[0]) > 0:
         columns += list(added_list[0].keys())
     return columns
 
@@ -127,32 +128,42 @@ def save_batch_quality_measurement_annotation_report(
 
 if __name__ == "__main__":
 
-    parser = define_arguments(argparse.ArgumentParser())
-    received_args, leftovers = parser.parse_known_args()
+    # parser = define_arguments(argparse.ArgumentParser())
+    # received_args, leftovers = parser.parse_known_args()
+    #
+    # org, project = received_args.bucket.split("/")
+    #
+    # working_directory = os.path.join(os.getcwd(), received_args.output_dir)
+    # os.makedirs(working_directory, exist_ok=True)
+    #
+    # # path_to_value = get_neurom_test_data()
+    # path_to_value = get_random_test_data()
+    #
+    # paths = list(path_to_value.keys())
+    # morphologies = list(path_to_value.values())
 
-    org, project = received_args.bucket.split("/")
+    p = "/Users/mouffok/work_dir/data-integration-pipelines/output/2024-11-19-16-15-00_for_check"
 
-    working_directory = os.path.join(os.getcwd(), received_args.output_dir)
-    os.makedirs(working_directory, exist_ok=True)
+    for dirname in ["2020&2021", '2024']:
 
-    # path_to_value = get_neurom_test_data()
-    path_to_value = get_random_test_data()
+        full_dir = os.path.join(p, dirname)
 
-    paths = list(path_to_value.keys())
-    morphologies = list(path_to_value.values())
+        morphologies = None
+        paths = [os.path.join(full_dir, i) for i in os.listdir(full_dir) if ".swc" in i]
+        working_directory = default_output_dir()
 
-    report_dir_path = os.path.join(working_directory, 'validation_report')
-    report_name = "batch_report.tsv"
+        report_dir_path = os.path.join(working_directory, 'validation_report')
+        report_name = f"batch_report_{dirname}.tsv"
 
-    if os.path.exists(report_dir_path):
-        shutil.rmtree(report_dir_path)
+        if os.path.exists(report_dir_path):
+            shutil.rmtree(report_dir_path)
 
-    reports, errors = save_batch_quality_measurement_annotation_report(
-        swc_paths=paths,
-        morphologies=morphologies,
-        report_dir_path=report_dir_path,
-        report_name=report_name,
-        individual_reports=True
-    )
+        reports, errors = save_batch_quality_measurement_annotation_report(
+            swc_paths=paths,
+            morphologies=morphologies,
+            report_dir_path=report_dir_path,
+            report_name=report_name,
+            individual_reports=True
+        )
 
-    print(json.dumps(reports, indent=4))
+        print(json.dumps(reports, indent=4))

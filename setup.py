@@ -40,7 +40,7 @@ setup(
             "voxcell==3.1.9",
             "neurom==4.0.4",
             "morphio==v3.4.0",
-            # "morph-tool==v2.10.2",
+            "morph-tool==v2.10.2",
             # "morphology-workflows==0.10.1",
         ],
         "trace": [

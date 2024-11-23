@@ -1,7 +1,7 @@
 import copy
 import argparse
 import shutil
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Set
 
 from kgforge.core import KnowledgeGraphForge, Resource
 from voxcell import RegionMap, VoxelData
@@ -16,6 +16,7 @@ from src.get_atlas import _get_atlas_dir_ready
 from src.helpers import ASSETS_DIRECTORY, allocate_by_deployment, _as_list, _download_from, _format_boolean, Deployment, authenticate_from_parser_arguments
 from src.logger import logger
 from src.neuron_morphology.arguments import define_morphology_arguments
+from src.neuron_morphology.morphology_loading import load_morphology_with_morphio
 from src.neuron_morphology.query_data import get_neuron_morphologies
 
 # From /gpfs/bbp.cscs.ch/data/project/proj162/Experimental_Data/Reconstructed_morphologies/Categorized/Neurons/Mouse/
@@ -57,7 +58,7 @@ def get_neigh_col_name(coord_type):
 
 
 def get_soma_center(morph_path: str) -> Optional[List]:
-    morph = morphio.Morphology(morph_path)
+    morph = load_morphology_with_morphio(morph_path, raise_=False)
     return [float(i) for i in morph.soma.center]
 
 
@@ -78,31 +79,50 @@ def get_morphology_coordinates(morphology: Resource, forge: KnowledgeGraphForge)
     return None
 
 
-def get_region(position, brain_region_map: RegionMap, voxel_data: VoxelData, region_attribute=REGION_ATTRIBUTE, with_neighbours=False) -> Tuple[str, List]:
-
+def get_region_id(position, voxel_data: VoxelData) -> int:
     soma_x, soma_y, soma_z = voxel_data.positions_to_indices(position)
-    region_id = int(voxel_data.raw[soma_x, soma_y, soma_z])
+    return int(voxel_data.raw[soma_x, soma_y, soma_z])
 
-    if not with_neighbours:
-        return brain_region_map.get(region_id, region_attribute), []
 
-    neigh_ids = set()
+def get_neighbors_id(position, voxel_data: VoxelData) -> Set[int]:
+    position_indices: List[int] = list(voxel_data.positions_to_indices(position))  # from position to indices in the volume
 
-    # Find first neighbour regions
-    reg_indices = [soma_x, soma_y, soma_z]
-    for i_idx in range(len(reg_indices)):
-        neigh_indices = copy.deepcopy(reg_indices)
-        for step in [-1, 0, +1]:
-            neigh_indices[i_idx] = reg_indices[i_idx] + step
-            neigh_id = int(voxel_data.raw[tuple(neigh_indices)])
-            neigh_ids.add(neigh_id)
+    def set_list(list_, axis, value):
+        list_[axis] = value
+        return list_
 
-    if region_id not in neigh_ids:
-        raise Exception(f"region_id {region_id} not found in neigh_ids: {neigh_ids}")
-    neigh_ids.remove(region_id)
+    offsets = [set_list([0, 0, 0], axis, step) for step in [-1, +1] for axis in range(3)]
+
+    neighbors_coordinates: Set[Tuple[int]] = set(
+        tuple(
+            int(init_value + offset_i)
+            for init_value, offset_i in zip(position_indices, offset)
+        )
+        for offset in offsets
+    )
+
+    neighbor_ids = set(
+        int(voxel_data.raw[tuple(neighbor_coordinates)])
+        for neighbor_coordinates in neighbors_coordinates
+    )
+
+    return neighbor_ids
+
+
+def get_region(position, brain_region_map: RegionMap, voxel_data: VoxelData, region_attribute=REGION_ATTRIBUTE, with_neighbours=False) -> Tuple[str, Set[str]]:
+
+    region_id = get_region_id(position, voxel_data)
+    neigh_ids = get_neighbors_id(position, voxel_data) if with_neighbours else []
 
     return brain_region_map.get(region_id, region_attribute), \
-        [brain_region_map.get(neigh_id, region_attribute) for neigh_id in neigh_ids]
+        set(brain_region_map.get(neigh_id, region_attribute) for neigh_id in neigh_ids)
+
+
+def safe_brain_region_map_access(region_id: int, brain_region_map: RegionMap, region_attribute: str) -> Optional[str]:
+    try:
+        return brain_region_map.get(region_id, region_attribute)
+    except Exception:
+        return None
 
 
 def is_descendant_of_forge(a, b, forge):
