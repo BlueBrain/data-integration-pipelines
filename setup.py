@@ -46,7 +46,7 @@ setup(
         "trace": [
             "randomaccessbuffer@git+https://github.com/BlueBrain/web-data-container",
             "pynwb==2.0.0",
-            "thumbnail-generation-api@git+https://github.com/BlueBrain/thumbnail-generation-api"
+            # "thumbnail-generation-api@git+https://github.com/BlueBrain/thumbnail-generation-api"
         ]
     },
     classifiers=[

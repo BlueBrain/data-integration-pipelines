@@ -17,7 +17,7 @@ from src.logger import logger
 
 from src.trace.fix.check_nwb_stimulus_match import _stimulus_type_extraction
 from src.trace.query.query import query_traces
-from src.trace.find_valid_data import (
+from src.trace.validation.validation import (
     has_distribution, distribution_extension_from_name, retrieve_wrapper
 )
 from src.forge_extension import download_file

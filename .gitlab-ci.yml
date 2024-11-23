@@ -115,7 +115,7 @@ update_trace_curated:
   script:
     - echo REALLY_UPDATE ${REALLY_UPDATE}
     - > 
-      python src/trace/add_curation_annotation.py  
+      python src/trace/validation/create_update_curation_annotation.py  
       --username $SA_USERNAME --password $SA_PASSWORD --deployment $DEPLOYMENT --is_service_account $IS_SERVICE_ACCOUNT
       --output_dir $OUTPUT_DIR --really_update $REALLY_UPDATE --bucket $BUCKET
 
