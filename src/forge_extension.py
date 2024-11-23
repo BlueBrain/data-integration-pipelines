@@ -64,10 +64,17 @@ def _exists(provided_id: Union[str, List[str]], forge: KnowledgeGraphForge, is_f
             catch_http_error_nexus(
                 response, RetrievalError, aiohttp_error=False
             )
-
             return Action(action_name, True, None)
-        except RetrievalError as e:
-            return Action(action_name, False, e)
+        except RetrievalError:
+            # Try again, sometimes fails for no reason
+            response_2 = requests.get(url=url, headers=store.service.headers)
+            try:
+                catch_http_error_nexus(
+                    response_2, RetrievalError, aiohttp_error=False
+                )
+                return Action(action_name, True, None)
+            except RetrievalError as e:
+                return Action(action_name, False, e)
 
     def _exists_many(ids: List[str]) -> List[Optional[Resource]]:
 
